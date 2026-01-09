@@ -1,20 +1,23 @@
 import { useGalleryStore } from "~/stores/galleryStore";
-import { useGenerationStore } from "~/stores/generationStore";
 import { GalleryHeader } from "./GalleryHeader";
 import { MasonryGrid } from "./MasonryGrid";
 import { ImageCard } from "./ImageCard";
 import { LoadingCard } from "./LoadingCard";
 import { TimelineDivider } from "./TimelineDivider";
 import { ImageOff } from "lucide-react";
+import type { CompletedGalleryItem, FailedGalleryItem, PendingGalleryItem } from "~/types";
 
 export function Gallery() {
-  const images = useGalleryStore((s) => s.images);
+  const items = useGalleryStore((s) => s.items);
   const viewMode = useGalleryStore((s) => s.viewMode);
   const isLoading = useGalleryStore((s) => s.isLoading);
-  const pendingGenerations = useGenerationStore((s) => s.pendingGenerations);
-  const getImagesByDate = useGalleryStore((s) => s.getImagesByDate);
+  const getItemsByDate = useGalleryStore((s) => s.getItemsByDate);
 
-  const totalCount = images.length + pendingGenerations.length;
+  // Filter items by status
+  const pendingItems = items.filter((i) => i.status === 'pending' || i.status === 'generating') as PendingGalleryItem[];
+  const failedItems = items.filter((i) => i.status === 'failed') as FailedGalleryItem[];
+
+  const totalCount = items.length;
 
   if (isLoading) {
     return (
@@ -32,11 +35,12 @@ export function Gallery() {
         {totalCount === 0 ? (
           <EmptyState />
         ) : viewMode === "grid" ? (
-          <GridView images={images} pendingGenerations={pendingGenerations} />
+          <GridView items={items} />
         ) : (
           <TimelineView
-            imagesByDate={getImagesByDate()}
-            pendingGenerations={pendingGenerations}
+            itemsByDate={getItemsByDate()}
+            pendingItems={pendingItems}
+            failedItems={failedItems}
           />
         )}
       </div>
@@ -59,54 +63,61 @@ function EmptyState() {
 }
 
 function GridView({
-  images,
-  pendingGenerations,
+  items,
 }: {
-  images: ReturnType<typeof useGalleryStore.getState>["images"];
-  pendingGenerations: ReturnType<typeof useGenerationStore.getState>["pendingGenerations"];
+  items: ReturnType<typeof useGalleryStore.getState>["items"];
 }) {
   return (
     <MasonryGrid>
-      {pendingGenerations.map((pending) => (
-        <LoadingCard key={pending.id} generation={pending} />
-      ))}
-      {images.map((image) => (
-        <ImageCard key={image.id} image={image} />
-      ))}
+      {items.map((item) => {
+        // Render appropriate card type based on status
+        if (item.status === 'completed') {
+          return <ImageCard key={item.id} image={item} />;
+        } else {
+          // pending, generating, or failed
+          return <LoadingCard key={item.id} item={item} />;
+        }
+      })}
     </MasonryGrid>
   );
 }
 
 function TimelineView({
-  imagesByDate,
-  pendingGenerations,
+  itemsByDate,
+  pendingItems,
+  failedItems,
 }: {
-  imagesByDate: Map<string, ReturnType<typeof useGalleryStore.getState>["images"]>;
-  pendingGenerations: ReturnType<typeof useGenerationStore.getState>["pendingGenerations"];
+  itemsByDate: Map<string, CompletedGalleryItem[]>;
+  pendingItems: PendingGalleryItem[];
+  failedItems: FailedGalleryItem[];
 }) {
-  const entries = Array.from(imagesByDate.entries());
+  const entries = Array.from(itemsByDate.entries());
+  const hasActiveGenerations = pendingItems.length > 0 || failedItems.length > 0;
 
   return (
     <div>
-      {/* Show pending generations at the top */}
-      {pendingGenerations.length > 0 && (
+      {/* Show pending/generating/failed items at the top */}
+      {hasActiveGenerations && (
         <>
           <TimelineDivider label="Generating..." />
           <MasonryGrid>
-            {pendingGenerations.map((pending) => (
-              <LoadingCard key={pending.id} generation={pending} />
+            {pendingItems.map((item) => (
+              <LoadingCard key={item.id} item={item} />
+            ))}
+            {failedItems.map((item) => (
+              <LoadingCard key={item.id} item={item} />
             ))}
           </MasonryGrid>
         </>
       )}
 
-      {/* Show images grouped by date */}
-      {entries.map(([dateLabel, dateImages]) => (
+      {/* Show completed items grouped by date */}
+      {entries.map(([dateLabel, dateItems]) => (
         <div key={dateLabel}>
           <TimelineDivider label={dateLabel} />
           <MasonryGrid>
-            {dateImages.map((image) => (
-              <ImageCard key={image.id} image={image} />
+            {dateItems.map((item) => (
+              <ImageCard key={item.id} image={item} />
             ))}
           </MasonryGrid>
         </div>

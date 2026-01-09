@@ -6,7 +6,7 @@ export type AspectRatio = '1:1' | '16:9' | '9:16' | '4:3' | '3:4' | '21:9';
 export type Resolution = '1K' | '2K' | '4K';
 
 export interface ModelCapabilities {
-  aspectRatios: AspectRatio[];
+  supportsAspectRatios: boolean;
   supportsResolution: boolean;
   resolutions?: Resolution[];
   supportsReferenceImages: boolean;
@@ -40,30 +40,43 @@ export interface GenerationRequest {
   referenceImages: ReferenceImage[];
 }
 
-export interface PendingGeneration {
+// Unified gallery item that transitions through states
+export interface BaseGalleryItem {
   id: string;
   modelId: string;
   modelName: string;
-  status: 'pending' | 'generating' | 'completed' | 'failed';
-  error?: string;
+  prompt: string;
+  aspectRatio: AspectRatio;
+  resolution: Resolution | null;
+  referenceImageIds: string[];
 }
 
-// Gallery types
-export interface ImageRecord {
-  id: string;
+export interface PendingGalleryItemFields {
+  status: 'pending' | 'generating';
+}
+
+export type PendingGalleryItem = BaseGalleryItem & PendingGalleryItemFields;
+
+export interface CompletedGalleryItemFields {
+  status: 'completed';
   blob: Blob;
   url: string; // Object URL for display
-  prompt: string;
-  modelId: string;
-  modelName: string;
-  aspectRatio: string;
-  resolution: string | null;
   width: number;
   height: number;
   createdAt: number;
-  referenceImageIds: string[];
-  metadata: Record<string, unknown>;
+  metadata: Record<string, unknown>; // Will include thinking traces for gemini 3 models
 }
+
+export type CompletedGalleryItem = BaseGalleryItem & CompletedGalleryItemFields;
+
+export interface FailedGalleryItemFields {
+  status: 'failed';
+  error: string;
+}
+
+export type FailedGalleryItem = BaseGalleryItem & FailedGalleryItemFields;
+
+export type GalleryItem = PendingGalleryItem | CompletedGalleryItem | FailedGalleryItem;
 
 // Stored version without URL (URLs are created at runtime)
 export interface StoredImageRecord {
@@ -72,8 +85,8 @@ export interface StoredImageRecord {
   prompt: string;
   modelId: string;
   modelName: string;
-  aspectRatio: string;
-  resolution: string | null;
+  aspectRatio: AspectRatio;
+  resolution: Resolution | null;
   width: number;
   height: number;
   createdAt: number;

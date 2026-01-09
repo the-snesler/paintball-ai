@@ -1,12 +1,12 @@
 import { Maximize } from "lucide-react";
 import { RESOLUTIONS, anyModelSupportsResolution } from "~/lib/models";
-import { useGenerationStore } from "~/stores/generationStore";
+import { useGalleryStore } from "~/stores/galleryStore";
 import type { Resolution } from "~/types";
 
 export function ResolutionSection() {
-  const resolution = useGenerationStore((s) => s.resolution);
-  const setResolution = useGenerationStore((s) => s.setResolution);
-  const modelSelections = useGenerationStore((s) => s.modelSelections);
+  const resolution = useGalleryStore((s) => s.currentResolution);
+  const setResolution = useGalleryStore((s) => s.setResolution);
+  const modelSelections = useGalleryStore((s) => s.currentModelSelections);
 
   // Derive selected model IDs from modelSelections (subscribing to the actual state)
   const selectedModels = Object.entries(modelSelections)

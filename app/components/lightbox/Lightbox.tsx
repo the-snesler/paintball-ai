@@ -9,17 +9,17 @@ import {
   Wand2,
 } from "lucide-react";
 import { useGalleryStore } from "~/stores/galleryStore";
-import { useGenerationStore } from "~/stores/generationStore";
 
 export function Lightbox() {
   const closeLightbox = useGalleryStore((s) => s.closeLightbox);
   const navigateLightbox = useGalleryStore((s) => s.navigateLightbox);
-  const deleteImage = useGalleryStore((s) => s.deleteImage);
-  const getSelectedImage = useGalleryStore((s) => s.getSelectedImage);
-  const images = useGalleryStore((s) => s.images);
-  const setPrompt = useGenerationStore((s) => s.setPrompt);
+  const deleteItem = useGalleryStore((s) => s.deleteItem);
+  const getSelectedItem = useGalleryStore((s) => s.getSelectedItem);
+  const getCompletedItems = useGalleryStore((s) => s.getCompletedItems);
+  const setPrompt = useGalleryStore((s) => s.setPrompt);
 
-  const image = getSelectedImage();
+  const image = getSelectedItem();
+  const completedItems = getCompletedItems();
 
   // Keyboard navigation
   useEffect(() => {
@@ -42,7 +42,7 @@ export function Lightbox() {
   }, [closeLightbox, navigateLightbox]);
 
   const handleDownload = useCallback(() => {
-    if (!image) return;
+    if (!image || image.status !== "completed") return;
 
     const link = document.createElement("a");
     link.href = image.url;
@@ -66,13 +66,13 @@ export function Lightbox() {
   const handleDelete = useCallback(async () => {
     if (!image) return;
     if (confirm("Delete this image?")) {
-      await deleteImage(image.id);
+      await deleteItem(image.id);
     }
-  }, [image, deleteImage]);
+  }, [image, deleteItem]);
 
   if (!image) return null;
 
-  const showNavigation = images.length > 1;
+  const showNavigation = completedItems.length > 1;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
@@ -133,10 +133,14 @@ export function Lightbox() {
                   <span>{image.resolution}</span>
                 </>
               )}
-              <span>·</span>
-              <span>
-                {new Date(image.createdAt).toLocaleString()}
-              </span>
+              {image.createdAt && (
+                <>
+                  <span>·</span>
+                  <span>
+                    {new Date(image.createdAt).toLocaleString()}
+                  </span>
+                </>
+              )}
             </div>
           </div>
 

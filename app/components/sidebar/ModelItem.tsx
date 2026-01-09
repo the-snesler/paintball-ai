@@ -1,6 +1,6 @@
 import { Minus, Plus, Sparkles, Zap } from "lucide-react";
 import type { ModelDefinition } from "~/types";
-import { useGenerationStore } from "~/stores/generationStore";
+import { useGalleryStore } from "~/stores/galleryStore";
 import { useSettingsStore } from "~/stores/settingsStore";
 
 interface ModelItemProps {
@@ -21,7 +21,7 @@ const providerNames: Record<string, string> = {
 };
 
 export function ModelItem({ model, count, hasApiKey }: ModelItemProps) {
-  const setModelCount = useGenerationStore((s) => s.setModelCount);
+  const setModelCount = useGalleryStore((s) => s.setModelCount);
   const openSettingsModal = useSettingsStore((s) => s.openSettingsModal);
 
   const isActive = count > 0;

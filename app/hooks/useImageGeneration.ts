@@ -1,10 +1,9 @@
 import { useCallback } from "react";
-import { useGenerationStore } from "~/stores/generationStore";
 import { useGalleryStore } from "~/stores/galleryStore";
 import { useSettingsStore } from "~/stores/settingsStore";
-import { saveImage, toDisplayImage } from "~/lib/db";
-import { getModel, MODELS } from "~/lib/models";
-import type { ApiKeys, PendingGeneration } from "~/types";
+import { saveImage } from "~/lib/db";
+import { getModel } from "~/lib/models";
+import type { ApiKeys, AspectRatio, GalleryItem, Resolution } from "~/types";
 import { GoogleGenAI } from "@google/genai";
 
 interface GenerationTask {
@@ -12,28 +11,27 @@ interface GenerationTask {
   modelId: string;
   modelName: string;
   prompt: string;
-  aspectRatio: string;
-  resolution: string | null;
+  aspectRatio: AspectRatio;
+  resolution: Resolution | null;
   referenceImages: Array<{ blob: Blob }>;
 }
 
 export function useImageGeneration() {
   const apiKeys = useSettingsStore((s) => s.apiKeys);
-  const addImage = useGalleryStore((s) => s.addImage);
 
-  const prompt = useGenerationStore((s) => s.prompt);
-  const modelSelections = useGenerationStore((s) => s.modelSelections);
-  const aspectRatio = useGenerationStore((s) => s.aspectRatio);
-  const resolution = useGenerationStore((s) => s.resolution);
-  const referenceImages = useGenerationStore((s) => s.referenceImages);
-  const startGeneration = useGenerationStore((s) => s.startGeneration);
-  const updatePendingGeneration = useGenerationStore((s) => s.updatePendingGeneration);
-  const completeGeneration = useGenerationStore((s) => s.completeGeneration);
+  const prompt = useGalleryStore((s) => s.currentPrompt);
+  const modelSelections = useGalleryStore((s) => s.currentModelSelections);
+  const aspectRatio = useGalleryStore((s) => s.currentAspectRatio);
+  const resolution = useGalleryStore((s) => s.currentResolution);
+  const referenceImages = useGalleryStore((s) => s.currentReferenceImages);
+  const addItems = useGalleryStore((s) => s.addItems);
+  const updateItem = useGalleryStore((s) => s.updateItem);
+  const setGenerating = useGalleryStore((s) => s.setGenerating);
 
   const generate = useCallback(async () => {
     // Build tasks for each model/count
     const tasks: GenerationTask[] = [];
-    const pending: PendingGeneration[] = [];
+    const pendingItems: GalleryItem[] = [];
 
     for (const [modelId, count] of Object.entries(modelSelections)) {
       if (count === 0) continue;
@@ -43,39 +41,47 @@ export function useImageGeneration() {
 
       for (let i = 0; i < count; i++) {
         const taskId = crypto.randomUUID();
+        const taskResolution = model.capabilities.supportsResolution ? resolution : null;
+
         tasks.push({
           id: taskId,
           modelId,
           modelName: model.name,
           prompt,
           aspectRatio,
-          resolution: model.capabilities.supportsResolution ? resolution : null,
+          resolution: taskResolution,
           referenceImages: referenceImages.map((r) => ({ blob: r.blob })),
         });
-        pending.push({
+
+        pendingItems.push({
           id: taskId,
+          status: "pending",
           modelId,
           modelName: model.name,
-          status: "pending",
+          prompt,
+          aspectRatio,
+          resolution: taskResolution,
+          referenceImageIds: referenceImages.map((r) => r.id),
         });
       }
     }
 
     if (tasks.length === 0) return;
 
-    // Start generation
-    startGeneration(pending);
+    // Add pending items to gallery immediately
+    addItems(pendingItems);
+    setGenerating(true);
 
     // Execute all tasks in parallel
     const results = await Promise.allSettled(
       tasks.map(async (task) => {
-        updatePendingGeneration(task.id, { status: "generating" });
+        updateItem(task.id, { status: "generating" });
 
         try {
           const result = await executeGeneration(task, apiKeys);
 
           // Save to IndexedDB
-          const storedImage = await saveImage({
+          await saveImage({
             blob: result.blob,
             prompt: task.prompt,
             modelId: task.modelId,
@@ -89,24 +95,28 @@ export function useImageGeneration() {
             metadata: result.metadata,
           });
 
-          // Add to gallery
-          addImage(toDisplayImage(storedImage));
+          // Update item to completed status with image data
+          updateItem(task.id, {
+            status: "completed",
+            blob: result.blob,
+            url: URL.createObjectURL(result.blob),
+            width: result.width,
+            height: result.height,
+            createdAt: Date.now(),
+            metadata: result.metadata,
+          });
 
-          updatePendingGeneration(task.id, { status: "completed" });
-
-          return storedImage;
+          return result;
         } catch (error) {
           const message = error instanceof Error ? error.message : "Generation failed";
-          updatePendingGeneration(task.id, { status: "failed", error: message });
+          updateItem(task.id, { status: "failed", error: message });
           throw error;
         }
       })
     );
 
-    // Complete generation
-    setTimeout(() => {
-      completeGeneration();
-    }, 1000);
+    // Mark generation as complete
+    setGenerating(false);
 
     return results;
   }, [
@@ -116,10 +126,9 @@ export function useImageGeneration() {
     resolution,
     referenceImages,
     apiKeys,
-    startGeneration,
-    updatePendingGeneration,
-    completeGeneration,
-    addImage,
+    addItems,
+    updateItem,
+    setGenerating,
   ]);
 
   return { generate };

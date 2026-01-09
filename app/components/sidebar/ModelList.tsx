@@ -1,11 +1,11 @@
 import { Layers } from "lucide-react";
 import { ModelItem } from "./ModelItem";
 import { MODELS } from "~/lib/models";
-import { useGenerationStore } from "~/stores/generationStore";
+import { useGalleryStore } from "~/stores/galleryStore";
 import { useSettingsStore } from "~/stores/settingsStore";
 
 export function ModelList() {
-  const modelSelections = useGenerationStore((s) => s.modelSelections);
+  const modelSelections = useGalleryStore((s) => s.currentModelSelections);
   const apiKeys = useSettingsStore((s) => s.apiKeys);
 
   const activeCount = Object.values(modelSelections).filter((c) => c > 0).length;

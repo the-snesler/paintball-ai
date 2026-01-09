@@ -1,9 +1,9 @@
 import { Wand2 } from "lucide-react";
-import { useGenerationStore } from "~/stores/generationStore";
+import { useGalleryStore } from "~/stores/galleryStore";
 
 export function PromptInput() {
-  const prompt = useGenerationStore((s) => s.prompt);
-  const setPrompt = useGenerationStore((s) => s.setPrompt);
+  const prompt = useGalleryStore((s) => s.currentPrompt);
+  const setPrompt = useGalleryStore((s) => s.setPrompt);
 
   return (
     <section>

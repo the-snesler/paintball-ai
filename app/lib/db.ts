@@ -1,4 +1,4 @@
-import type { StoredImageRecord, ImageRecord, ReferenceImage } from '~/types';
+import type { CompletedGalleryItem, ReferenceImage, StoredImageRecord } from '~/types';
 
 const DB_NAME = 'studio-image-gallery';
 const DB_VERSION = 1;
@@ -186,14 +186,15 @@ export async function deleteReferenceImage(id: string): Promise<void> {
 }
 
 // Helper to convert stored record to display record with Object URL
-export function toDisplayImage(stored: StoredImageRecord): ImageRecord {
+export function toDisplayImage(stored: StoredImageRecord): CompletedGalleryItem {
   return {
     ...stored,
+    status: 'completed',
     url: URL.createObjectURL(stored.blob),
   };
 }
 
 // Helper to revoke Object URL when no longer needed
-export function revokeImageUrl(image: ImageRecord | ReferenceImage): void {
+export function revokeImageUrl(image: CompletedGalleryItem | ReferenceImage): void {
   URL.revokeObjectURL(image.url);
 }

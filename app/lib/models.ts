@@ -18,7 +18,7 @@ export const MODELS: ModelDefinition[] = [
     provider: 'google',
     apiKeyRequired: 'google',
     capabilities: {
-      aspectRatios: [],
+      supportsAspectRatios: true,
       supportsResolution: false,
       supportsReferenceImages: true,
       maxReferenceImages: 10,
@@ -32,7 +32,7 @@ export const MODELS: ModelDefinition[] = [
     provider: 'google',
     apiKeyRequired: 'google',
     capabilities: {
-      aspectRatios: ['1:1', '16:9', '9:16', '4:3', '3:4', '21:9'],
+      supportsAspectRatios: true,
       supportsResolution: true,
       supportsReferenceImages: true,
       maxReferenceImages: 10,
@@ -54,42 +54,12 @@ export function getEnabledModels(apiKeys: Record<string, string | null>): ModelD
   return MODELS.filter(m => apiKeys[m.apiKeyRequired]);
 }
 
-// Helper to check if aspect ratio is supported by selected models
-export function isAspectRatioSupported(
-  aspectRatio: AspectRatio,
-  selectedModelIds: string[]
-): boolean {
-  if (selectedModelIds.length === 0) return true;
-
-  return selectedModelIds.every(modelId => {
-    const model = getModel(modelId);
-    return model?.capabilities.aspectRatios.includes(aspectRatio);
-  });
-}
-
 // Helper to check if any selected model supports aspect ratios
 export function anyModelSupportsAspectRatio(selectedModelIds: string[]): boolean {
   return selectedModelIds.some(modelId => {
     const model = getModel(modelId);
-    return model && model.capabilities.aspectRatios.length > 0;
+    return model?.capabilities.supportsAspectRatios;
   });
-}
-
-// Helper to get common aspect ratios across selected models (only considers aspect-capable models)
-export function getCommonAspectRatios(selectedModelIds: string[]): AspectRatio[] {
-  if (selectedModelIds.length === 0) return ASPECT_RATIOS.map(ar => ar.value);
-
-  // Only consider models that support aspect ratios
-  const aspectCapableModels = selectedModelIds
-    .map(id => getModel(id))
-    .filter((m): m is ModelDefinition => !!m && m.capabilities.aspectRatios.length > 0);
-
-  if (aspectCapableModels.length === 0) return [];
-
-  // Return intersection of aspect-capable models only
-  return aspectCapableModels[0].capabilities.aspectRatios.filter(ratio =>
-    aspectCapableModels.every(m => m.capabilities.aspectRatios.includes(ratio))
-  );
 }
 
 // Helper to check if any selected model supports resolution

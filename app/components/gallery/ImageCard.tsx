@@ -1,9 +1,9 @@
 import { useState, useCallback } from "react";
-import type { ImageRecord } from "~/types";
 import { useGalleryStore } from "~/stores/galleryStore";
+import type { CompletedGalleryItem } from "~/types";
 
 interface ImageCardProps {
-  image: ImageRecord;
+  image: CompletedGalleryItem;
 }
 
 export function ImageCard({ image }: ImageCardProps) {

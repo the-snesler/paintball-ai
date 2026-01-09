@@ -1,18 +1,18 @@
 import { Loader2, AlertCircle, X } from "lucide-react";
-import type { PendingGeneration } from "~/types";
-import { useGenerationStore } from "~/stores/generationStore";
+import type { GalleryItem } from "~/types";
+import { useGalleryStore } from "~/stores/galleryStore";
 
 interface LoadingCardProps {
-  generation: PendingGeneration;
+  item: GalleryItem;
 }
 
-export function LoadingCard({ generation }: LoadingCardProps) {
-  const dismissFailedGeneration = useGenerationStore((s) => s.dismissFailedGeneration);
-  const isFailed = generation.status === "failed";
+export function LoadingCard({ item }: LoadingCardProps) {
+  const dismissItem = useGalleryStore((s) => s.dismissItem);
+  const isFailed = item.status === "failed";
 
   const handleDismiss = (e: React.MouseEvent) => {
     e.stopPropagation();
-    dismissFailedGeneration(generation.id);
+    dismissItem(item.id);
   };
 
   return (
@@ -41,7 +41,7 @@ export function LoadingCard({ generation }: LoadingCardProps) {
           <>
             <AlertCircle className="w-8 h-8 text-red-400 mb-2" />
             <p className="text-sm text-red-400 text-center line-clamp-3">
-              {generation.error || "Generation failed"}
+              {item.error || "Generation failed"}
             </p>
           </>
         ) : (
@@ -54,7 +54,7 @@ export function LoadingCard({ generation }: LoadingCardProps) {
 
       {/* Model badge */}
       <div className="absolute bottom-2 left-2 px-2 py-1 bg-black/60 backdrop-blur-sm rounded text-xs text-white/90">
-        {generation.modelName}
+        {item.modelName}
       </div>
     </div>
   );

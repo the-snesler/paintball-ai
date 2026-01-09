@@ -1,14 +1,14 @@
 import { Sparkles, Loader2 } from "lucide-react";
-import { useGenerationStore } from "~/stores/generationStore";
+import { useGalleryStore } from "~/stores/galleryStore";
 import { useSettingsStore } from "~/stores/settingsStore";
 import { useImageGeneration } from "~/hooks/useImageGeneration";
 import { getModel } from "~/lib/models";
 
 export function GenerateButton() {
-  const prompt = useGenerationStore((s) => s.prompt);
-  const modelSelections = useGenerationStore((s) => s.modelSelections);
-  const aspectRatio = useGenerationStore((s) => s.aspectRatio);
-  const isGenerating = useGenerationStore((s) => s.isGenerating);
+  const prompt = useGalleryStore((s) => s.currentPrompt);
+  const modelSelections = useGalleryStore((s) => s.currentModelSelections);
+  const aspectRatio = useGalleryStore((s) => s.currentAspectRatio);
+  const isGenerating = useGalleryStore((s) => s.isGenerating);
   const apiKeys = useSettingsStore((s) => s.apiKeys);
   const openSettingsModal = useSettingsStore((s) => s.openSettingsModal);
 

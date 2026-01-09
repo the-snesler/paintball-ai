@@ -1,11 +1,11 @@
 import { ImagePlus, X } from "lucide-react";
 import { useCallback } from "react";
-import { useGenerationStore } from "~/stores/generationStore";
+import { useGalleryStore } from "~/stores/galleryStore";
 
 export function ReferenceImages() {
-  const referenceImages = useGenerationStore((s) => s.referenceImages);
-  const addReferenceImage = useGenerationStore((s) => s.addReferenceImage);
-  const removeReferenceImage = useGenerationStore((s) => s.removeReferenceImage);
+  const referenceImages = useGalleryStore((s) => s.currentReferenceImages);
+  const addReferenceImage = useGalleryStore((s) => s.addReferenceImage);
+  const removeReferenceImage = useGalleryStore((s) => s.removeReferenceImage);
 
   const handleDrop = useCallback(
     (e: React.DragEvent) => {

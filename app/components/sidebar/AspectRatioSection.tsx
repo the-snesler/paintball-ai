@@ -1,18 +1,17 @@
 import { Square } from "lucide-react";
-import { ASPECT_RATIOS, getCommonAspectRatios, anyModelSupportsAspectRatio } from "~/lib/models";
-import { useGenerationStore } from "~/stores/generationStore";
+import { ASPECT_RATIOS, anyModelSupportsAspectRatio } from "~/lib/models";
+import { useGalleryStore } from "~/stores/galleryStore";
 
 export function AspectRatioSection() {
-  const aspectRatio = useGenerationStore((s) => s.aspectRatio);
-  const setAspectRatio = useGenerationStore((s) => s.setAspectRatio);
-  const modelSelections = useGenerationStore((s) => s.modelSelections);
+  const aspectRatio = useGalleryStore((s) => s.currentAspectRatio);
+  const setAspectRatio = useGalleryStore((s) => s.setAspectRatio);
+  const modelSelections = useGalleryStore((s) => s.currentModelSelections);
 
   // Derive selected model IDs from modelSelections (subscribing to the actual state)
   const selectedModels = Object.entries(modelSelections)
     .filter(([, count]) => count > 0)
     .map(([modelId]) => modelId);
   const pickerEnabled = selectedModels.length === 0 || anyModelSupportsAspectRatio(selectedModels);
-  const supportedRatios = getCommonAspectRatios(selectedModels);
 
   return (
     <section>
@@ -24,19 +23,18 @@ export function AspectRatioSection() {
       </div>
       <div className="grid grid-cols-6 gap-1.5">
         {ASPECT_RATIOS.map((ar) => {
-          const isSupported = pickerEnabled && supportedRatios.includes(ar.value);
           const isSelected = aspectRatio === ar.value;
           const showSelectedStyle = isSelected && pickerEnabled;
 
           return (
             <button
               key={ar.value}
-              onClick={() => isSupported && setAspectRatio(ar.value)}
-              disabled={!isSupported}
+              onClick={() => pickerEnabled && setAspectRatio(ar.value)}
+              disabled={!pickerEnabled}
               className={`flex flex-col items-center gap-1 p-1.5 rounded-lg transition-colors ${
                 showSelectedStyle
                   ? "bg-purple-500/20 border border-purple-500"
-                  : isSupported
+                  : pickerEnabled
                   ? "bg-zinc-800 border border-zinc-700 hover:border-zinc-600"
                   : "bg-zinc-800/50 border border-zinc-800 opacity-40 cursor-not-allowed"
               }`}
