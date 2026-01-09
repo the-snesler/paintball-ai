@@ -11,7 +11,7 @@ export function Sidebar() {
   const openSettingsModal = useSettingsStore((s) => s.openSettingsModal);
 
   return (
-    <aside className="w-72 flex-shrink-0 border-r border-zinc-800 bg-zinc-900 flex flex-col h-full">
+    <aside className="w-72 shrink-0 border-r border-zinc-800 bg-zinc-900 flex flex-col h-full">
       {/* Header */}
       <div className="p-4 flex items-center justify-between border-b border-zinc-800">
         <div className="flex items-center gap-3">

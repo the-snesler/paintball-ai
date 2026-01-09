@@ -32,7 +32,7 @@ export function ImageCard({ image }: ImageCardProps) {
 
   return (
     <div
-      className="group relative rounded-lg overflow-hidden bg-zinc-900 cursor-pointer animate-fade-in"
+      className="group relative rounded-lg overflow-hidden bg-zinc-900 outline-[1.5px] outline-zinc-500/50 cursor-pointer animate-fade-in h-fit"
       onClick={handleClick}
       draggable
       onDragStart={handleDragStart}
@@ -57,11 +57,6 @@ export function ImageCard({ image }: ImageCardProps) {
           }}
         />
       )}
-
-      {/* Overlay with model name */}
-      <div className="absolute inset-x-0 bottom-0 p-3 bg-gradient-to-t from-black/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
-        <p className="text-sm font-medium text-white truncate">{image.modelName}</p>
-      </div>
 
       {/* Persistent model badge */}
       <div className="absolute bottom-2 left-2 px-2 py-1 bg-black/60 backdrop-blur-sm rounded text-xs text-white/90">

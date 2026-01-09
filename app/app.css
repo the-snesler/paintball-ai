@@ -46,32 +46,6 @@ body {
   @apply bg-zinc-600;
 }
 
-/* Masonry grid using CSS columns */
-.masonry-grid {
-  columns: 4 280px;
-  column-gap: 16px;
-}
-
-.masonry-grid > * {
-  break-inside: avoid;
-  margin-bottom: 16px;
-}
-
-/* Native masonry support (progressive enhancement) */
-@supports (grid-template-rows: masonry) {
-  .masonry-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    grid-template-rows: masonry;
-    gap: 16px;
-  }
-
-  .masonry-grid > * {
-    break-inside: unset;
-    margin-bottom: 0;
-  }
-}
-
 /* Aspect ratio preview boxes */
 .aspect-preview {
   @apply border border-zinc-600 rounded-sm;
