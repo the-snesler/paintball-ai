@@ -5,6 +5,7 @@ import { useSettingsStore } from "~/stores/settingsStore";
 import { saveImage, toDisplayImage } from "~/lib/db";
 import { getModel, MODELS } from "~/lib/models";
 import type { ApiKeys, PendingGeneration } from "~/types";
+import { GoogleGenAI } from "@google/genai";
 
 interface GenerationTask {
   id: string;
@@ -146,12 +147,12 @@ async function executeGoogleGeneration(
   task: GenerationTask,
   apiKey: string
 ): Promise<{ blob: Blob; width: number; height: number; metadata: Record<string, unknown> }> {
-  // Build the request for Gemini API
-  const contents: Array<{ role: string; parts: Array<{ text?: string; inlineData?: { mimeType: string; data: string } }> }> = [];
+  const ai = new GoogleGenAI({ apiKey });
 
-  // Add reference images if any
+  // Build parts array
   const parts: Array<{ text?: string; inlineData?: { mimeType: string; data: string } }> = [];
 
+  // Add reference images if any
   for (const ref of task.referenceImages) {
     const base64 = await blobToBase64(ref.blob);
     parts.push({
@@ -165,65 +166,64 @@ async function executeGoogleGeneration(
   // Add the prompt
   parts.push({ text: task.prompt });
 
-  contents.push({
-    role: "user",
-    parts,
+  const contents = [
+    {
+      role: "user",
+      parts,
+    },
+  ];
+
+  const config = {
+    responseModalities: ["IMAGE"],
+    imageConfig: {
+      aspectRatio: task.aspectRatio,
+      ...(task.resolution && { imageSize: task.resolution }),
+    },
+  };
+
+  const response = await ai.models.generateContentStream({
+    model: task.modelId,
+    config,
+    contents,
   });
 
-  // Call Gemini API
-  const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${task.modelId}:generateContent?key=${apiKey}`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        contents,
-        generationConfig: {
-          responseModalities: ["image", "text"],
-          ...(task.aspectRatio && { aspectRatio: task.aspectRatio }),
-        },
-      }),
+  let imageBlob: Blob | null = null;
+  let modelVersion: string | undefined;
+
+  for await (const chunk of response) {
+    if (!chunk.candidates?.[0]?.content?.parts) {
+      continue;
     }
-  );
 
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({}));
-    throw new Error(error.error?.message || `API error: ${response.status}`);
+    const inlineData = chunk.candidates[0].content.parts[0]?.inlineData;
+    if (inlineData?.data && inlineData?.mimeType) {
+      // Convert base64 to blob
+      const binaryString = atob(inlineData.data);
+      const bytes = new Uint8Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
+      imageBlob = new Blob([bytes], { type: inlineData.mimeType });
+    }
+
+    if (chunk.modelVersion) {
+      modelVersion = chunk.modelVersion;
+    }
   }
 
-  const data = await response.json();
-
-  // Extract image from response
-  const candidate = data.candidates?.[0];
-  if (!candidate) {
-    throw new Error("No response from API");
-  }
-
-  const imagePart = candidate.content?.parts?.find(
-    (p: { inlineData?: { mimeType: string; data: string } }) => p.inlineData?.mimeType?.startsWith("image/")
-  );
-
-  if (!imagePart?.inlineData) {
+  if (!imageBlob) {
     throw new Error("No image in response");
   }
 
-  // Convert base64 to blob
-  const imageData = imagePart.inlineData;
-  const blob = await fetch(
-    `data:${imageData.mimeType};base64,${imageData.data}`
-  ).then((r) => r.blob());
-
   // Get dimensions from the image
-  const dimensions = await getImageDimensions(blob);
+  const dimensions = await getImageDimensions(imageBlob);
 
   return {
-    blob,
+    blob: imageBlob,
     width: dimensions.width,
     height: dimensions.height,
     metadata: {
-      modelVersion: data.modelVersion,
+      modelVersion,
     },
   };
 }
