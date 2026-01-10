@@ -5,4 +5,13 @@ import tsconfigPaths from "vite-tsconfig-paths";
 
 export default defineConfig({
   plugins: [tailwindcss(), reactRouter(), tsconfigPaths()],
+  server: {
+    proxy: {
+      "/proxy/replicate": {
+        target: "https://api.replicate.com",
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/proxy\/replicate/, ""),
+      },
+    },
+  },
 });

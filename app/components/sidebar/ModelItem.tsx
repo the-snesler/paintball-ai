@@ -1,4 +1,4 @@
-import { Minus, Plus, Sparkles, Zap } from "lucide-react";
+import { Box, Minus, Plus, Sparkles, Zap } from "lucide-react";
 import type { ModelDefinition } from "~/types";
 import { useGalleryStore } from "~/stores/galleryStore";
 import { useSettingsStore } from "~/stores/settingsStore";
@@ -12,6 +12,7 @@ interface ModelItemProps {
 const providerIcons: Record<string, React.ReactNode> = {
   google: <Sparkles className="w-4 h-4" />,
   openai: <Zap className="w-4 h-4" />,
+  replicate: <Box className="w-4 h-4" />,
 };
 
 const providerNames: Record<string, string> = {

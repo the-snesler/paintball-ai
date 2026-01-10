@@ -5,6 +5,7 @@ import { saveImage } from "~/lib/db";
 import { getModel } from "~/lib/models";
 import type { ApiKeys, AspectRatio, GalleryItem, Resolution } from "~/types";
 import { GoogleGenAI } from "@google/genai";
+import Replicate from "replicate";
 
 interface GenerationTask {
   id: string;
@@ -149,6 +150,11 @@ async function executeGeneration(
     return executeGoogleGeneration(task, apiKey);
   }
 
+  // For Replicate models
+  if (model.provider === "replicate") {
+    return executeReplicateGeneration(task, apiKey);
+  }
+
   throw new Error(`Provider ${model.provider} not implemented`);
 }
 
@@ -234,6 +240,61 @@ async function executeGoogleGeneration(
     metadata: {
       modelVersion,
     },
+  };
+}
+
+async function executeReplicateGeneration(
+  task: GenerationTask,
+  apiKey: string
+): Promise<{ blob: Blob; width: number; height: number; metadata: Record<string, unknown> }> {
+  const replicate = new Replicate({ auth: apiKey, baseUrl: window.location.href + "proxy/replicate/v1" });
+
+  // Convert reference image blobs to data URIs
+  const imageInputs = await Promise.all(
+    task.referenceImages.map(async (ref) => blobToBase64(ref.blob))
+  );
+
+  // Build input payload
+  const input: Record<string, unknown> = {
+    prompt: task.prompt,
+    aspect_ratio: task.aspectRatio,
+    output_format: "png",
+  };
+  if (imageInputs.length > 0) {
+    input.image_input = imageInputs;
+  }
+  if (task.resolution) {
+    input.resolution = task.resolution;
+  }
+
+  const replicateModel = task.modelId.replace("replicate/", "") as `${string}/${string}`;
+
+  const output = await replicate.run(replicateModel, { input });
+
+  // Get the image URL from the output
+  const imageUrl = typeof output === "object" && output !== null && "url" in output
+    ? (output as { url: () => string }).url()
+    : Array.isArray(output)
+      ? output[0]
+      : String(output);
+
+  if (!imageUrl) {
+    throw new Error("No image in Replicate response");
+  }
+
+  const imageResponse = await fetch(imageUrl);
+  if (!imageResponse.ok) {
+    throw new Error(`Failed to fetch generated image: ${imageResponse.status}`);
+  }
+
+  const blob = await imageResponse.blob();
+  const dimensions = await getImageDimensions(blob);
+
+  return {
+    blob,
+    width: dimensions.width,
+    height: dimensions.height,
+    metadata: {},
   };
 }
 

@@ -40,8 +40,35 @@ export const MODELS: ModelDefinition[] = [
     defaultAspectRatio: '1:1',
     maxImagesPerRequest: 1,
   },
-  // Placeholder for future models - user mentioned gemini-3-pro-image-preview
-  // which supports resolution (1K, 2K, 4K)
+  // Replicate models (Nano Banana = Gemini via Replicate)
+  {
+    id: 'replicate/google/nano-banana',
+    name: 'Nano Banana',
+    provider: 'replicate',
+    apiKeyRequired: 'replicate',
+    capabilities: {
+      supportsAspectRatios: true,
+      supportsResolution: false,
+      supportsReferenceImages: true,
+      maxReferenceImages: 10,
+    },
+    defaultAspectRatio: '1:1',
+    maxImagesPerRequest: 1,
+  },
+  {
+    id: 'replicate/google/nano-banana-pro',
+    name: 'Nano Banana Pro',
+    provider: 'replicate',
+    apiKeyRequired: 'replicate',
+    capabilities: {
+      supportsAspectRatios: true,
+      supportsResolution: true,
+      supportsReferenceImages: true,
+      maxReferenceImages: 14,
+    },
+    defaultAspectRatio: '1:1',
+    maxImagesPerRequest: 1,
+  },
 ];
 
 // Helper to get a model by ID
