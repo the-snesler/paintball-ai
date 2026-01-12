@@ -1,87 +1,43 @@
-# Welcome to React Router!
+# Paintball
 
-A modern, production-ready template for building full-stack React applications using React Router.
+AI image generation gallery with multi-model support.
 
-[![Open in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz.svg)](https://stackblitz.com/github/remix-run/react-router-templates/tree/main/default)
+<img width="1699" height="1062" alt="image" src="https://github.com/user-attachments/assets/9470a4c1-b19a-4b8a-98b2-8e96366639d7" />
 
 ## Features
 
-- 🚀 Server-side rendering
-- ⚡️ Hot Module Replacement (HMR)
-- 📦 Asset bundling and optimization
-- 🔄 Data loading and mutations
-- 🔒 TypeScript by default
-- 🎉 TailwindCSS for styling
-- 📖 [React Router docs](https://reactrouter.com/)
+- Multiple concurrent generations from different models
+- Reference image support for editing workflows
+- Custom aspect ratios
+- Masonry gallery layout with grid/list views
+- Drag & drop images from gallery to reference inputs
 
-## Getting Started
+## Stack
 
-### Installation
+- React Router 7
+- Cloudflare Workers
+- Replicate API
+- Tailwind CSS
+- Zustand
 
-Install the dependencies:
+## Setup
 
 ```bash
 npm install
 ```
 
-### Development
+Set environment variables:
+- `REPLICATE_API_TOKEN`
 
-Start the development server with HMR:
+## Development
 
 ```bash
 npm run dev
 ```
 
-Your application will be available at `http://localhost:5173`.
-
-## Building for Production
-
-Create a production build:
+## Deploy
 
 ```bash
 npm run build
+wrangler deploy
 ```
-
-## Deployment
-
-### Docker Deployment
-
-To build and run using Docker:
-
-```bash
-docker build -t my-app .
-
-# Run the container
-docker run -p 3000:3000 my-app
-```
-
-The containerized application can be deployed to any platform that supports Docker, including:
-
-- AWS ECS
-- Google Cloud Run
-- Azure Container Apps
-- Digital Ocean App Platform
-- Fly.io
-- Railway
-
-### DIY Deployment
-
-If you're familiar with deploying Node applications, the built-in app server is production-ready.
-
-Make sure to deploy the output of `npm run build`
-
-```
-├── package.json
-├── package-lock.json (or pnpm-lock.yaml, or bun.lockb)
-├── build/
-│   ├── client/    # Static assets
-│   └── server/    # Server-side code
-```
-
-## Styling
-
-This template comes with [Tailwind CSS](https://tailwindcss.com/) already configured for a simple default starting experience. You can use whatever CSS framework you prefer.
-
----
-
-Built with ❤️ using React Router.
