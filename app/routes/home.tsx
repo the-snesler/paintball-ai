@@ -9,7 +9,7 @@ import { useSettingsStore } from "~/stores/settingsStore";
 
 export function meta({}: Route.MetaArgs) {
   return [
-    { title: "Studio - AI Image Generation" },
+    { title: "Paintball - AI Image Generation" },
     { name: "description", content: "Generate images with AI models" },
   ];
 }

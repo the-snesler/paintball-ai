@@ -9,6 +9,7 @@ export function GenerateButton() {
   const modelSelections = useGalleryStore((s) => s.currentModelSelections);
   const aspectRatio = useGalleryStore((s) => s.currentAspectRatio);
   const isGenerating = useGalleryStore((s) => s.isGenerating);
+  const models = useSettingsStore((s) => s.models);
   const apiKeys = useSettingsStore((s) => s.apiKeys);
   const openSettingsModal = useSettingsStore((s) => s.openSettingsModal);
 
@@ -20,8 +21,8 @@ export function GenerateButton() {
 
   // Check if we have API keys for selected models
   const missingKeys = activeModels.some(([modelId]) => {
-    const model = getModel(modelId);
-    return model && !apiKeys[model.apiKeyRequired];
+    const model = getModel(models, modelId);
+    return model && !apiKeys[model.provider];
   });
 
   const canGenerate =
@@ -36,13 +37,6 @@ export function GenerateButton() {
       generate();
     }
   };
-
-  // Status text
-  let statusText = "";
-  if (totalImages > 0) {
-    const modelCount = activeModels.length;
-    statusText = `${modelCount} model${modelCount !== 1 ? "s" : ""} · ${aspectRatio}`;
-  }
 
   return (
     <div>
@@ -67,9 +61,6 @@ export function GenerateButton() {
           </>
         )}
       </button>
-      {statusText && (
-        <p className="text-center text-xs text-zinc-500 mt-2">{statusText}</p>
-      )}
     </div>
   );
 }

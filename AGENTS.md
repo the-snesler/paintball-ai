@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-**Studio** is a single-page AI image generation webapp with a BYOK (Bring Your Own Key) model. Users provide their own API keys, generate images with various AI models, and all data stays in their browser.
+**Paintball** is a single-page AI image generation webapp with a BYOK (Bring Your Own Key) model. Users provide their own API keys, generate images with various AI models, and all data stays in their browser.
 
 ### Core Principles
 - **Client-side only**: No server-side API routes. Direct browser-to-API calls.

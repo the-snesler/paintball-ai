@@ -107,7 +107,7 @@ export function ReferenceImages() {
           </label>
         ) : (
           <div className="space-y-2">
-            <div className="grid grid-cols-3 gap-2">
+            <div className="max-w-full grid grid-cols-3 gap-2">
               {referenceImages.map((img) => (
                 <div key={img.id} className="relative group aspect-square">
                   <img
