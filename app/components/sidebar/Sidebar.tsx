@@ -13,7 +13,7 @@ export function Sidebar() {
   return (
     <aside className="w-80 shrink-0 border-r border-zinc-800 bg-zinc-900 flex flex-col h-full">
       {/* Header */}
-      <div className="p-4 flex items-center justify-between border-b border-zinc-800">
+      <div className="px-6 py-4 flex items-center justify-between border-b border-zinc-800 h-18">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-lg bg-zinc-800 flex items-center justify-center">
             <Droplet className="w-4 h-4 text-purple-400" />

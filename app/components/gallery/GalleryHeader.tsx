@@ -11,7 +11,7 @@ export function GalleryHeader({ count }: GalleryHeaderProps) {
   const setViewMode = useGalleryStore((s) => s.setViewMode);
 
   return (
-    <header className="flex items-center justify-between px-6 py-4 border-b border-zinc-800">
+    <header className="flex items-center justify-between px-6 py-4 border-b border-zinc-800 h-18">
       <h2 className="text-sm font-medium text-zinc-400 uppercase tracking-wide">
         {count} Generation{count !== 1 ? "s" : ""}
       </h2>
