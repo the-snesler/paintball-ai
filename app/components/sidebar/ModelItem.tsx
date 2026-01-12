@@ -1,29 +1,24 @@
-import { Box, Minus, Plus, Sparkles, Zap } from "lucide-react";
-import type { ModelDefinition } from "~/types";
+import { Box, Minus, Plus, Sparkles } from "lucide-react";
+import type { StoredModel } from "~/types";
 import { useGalleryStore } from "~/stores/galleryStore";
-import { useSettingsStore } from "~/stores/settingsStore";
 
 interface ModelItemProps {
-  model: ModelDefinition;
+  model: StoredModel;
   count: number;
-  hasApiKey: boolean;
 }
 
 const providerIcons: Record<string, React.ReactNode> = {
   google: <Sparkles className="w-4 h-4" />,
-  openai: <Zap className="w-4 h-4" />,
   replicate: <Box className="w-4 h-4" />,
 };
 
 const providerNames: Record<string, string> = {
   google: "Google",
-  openai: "OpenAI",
   replicate: "Replicate",
 };
 
-export function ModelItem({ model, count, hasApiKey }: ModelItemProps) {
+export function ModelItem({ model, count }: ModelItemProps) {
   const setModelCount = useGalleryStore((s) => s.setModelCount);
-  const openSettingsModal = useSettingsStore((s) => s.openSettingsModal);
 
   const isActive = count > 0;
 
@@ -34,10 +29,6 @@ export function ModelItem({ model, count, hasApiKey }: ModelItemProps) {
   };
 
   const handleIncrement = () => {
-    if (!hasApiKey) {
-      openSettingsModal();
-      return;
-    }
     setModelCount(model.id, count + 1);
   };
 
@@ -47,7 +38,7 @@ export function ModelItem({ model, count, hasApiKey }: ModelItemProps) {
         isActive
           ? "bg-purple-500/10 border border-purple-500/30"
           : "bg-zinc-800/50 border border-transparent hover:bg-zinc-800"
-      } ${!hasApiKey ? "opacity-60" : ""}`}
+      }`}
     >
       {/* Icon */}
       <div
@@ -60,7 +51,7 @@ export function ModelItem({ model, count, hasApiKey }: ModelItemProps) {
 
       {/* Info */}
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-zinc-100 truncate">{model.name}</p>
+        <p className="text-sm font-medium text-zinc-100 truncate" title={model.name}>{model.name}</p>
         <p className="text-xs text-zinc-500">{providerNames[model.provider]}</p>
       </div>
 

@@ -1,5 +1,5 @@
 // Model types
-export type Provider = 'google' | 'openai' | 'replicate';
+export type Provider = 'google' | 'replicate';
 
 export type AspectRatio = '1:1' | '16:9' | '9:16' | '4:3' | '3:4' | '21:9';
 
@@ -22,6 +22,17 @@ export interface ModelDefinition {
   defaultAspectRatio: AspectRatio;
   maxImagesPerRequest: number;
   icon?: string;
+}
+
+// Model stored in settings (user-configurable)
+export interface StoredModel {
+  id: string;
+  name: string;
+  provider: Provider;
+  enabled: boolean;
+  isCustom?: boolean; // true for user-added models
+  schemaFetched?: boolean; // true if capabilities were fetched from Replicate API
+  capabilities: ModelCapabilities;
 }
 
 // Generation types
@@ -99,6 +110,5 @@ export type ViewMode = 'grid' | 'timeline';
 // Settings types
 export interface ApiKeys {
   google: string | null;
-  openai: string | null;
   replicate: string | null;
 }

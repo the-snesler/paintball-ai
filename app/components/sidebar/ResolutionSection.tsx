@@ -1,18 +1,20 @@
 import { Maximize } from "lucide-react";
 import { RESOLUTIONS, anyModelSupportsResolution } from "~/lib/models";
 import { useGalleryStore } from "~/stores/galleryStore";
+import { useSettingsStore } from "~/stores/settingsStore";
 import type { Resolution } from "~/types";
 
 export function ResolutionSection() {
   const resolution = useGalleryStore((s) => s.currentResolution);
   const setResolution = useGalleryStore((s) => s.setResolution);
   const modelSelections = useGalleryStore((s) => s.currentModelSelections);
+  const models = useSettingsStore((s) => s.models);
 
   // Derive selected model IDs from modelSelections (subscribing to the actual state)
   const selectedModels = Object.entries(modelSelections)
     .filter(([, count]) => count > 0)
     .map(([modelId]) => modelId);
-  const showResolution = anyModelSupportsResolution(selectedModels);
+  const showResolution = anyModelSupportsResolution(models, selectedModels);
 
   // Don't render if no selected model supports resolution
   if (!showResolution) {

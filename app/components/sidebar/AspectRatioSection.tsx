@@ -1,17 +1,19 @@
 import { Square } from "lucide-react";
 import { ASPECT_RATIOS, anyModelSupportsAspectRatio } from "~/lib/models";
 import { useGalleryStore } from "~/stores/galleryStore";
+import { useSettingsStore } from "~/stores/settingsStore";
 
 export function AspectRatioSection() {
   const aspectRatio = useGalleryStore((s) => s.currentAspectRatio);
   const setAspectRatio = useGalleryStore((s) => s.setAspectRatio);
   const modelSelections = useGalleryStore((s) => s.currentModelSelections);
+  const models = useSettingsStore((s) => s.models);
 
   // Derive selected model IDs from modelSelections (subscribing to the actual state)
   const selectedModels = Object.entries(modelSelections)
     .filter(([, count]) => count > 0)
     .map(([modelId]) => modelId);
-  const pickerEnabled = selectedModels.length === 0 || anyModelSupportsAspectRatio(selectedModels);
+  const pickerEnabled = anyModelSupportsAspectRatio(models, selectedModels);
 
   return (
     <section>

@@ -1,4 +1,4 @@
-import type { AspectRatio, ModelDefinition } from '~/types';
+import type { AspectRatio, StoredModel } from '~/types';
 
 export const ASPECT_RATIOS: { value: AspectRatio; label: string; width: number; height: number }[] = [
   { value: '1:1', label: '1:1', width: 1, height: 1 },
@@ -11,88 +11,31 @@ export const ASPECT_RATIOS: { value: AspectRatio; label: string; width: number; 
 
 export const RESOLUTIONS = ['1K', '2K', '4K'] as const;
 
-export const MODELS: ModelDefinition[] = [
-  {
-    id: 'gemini-2.5-flash-image',
-    name: 'Gemini 2.5 Flash Image',
-    provider: 'google',
-    apiKeyRequired: 'google',
-    capabilities: {
-      supportsAspectRatios: true,
-      supportsResolution: false,
-      supportsReferenceImages: true,
-      maxReferenceImages: 10,
-    },
-    defaultAspectRatio: '1:1',
-    maxImagesPerRequest: 1,
-  },
-  {
-    id: 'gemini-3-pro-image-preview',
-    name: 'Gemini 3.0 Pro Image',
-    provider: 'google',
-    apiKeyRequired: 'google',
-    capabilities: {
-      supportsAspectRatios: true,
-      supportsResolution: true,
-      supportsReferenceImages: true,
-      maxReferenceImages: 10,
-    },
-    defaultAspectRatio: '1:1',
-    maxImagesPerRequest: 1,
-  },
-  // Replicate models (Nano Banana = Gemini via Replicate)
-  {
-    id: 'replicate/google/nano-banana',
-    name: 'Nano Banana',
-    provider: 'replicate',
-    apiKeyRequired: 'replicate',
-    capabilities: {
-      supportsAspectRatios: true,
-      supportsResolution: false,
-      supportsReferenceImages: true,
-      maxReferenceImages: 10,
-    },
-    defaultAspectRatio: '1:1',
-    maxImagesPerRequest: 1,
-  },
-  {
-    id: 'replicate/google/nano-banana-pro',
-    name: 'Nano Banana Pro',
-    provider: 'replicate',
-    apiKeyRequired: 'replicate',
-    capabilities: {
-      supportsAspectRatios: true,
-      supportsResolution: true,
-      supportsReferenceImages: true,
-      maxReferenceImages: 14,
-    },
-    defaultAspectRatio: '1:1',
-    maxImagesPerRequest: 1,
-  },
-];
-
-// Helper to get a model by ID
-export function getModel(modelId: string): ModelDefinition | undefined {
-  return MODELS.find(m => m.id === modelId);
-}
-
-// Helper to get models that are enabled (have API key)
-export function getEnabledModels(apiKeys: Record<string, string | null>): ModelDefinition[] {
-  return MODELS.filter(m => apiKeys[m.apiKeyRequired]);
+// Helper to get a model by ID from a models array
+export function getModel(models: StoredModel[], modelId: string): StoredModel | undefined {
+  return models.find(m => m.id === modelId);
 }
 
 // Helper to check if any selected model supports aspect ratios
-export function anyModelSupportsAspectRatio(selectedModelIds: string[]): boolean {
+export function anyModelSupportsAspectRatio(models: StoredModel[], selectedModelIds: string[]): boolean {
   return selectedModelIds.some(modelId => {
-    const model = getModel(modelId);
+    const model = getModel(models, modelId);
     return model?.capabilities.supportsAspectRatios;
   });
 }
 
 // Helper to check if any selected model supports resolution
-export function anyModelSupportsResolution(selectedModelIds: string[]): boolean {
+export function anyModelSupportsResolution(models: StoredModel[], selectedModelIds: string[]): boolean {
   return selectedModelIds.some(modelId => {
-    const model = getModel(modelId);
+    const model = getModel(models, modelId);
     return model?.capabilities.supportsResolution;
+  });
+}
+
+// Helper to check if any selected model supports reference images
+export function anyModelSupportsReferenceImages(models: StoredModel[], selectedModelIds: string[]): boolean {
+  return selectedModelIds.some(modelId => {
+    const model = getModel(models, modelId);
+    return model?.capabilities.supportsReferenceImages;
   });
 }

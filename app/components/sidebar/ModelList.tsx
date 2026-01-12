@@ -1,12 +1,17 @@
 import { Layers } from "lucide-react";
 import { ModelItem } from "./ModelItem";
-import { MODELS } from "~/lib/models";
 import { useGalleryStore } from "~/stores/galleryStore";
 import { useSettingsStore } from "~/stores/settingsStore";
 
 export function ModelList() {
   const modelSelections = useGalleryStore((s) => s.currentModelSelections);
+  const models = useSettingsStore((s) => s.models);
   const apiKeys = useSettingsStore((s) => s.apiKeys);
+
+  // Filter to only show enabled models that have API keys
+  const visibleModels = models.filter(
+    (m) => m.enabled && apiKeys[m.provider]
+  );
 
   const activeCount = Object.values(modelSelections).filter((c) => c > 0).length;
 
@@ -26,14 +31,19 @@ export function ModelList() {
         )}
       </div>
       <div className="space-y-1">
-        {MODELS.map((model) => (
-          <ModelItem
-            key={model.id}
-            model={model}
-            count={modelSelections[model.id] || 0}
-            hasApiKey={!!apiKeys[model.apiKeyRequired]}
-          />
-        ))}
+        {visibleModels.length === 0 ? (
+          <p className="text-xs text-zinc-500 text-center py-4">
+            No models available. Add API keys and enable models in Settings.
+          </p>
+        ) : (
+          visibleModels.map((model) => (
+            <ModelItem
+              key={model.id}
+              model={model}
+              count={modelSelections[model.id] || 0}
+            />
+          ))
+        )}
       </div>
     </section>
   );

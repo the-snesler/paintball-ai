@@ -3,7 +3,7 @@ import { useGalleryStore } from "~/stores/galleryStore";
 import { useSettingsStore } from "~/stores/settingsStore";
 import { saveImage } from "~/lib/db";
 import { getModel } from "~/lib/models";
-import type { ApiKeys, AspectRatio, GalleryItem, Resolution } from "~/types";
+import type { ApiKeys, AspectRatio, GalleryItem, Provider, Resolution, StoredModel } from "~/types";
 import { GoogleGenAI } from "@google/genai";
 import Replicate from "replicate";
 
@@ -11,6 +11,7 @@ interface GenerationTask {
   id: string;
   modelId: string;
   modelName: string;
+  provider: Provider;
   prompt: string;
   aspectRatio: AspectRatio;
   resolution: Resolution | null;
@@ -19,6 +20,7 @@ interface GenerationTask {
 
 export function useImageGeneration() {
   const apiKeys = useSettingsStore((s) => s.apiKeys);
+  const models = useSettingsStore((s) => s.models);
 
   const prompt = useGalleryStore((s) => s.currentPrompt);
   const modelSelections = useGalleryStore((s) => s.currentModelSelections);
@@ -37,7 +39,7 @@ export function useImageGeneration() {
     for (const [modelId, count] of Object.entries(modelSelections)) {
       if (count === 0) continue;
 
-      const model = getModel(modelId);
+      const model = getModel(models, modelId);
       if (!model) continue;
 
       for (let i = 0; i < count; i++) {
@@ -48,6 +50,7 @@ export function useImageGeneration() {
           id: taskId,
           modelId,
           modelName: model.name,
+          provider: model.provider,
           prompt,
           aspectRatio,
           resolution: taskResolution,
@@ -127,6 +130,7 @@ export function useImageGeneration() {
     resolution,
     referenceImages,
     apiKeys,
+    models,
     addItems,
     updateItem,
     setGenerating,
@@ -139,23 +143,20 @@ async function executeGeneration(
   task: GenerationTask,
   apiKeys: ApiKeys
 ): Promise<{ blob: Blob; width: number; height: number; metadata: Record<string, unknown> }> {
-  const model = getModel(task.modelId);
-  if (!model) throw new Error("Model not found");
-
-  const apiKey = apiKeys[model.apiKeyRequired];
-  if (!apiKey) throw new Error(`No API key for ${model.provider}`);
+  const apiKey = apiKeys[task.provider];
+  if (!apiKey) throw new Error(`No API key for ${task.provider}`);
 
   // For Google models, use direct API call
-  if (model.provider === "google") {
+  if (task.provider === "google") {
     return executeGoogleGeneration(task, apiKey);
   }
 
   // For Replicate models
-  if (model.provider === "replicate") {
+  if (task.provider === "replicate") {
     return executeReplicateGeneration(task, apiKey);
   }
 
-  throw new Error(`Provider ${model.provider} not implemented`);
+  throw new Error(`Provider ${task.provider} not implemented`);
 }
 
 async function executeGoogleGeneration(
