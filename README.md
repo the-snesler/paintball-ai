@@ -1,6 +1,6 @@
 # Paintball
 
-AI image generation gallery with multi-model support.
+AI image generation gallery with multi-model support. Runs mostly in the user's browser, proxies requests to Replicate via a Cloudflare Worker.
 
 <img width="1699" height="1062" alt="image" src="https://github.com/user-attachments/assets/9470a4c1-b19a-4b8a-98b2-8e96366639d7" />
 
@@ -23,21 +23,18 @@ AI image generation gallery with multi-model support.
 ## Setup
 
 ```bash
-npm install
+pnpm install
 ```
-
-Set environment variables:
-- `REPLICATE_API_TOKEN`
 
 ## Development
 
 ```bash
-npm run dev
+pnpm dev
 ```
 
 ## Deploy
 
 ```bash
-npm run build
+pnpm build
 wrangler deploy
 ```
