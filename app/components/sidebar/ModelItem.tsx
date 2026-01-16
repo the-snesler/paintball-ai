@@ -1,4 +1,5 @@
-import { Box, Minus, Plus, Sparkles } from "lucide-react";
+import { Box, Minus, Plus } from "lucide-react";
+import SVG from "react-inlinesvg";
 import NumberFlow from "@number-flow/react";
 import type { StoredModel } from "~/types";
 import { useGalleryStore } from "~/stores/galleryStore";
@@ -7,11 +8,6 @@ interface ModelItemProps {
   model: StoredModel;
   count: number;
 }
-
-const providerIcons: Record<string, React.ReactNode> = {
-  google: <Sparkles className="w-4 h-4" />,
-  replicate: <Box className="w-4 h-4" />,
-};
 
 const providerNames: Record<string, string> = {
   google: "Google",
@@ -47,7 +43,11 @@ export function ModelItem({ model, count }: ModelItemProps) {
           isActive ? "bg-purple-500/20 text-purple-400" : "bg-zinc-700 text-zinc-400"
         }`}
       >
-        {providerIcons[model.provider] || <Sparkles className="w-4 h-4" />}
+        {model.icon ? (
+          <SVG src={model.icon} className="w-5 h-5" />
+        ) : (
+          <Box className="w-4 h-4" />
+        )}
       </div>
 
       {/* Info */}

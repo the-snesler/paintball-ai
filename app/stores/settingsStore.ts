@@ -10,6 +10,7 @@ const DEFAULT_MODELS: StoredModel[] = [
     name: 'Gemini 2.5 Flash',
     provider: 'google',
     enabled: true,
+    icon: '/icons/google.svg',
     capabilities: {
       supportsAspectRatios: true,
       supportsResolution: false,
@@ -22,6 +23,7 @@ const DEFAULT_MODELS: StoredModel[] = [
     name: 'Gemini 3.0 Pro',
     provider: 'google',
     enabled: true,
+    icon: '/icons/google.svg',
     capabilities: {
       supportsAspectRatios: true,
       supportsResolution: true,
@@ -36,6 +38,7 @@ const DEFAULT_MODELS: StoredModel[] = [
     provider: 'replicate',
     enabled: true,
     isCustom: true,
+    icon: '/icons/google.svg',
     capabilities: {
       supportsAspectRatios: true,
       supportsResolution: false,
@@ -49,6 +52,7 @@ const DEFAULT_MODELS: StoredModel[] = [
     provider: 'replicate',
     enabled: true,
     isCustom: true,
+    icon: '/icons/google.svg',
     capabilities: {
       supportsAspectRatios: true,
       supportsResolution: true,
@@ -62,6 +66,7 @@ const DEFAULT_MODELS: StoredModel[] = [
     provider: 'replicate',
     enabled: true,
     isCustom: true,
+    icon: '/icons/openai.svg',
     capabilities: {
       supportsAspectRatios: true,
       supportsResolution: false,
@@ -75,6 +80,7 @@ const DEFAULT_MODELS: StoredModel[] = [
     provider: 'replicate',
     enabled: true,
     isCustom: true,
+    icon: '/icons/bfl.svg',
     capabilities: {
       supportsAspectRatios: true,
       supportsResolution: false,
@@ -88,6 +94,7 @@ const DEFAULT_MODELS: StoredModel[] = [
     provider: 'replicate',
     enabled: true,
     isCustom: true,
+    icon: '/icons/bytedance.svg',
     capabilities: {
       supportsAspectRatios: true,
       supportsResolution: false,
@@ -177,16 +184,17 @@ export const useSettingsStore = create<SettingsState>()(
     }),
     {
       name: 'studio-settings',
-      version: 2, // Bump version for migration
+      version: 3, // Bump version for migration
       partialize: (state) => ({
         apiKeys: state.apiKeys,
         models: state.models,
       }),
       migrate: (persisted, version) => {
+        let state = persisted as { apiKeys?: ApiKeys; models?: StoredModel[] };
+
         if (version < 2) {
           // Migration from v1: add models array
-          const state = persisted as { apiKeys?: ApiKeys };
-          return {
+          state = {
             apiKeys: {
               google: state.apiKeys?.google ?? null,
               replicate: state.apiKeys?.replicate ?? null,
@@ -194,7 +202,29 @@ export const useSettingsStore = create<SettingsState>()(
             models: DEFAULT_MODELS,
           };
         }
-        return persisted;
+
+        if (version < 3) {
+          // Migration from v2: add icons to built-in models
+          const iconMap: Record<string, string> = {
+            'gemini-2.5-flash-image': '/icons/google.svg',
+            'gemini-3-pro-image-preview': '/icons/google.svg',
+            'replicate/google/nano-banana': '/icons/google.svg',
+            'replicate/google/nano-banana-pro': '/icons/google.svg',
+            'replicate/openai/gpt-image-1.5': '/icons/openai.svg',
+            'replicate/black-forest-labs/flux-2-flex': '/icons/bfl.svg',
+            'replicate/bytedance/seedream-4.5': '/icons/bytedance.svg',
+          };
+
+          state = {
+            ...state,
+            models: state.models?.map(m => ({
+              ...m,
+              icon: m.icon ?? iconMap[m.id],
+            })),
+          };
+        }
+
+        return state;
       },
     }
   )

@@ -33,6 +33,7 @@ export interface StoredModel {
   isCustom?: boolean; // true for user-added models
   schemaFetched?: boolean; // true if capabilities were fetched from Replicate API
   capabilities: ModelCapabilities;
+  icon?: string; // Path to custom icon SVG (e.g., "/icons/google.svg")
 }
 
 // Generation types
