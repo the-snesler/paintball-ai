@@ -26,6 +26,7 @@ interface GalleryState {
   updateItem: (id: string, updates: PendingGalleryItemFields | CompletedGalleryItemFields | FailedGalleryItemFields) => void;
   deleteItem: (id: string) => Promise<void>;
   dismissItem: (id: string) => void;
+  getItem: (id: string) => GalleryItem | undefined;
   setViewMode: (mode: ViewMode) => void;
   openLightbox: (imageId: string) => void;
   closeLightbox: () => void;
@@ -154,6 +155,8 @@ export const useGalleryStore = create<GalleryState>()((set, get) => ({
     set((state) => ({
       items: state.items.filter((i) => i.id !== id),
     })),
+
+  getItem: (id) => get().items.find((i) => i.id === id),
 
   setViewMode: (viewMode) => set({ viewMode }),
 

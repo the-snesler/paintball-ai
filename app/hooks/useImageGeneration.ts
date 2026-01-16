@@ -7,6 +7,9 @@ import type { ApiKeys, AspectRatio, GalleryItem, Provider, Resolution, StoredMod
 import { GoogleGenAI } from "@google/genai";
 import Replicate from "replicate";
 
+const MAX_RETRIES = 3;
+const BASE_BACKOFF_MS = 1000;
+
 interface GenerationTask {
   id: string;
   modelId: string;
@@ -16,6 +19,17 @@ interface GenerationTask {
   aspectRatio: AspectRatio;
   resolution: Resolution | null;
   referenceImages: Array<{ blob: Blob }>;
+}
+
+// Custom error class for rate limiting
+class RateLimitError extends Error {
+  retryAfter: number;
+  
+  constructor(message: string, retryAfter: number) {
+    super(message);
+    this.name = 'RateLimitError';
+    this.retryAfter = retryAfter;
+  }
 }
 
 export function useImageGeneration() {
@@ -30,6 +44,111 @@ export function useImageGeneration() {
   const addItems = useGalleryStore((s) => s.addItems);
   const updateItem = useGalleryStore((s) => s.updateItem);
   const setGenerating = useGalleryStore((s) => s.setGenerating);
+  const getItem = useGalleryStore((s) => s.getItem);
+
+  // Execute a single generation with retry logic
+  const executeWithRetry = useCallback(async (
+    task: GenerationTask,
+    apiKeys: ApiKeys,
+    retryCount: number = 0
+  ): Promise<{ blob: Blob; width: number; height: number; metadata: Record<string, unknown> }> => {
+    try {
+      return await executeGeneration(task, apiKeys);
+    } catch (error) {
+      // Handle rate limiting - wait and retry indefinitely
+      if (error instanceof RateLimitError) {
+        const waitMs = error.retryAfter * 1000;
+        const waitUntil = Date.now() + waitMs;
+        
+        updateItem(task.id, { 
+          status: "waiting", 
+          retryCount,
+          waitingUntil: waitUntil,
+          retryAfter: error.retryAfter
+        });
+        
+        await sleep(waitMs);
+        
+        // After waiting, try again (don't increment retry count for rate limits)
+        updateItem(task.id, { status: "generating", retryCount });
+        return executeWithRetry(task, apiKeys, retryCount);
+      }
+      
+      // Handle other errors with exponential backoff, up to MAX_RETRIES
+      if (retryCount < MAX_RETRIES) {
+        const backoffMs = BASE_BACKOFF_MS * Math.pow(2, retryCount);
+        const waitUntil = Date.now() + backoffMs;
+        
+        updateItem(task.id, { 
+          status: "waiting", 
+          retryCount: retryCount + 1,
+          waitingUntil: waitUntil,
+          retryAfter: Math.ceil(backoffMs / 1000)
+        });
+        
+        await sleep(backoffMs);
+        
+        updateItem(task.id, { status: "generating", retryCount: retryCount + 1 });
+        return executeWithRetry(task, apiKeys, retryCount + 1);
+      }
+      
+      // Max retries exceeded, throw the error
+      throw error;
+    }
+  }, [updateItem]);
+
+  // Retry a failed item
+  const retryItem = useCallback(async (itemId: string) => {
+    const item = getItem(itemId);
+    if (!item || item.status !== 'failed') return;
+
+    const model = getModel(models, item.modelId);
+    if (!model) return;
+
+    const task: GenerationTask = {
+      id: itemId,
+      modelId: item.modelId,
+      modelName: item.modelName,
+      provider: model.provider,
+      prompt: item.prompt,
+      aspectRatio: item.aspectRatio,
+      resolution: item.resolution,
+      referenceImages: [], // Reference images are not stored with failed items
+    };
+
+    updateItem(itemId, { status: "generating" });
+
+    try {
+      const result = await executeWithRetry(task, apiKeys, 0);
+
+      await saveImage({
+        blob: result.blob,
+        prompt: task.prompt,
+        modelId: task.modelId,
+        modelName: task.modelName,
+        aspectRatio: task.aspectRatio,
+        resolution: task.resolution,
+        width: result.width,
+        height: result.height,
+        createdAt: Date.now(),
+        referenceImageIds: [],
+        metadata: result.metadata,
+      });
+
+      updateItem(itemId, {
+        status: "completed",
+        blob: result.blob,
+        url: URL.createObjectURL(result.blob),
+        width: result.width,
+        height: result.height,
+        createdAt: Date.now(),
+        metadata: result.metadata,
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Generation failed";
+      updateItem(itemId, { status: "failed", error: message, canRetry: true });
+    }
+  }, [apiKeys, models, getItem, updateItem, executeWithRetry]);
 
   const generate = useCallback(async () => {
     // Build tasks for each model/count
@@ -66,6 +185,7 @@ export function useImageGeneration() {
           aspectRatio,
           resolution: taskResolution,
           referenceImageIds: referenceImages.map((r) => r.id),
+          retryCount: 0,
         });
       }
     }
@@ -82,7 +202,7 @@ export function useImageGeneration() {
         updateItem(task.id, { status: "generating" });
 
         try {
-          const result = await executeGeneration(task, apiKeys);
+          const result = await executeWithRetry(task, apiKeys, 0);
 
           // Save to IndexedDB
           await saveImage({
@@ -113,7 +233,7 @@ export function useImageGeneration() {
           return result;
         } catch (error) {
           const message = error instanceof Error ? error.message : "Generation failed";
-          updateItem(task.id, { status: "failed", error: message });
+          updateItem(task.id, { status: "failed", error: message, canRetry: true });
           throw error;
         }
       })
@@ -134,9 +254,10 @@ export function useImageGeneration() {
     addItems,
     updateItem,
     setGenerating,
+    executeWithRetry,
   ]);
 
-  return { generate };
+  return { generate, retryItem };
 }
 
 async function executeGeneration(
@@ -197,11 +318,29 @@ async function executeGoogleGeneration(
     },
   };
 
-  const response = await ai.models.generateContentStream({
-    model: task.modelId,
-    config,
-    contents,
-  });
+  let response;
+  try {
+    response = await ai.models.generateContentStream({
+      model: task.modelId,
+      config,
+      contents,
+    });
+  } catch (error) {
+    // Check for rate limit error (429)
+    if (error instanceof Error) {
+      const errorAny = error as { status?: number; code?: number; message?: string };
+      if (errorAny.status === 429 || errorAny.code === 429 || errorAny.message?.includes('429') || errorAny.message?.toLowerCase().includes('rate limit')) {
+        // Try to extract retry-after from error
+        let retryAfter = 10; // Default to 10 seconds
+        const retryMatch = errorAny.message?.match(/retry.?after[:\s]*(\d+)/i);
+        if (retryMatch) {
+          retryAfter = Math.ceil(parseInt(retryMatch[1], 10));
+        }
+        throw new RateLimitError(`Rate limited by ${task.provider}`, retryAfter);
+      }
+    }
+    throw error;
+  }
 
   let imageBlob: Blob | null = null;
   let modelVersion: string | undefined;
@@ -270,7 +409,35 @@ async function executeReplicateGeneration(
 
   const replicateModel = task.modelId.replace("replicate/", "") as `${string}/${string}`;
 
-  const output = await replicate.run(replicateModel, { input });
+  let output;
+  try {
+    output = await replicate.run(replicateModel, { input });
+  } catch (error) {
+    // Check for rate limit error (429)
+    if (error instanceof Error) {
+      // Replicate SDK throws errors with response info
+      const errorAny = error as { status?: number; response?: Response; message?: string };
+      
+      // Check if it's a 429 error
+      if (errorAny.status === 429 || errorAny.message?.includes('429')) {
+        // Try to parse retry_after from the error message
+        let retryAfter = 10; // Default to 10 seconds
+        try {
+          const jsonMatch = errorAny.message?.match(/\{[\s\S]*\}/);
+          if (jsonMatch) {
+            const parsed = JSON.parse(jsonMatch[0]);
+            if (parsed.retry_after) {
+              retryAfter = Math.ceil(parsed.retry_after);
+            }
+          }
+        } catch {
+          // Use default retry_after
+        }
+        throw new RateLimitError(`Rate limited by ${task.provider}`, retryAfter);
+      }
+    }
+    throw error;
+  }
 
   // Get the image URL from the output
   const imageUrl = typeof output === "object" && output !== null && "url" in output
@@ -306,6 +473,10 @@ function blobToBase64(blob: Blob): Promise<string> {
     reader.onerror = reject;
     reader.readAsDataURL(blob);
   });
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 function getImageDimensions(blob: Blob): Promise<{ width: number; height: number }> {

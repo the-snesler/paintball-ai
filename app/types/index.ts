@@ -63,7 +63,10 @@ export interface BaseGalleryItem {
 }
 
 export interface PendingGalleryItemFields {
-  status: 'pending' | 'generating';
+  status: 'pending' | 'generating' | 'waiting';
+  retryCount?: number;
+  waitingUntil?: number; // Timestamp when rate limit expires
+  retryAfter?: number; // Seconds to wait (for display)
 }
 
 export type PendingGalleryItem = BaseGalleryItem & PendingGalleryItemFields;
@@ -83,6 +86,7 @@ export type CompletedGalleryItem = BaseGalleryItem & CompletedGalleryItemFields;
 export interface FailedGalleryItemFields {
   status: 'failed';
   error: string;
+  canRetry?: boolean; // Whether this failure can be retried
 }
 
 export type FailedGalleryItem = BaseGalleryItem & FailedGalleryItemFields;
