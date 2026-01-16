@@ -1,4 +1,5 @@
 import { Layers } from "lucide-react";
+import NumberFlow from "@number-flow/react";
 import { ModelItem } from "./ModelItem";
 import { useGalleryStore } from "~/stores/galleryStore";
 import { useSettingsStore } from "~/stores/settingsStore";
@@ -24,11 +25,16 @@ export function ModelList() {
             Models
           </h2>
         </div>
-        {activeCount > 0 && (
-          <span className="text-xs px-2 py-0.5 bg-zinc-800 rounded-full text-zinc-400">
-            {activeCount} active
-          </span>
-        )}
+        <span className="text-xs px-2 bg-zinc-800 rounded-full text-zinc-400">
+          <NumberFlow
+            value={activeCount}
+            format={{ useGrouping: false }}
+            transformTiming={{ duration: 300, easing: 'ease-out' }}
+            spinTiming={{ duration: 300, easing: 'ease-out' }}
+            opacityTiming={{ duration: 150, easing: 'ease-out' }}
+            willChange
+          /> active
+        </span>
       </div>
       <div className="space-y-1">
         {visibleModels.length === 0 ? (

@@ -14,12 +14,7 @@ export function ResolutionSection() {
   const selectedModels = Object.entries(modelSelections)
     .filter(([, count]) => count > 0)
     .map(([modelId]) => modelId);
-  const showResolution = anyModelSupportsResolution(models, selectedModels);
-
-  // Don't render if no selected model supports resolution
-  if (!showResolution) {
-    return null;
-  }
+  const pickerEnabled = anyModelSupportsResolution(models, selectedModels);
 
   return (
     <section>
@@ -32,15 +27,19 @@ export function ResolutionSection() {
       <div className="flex gap-2">
         {RESOLUTIONS.map((res) => {
           const isSelected = resolution === res;
+          const showSelectedStyle = isSelected && pickerEnabled;
 
           return (
             <button
               key={res}
-              onClick={() => setResolution(res as Resolution)}
+              onClick={() => pickerEnabled && setResolution(res as Resolution)}
+              disabled={!pickerEnabled}
               className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
-                isSelected
+                showSelectedStyle
                   ? "bg-purple-500/20 border border-purple-500 text-purple-300"
-                  : "bg-zinc-800 border border-zinc-700 text-zinc-400 hover:border-zinc-600"
+                  : pickerEnabled
+                  ? "bg-zinc-800 border border-zinc-700 text-zinc-400 hover:border-zinc-600"
+                  : "bg-zinc-800/50 border border-zinc-800 opacity-40 cursor-not-allowed text-zinc-500"
               }`}
             >
               {res}

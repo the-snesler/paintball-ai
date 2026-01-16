@@ -1,4 +1,5 @@
 import { Box, Minus, Plus, Sparkles } from "lucide-react";
+import NumberFlow from "@number-flow/react";
 import type { StoredModel } from "~/types";
 import { useGalleryStore } from "~/stores/galleryStore";
 
@@ -65,9 +66,16 @@ export function ModelItem({ model, count }: ModelItemProps) {
         >
           <Minus className="w-3 h-3" />
         </button>
-        <span className="w-6 text-center text-sm font-medium text-zinc-300">
-          {count}
-        </span>
+        <div className="w-6 text-center text-sm font-medium text-zinc-300">
+          <NumberFlow
+            value={count}
+            format={{ useGrouping: false }}
+            transformTiming={{ duration: 300, easing: 'ease-out' }}
+            spinTiming={{ duration: 300, easing: 'ease-out' }}
+            opacityTiming={{ duration: 150, easing: 'ease-out' }}
+            willChange
+          />
+        </div>
         <button
           onClick={handleIncrement}
           className="w-6 h-6 rounded flex items-center justify-center text-zinc-400 hover:text-zinc-100 hover:bg-zinc-700 transition-colors"

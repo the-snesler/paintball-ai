@@ -1,4 +1,5 @@
 import { LayoutGrid, Clock } from "lucide-react";
+import NumberFlow from "@number-flow/react";
 import { useGalleryStore } from "~/stores/galleryStore";
 import type { ViewMode } from "~/types";
 
@@ -13,7 +14,14 @@ export function GalleryHeader({ count }: GalleryHeaderProps) {
   return (
     <header className="flex items-center justify-between px-6 py-4 border-b border-zinc-800 h-18">
       <h2 className="text-sm font-medium text-zinc-400 uppercase tracking-wide">
-        {count} Generation{count !== 1 ? "s" : ""}
+        <NumberFlow
+          value={count}
+          format={{ useGrouping: false }}
+          transformTiming={{ duration: 300, easing: 'ease-out' }}
+          spinTiming={{ duration: 300, easing: 'ease-out' }}
+          opacityTiming={{ duration: 150, easing: 'ease-out' }}
+          willChange
+        /> Generation{count !== 1 ? "s" : ""}
       </h2>
 
       <div className="flex items-center bg-zinc-900 rounded-lg p-1">

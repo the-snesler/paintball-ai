@@ -42,11 +42,13 @@ export function AspectRatioSection() {
               }`}
               title={ar.label}
             >
+              <div className="flex-1" />
               <AspectRatioPreview
                 width={ar.width}
                 height={ar.height}
                 isSelected={showSelectedStyle}
               />
+              <div className="flex-1" />
               <span className="text-[10px] text-zinc-400">{ar.label}</span>
             </button>
           );
