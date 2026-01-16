@@ -14,12 +14,16 @@ export function Lightbox() {
   const closeLightbox = useGalleryStore((s) => s.closeLightbox);
   const navigateLightbox = useGalleryStore((s) => s.navigateLightbox);
   const deleteItem = useGalleryStore((s) => s.deleteItem);
-  const getSelectedItem = useGalleryStore((s) => s.getSelectedItem);
-  const getCompletedItems = useGalleryStore((s) => s.getCompletedItems);
   const setPrompt = useGalleryStore((s) => s.setPrompt);
 
-  const image = getSelectedItem();
-  const completedItems = getCompletedItems();
+  const image = useGalleryStore((s) => {
+    const item = s.items.find((i) => i.id === s.selectedImageId);
+    return item && item.status === "completed" ? item : null;
+  });
+
+  const showNavigation = useGalleryStore(
+    (s) => s.items.filter((i) => i.status === "completed").length > 1
+  );
 
   // Keyboard navigation
   useEffect(() => {
@@ -71,8 +75,6 @@ export function Lightbox() {
   }, [image, deleteItem]);
 
   if (!image) return null;
-
-  const showNavigation = completedItems.length > 1;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
