@@ -1,8 +1,10 @@
 import { X, Key, Eye, EyeOff, Check, Plus, Trash2, Sparkles, Box, ChevronDown, ChevronUp, Loader2, RectangleHorizontal, Maximize, Image } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useSettingsStore } from "~/stores/settingsStore";
 import { fetchModelInfo } from "~/lib/replicateSchema";
 import type { Provider, StoredModel } from "~/types";
+
+export const SETTINGS_POPOVER_ID = "settings-popover";
 
 const providers: { id: Provider; name: string; description: string }[] = [
   {
@@ -24,10 +26,29 @@ export function SettingsModal() {
   const setApiKey = useSettingsStore((s) => s.setApiKey);
   const updateModelCapabilities = useSettingsStore((s) => s.updateModelCapabilities);
 
+  const popoverRef = useRef<HTMLDivElement>(null);
   const [apiKeysExpanded, setApiKeysExpanded] = useState(
     !apiKeys.google && !apiKeys.replicate
   );
   const [fetchingSchemas, setFetchingSchemas] = useState(false);
+
+  // Show popover on mount and handle toggle event for closing
+  useEffect(() => {
+    const popover = popoverRef.current;
+    if (!popover) return;
+
+    popover.showPopover();
+
+    const handleToggle = (e: Event) => {
+      const toggleEvent = e as ToggleEvent;
+      if (toggleEvent.newState === "closed") {
+        closeSettingsModal();
+      }
+    };
+
+    popover.addEventListener("toggle", handleToggle);
+    return () => popover.removeEventListener("toggle", handleToggle);
+  }, [closeSettingsModal]);
 
   // Fetch schemas for Replicate models that haven't been fetched yet
   useEffect(() => {
@@ -55,101 +76,101 @@ export function SettingsModal() {
     });
   }, [apiKeys.replicate, models, updateModelCapabilities]);
 
+  const handleClose = () => {
+    popoverRef.current?.hidePopover();
+  };
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-        onClick={closeSettingsModal}
-      />
+    <div
+      ref={popoverRef}
+      id={SETTINGS_POPOVER_ID}
+      popover="manual"
+      className="settings-popover bg-zinc-900 border border-zinc-800 rounded-xl w-full max-w-lg shadow-2xl max-h-[85vh] flex flex-col"
+    >
+      {/* Header */}
+      <div className="flex items-center justify-between p-4 border-b border-zinc-800 shrink-0">
+        <h2 className="text-lg font-semibold">Settings</h2>
+        <button
+          onClick={handleClose}
+          className="p-1.5 rounded-lg hover:bg-zinc-800 transition-colors"
+        >
+          <X className="w-5 h-5 text-zinc-400" />
+        </button>
+      </div>
 
-      {/* Modal */}
-      <div className="relative bg-zinc-900 border border-zinc-800 rounded-xl w-full max-w-lg mx-4 shadow-2xl animate-fade-in max-h-[85vh] flex flex-col">
-        {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-zinc-800 shrink-0">
-          <h2 className="text-lg font-semibold">Settings</h2>
+      {/* Content */}
+      <div className="p-4 space-y-6 overflow-y-auto flex-1">
+        {/* API Keys Section */}
+        <div className="space-y-3">
           <button
-            onClick={closeSettingsModal}
-            className="p-1.5 rounded-lg hover:bg-zinc-800 transition-colors"
+            onClick={() => setApiKeysExpanded(!apiKeysExpanded)}
+            className="flex items-center justify-between w-full text-left"
           >
-            <X className="w-5 h-5 text-zinc-400" />
-          </button>
-        </div>
-
-        {/* Content */}
-        <div className="p-4 space-y-6 overflow-y-auto flex-1">
-          {/* API Keys Section */}
-          <div className="space-y-3">
-            <button
-              onClick={() => setApiKeysExpanded(!apiKeysExpanded)}
-              className="flex items-center justify-between w-full text-left"
-            >
-              <div className="flex items-center gap-2">
-                <Key className="w-4 h-4 text-purple-400" />
-                <span className="text-sm font-medium">API Keys</span>
-                {apiKeys.google && apiKeys.replicate && (
-                  <Check className="w-4 h-4 text-green-500" />
-                )}
-              </div>
-              {apiKeysExpanded ? (
-                <ChevronUp className="w-4 h-4 text-zinc-400" />
-              ) : (
-                <ChevronDown className="w-4 h-4 text-zinc-400" />
-              )}
-            </button>
-
-            {apiKeysExpanded && (
-              <div className="space-y-3 pl-6">
-                <p className="text-xs text-zinc-500">
-                  Keys are stored locally in your browser.
-                </p>
-                {providers.map((provider) => (
-                  <ApiKeyInput
-                    key={provider.id}
-                    provider={provider.id}
-                    name={provider.name}
-                    description={provider.description}
-                    value={apiKeys[provider.id] || ""}
-                    onChange={(value) => setApiKey(provider.id, value || null)}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Models Section */}
-          <div className="space-y-3">
             <div className="flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-purple-400" />
-              <span className="text-sm font-medium">Models</span>
-              {fetchingSchemas && (
-                <Loader2 className="w-3 h-3 animate-spin text-zinc-500" />
+              <Key className="w-4 h-4 text-purple-400" />
+              <span className="text-sm font-medium">API Keys</span>
+              {apiKeys.google && apiKeys.replicate && (
+                <Check className="w-4 h-4 text-green-500" />
               )}
             </div>
+            {apiKeysExpanded ? (
+              <ChevronUp className="w-4 h-4 text-zinc-400" />
+            ) : (
+              <ChevronDown className="w-4 h-4 text-zinc-400" />
+            )}
+          </button>
 
-            <div className="space-y-2">
-              {models.map((model) => (
-                <ModelToggleItem
-                  key={model.id}
-                  model={model}
-                  hasApiKey={!!apiKeys[model.provider]}
+          {apiKeysExpanded && (
+            <div className="space-y-3 pl-6">
+              <p className="text-xs text-zinc-500">
+                Keys are stored locally in your browser.
+              </p>
+              {providers.map((provider) => (
+                <ApiKeyInput
+                  key={provider.id}
+                  provider={provider.id}
+                  name={provider.name}
+                  description={provider.description}
+                  value={apiKeys[provider.id] || ""}
+                  onChange={(value) => setApiKey(provider.id, value || null)}
                 />
               ))}
             </div>
+          )}
+        </div>
 
-            <AddCustomModelButton disabled={!apiKeys.replicate} apiKey={apiKeys.replicate} />
+        {/* Models Section */}
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-purple-400" />
+            <span className="text-sm font-medium">Models</span>
+            {fetchingSchemas && (
+              <Loader2 className="w-3 h-3 animate-spin text-zinc-500" />
+            )}
           </div>
-        </div>
 
-        {/* Footer */}
-        <div className="p-4 border-t border-zinc-800 shrink-0">
-          <button
-            onClick={closeSettingsModal}
-            className="w-full py-2 px-4 bg-purple-600 hover:bg-purple-500 text-white font-medium rounded-lg transition-colors"
-          >
-            Done
-          </button>
+          <div className="space-y-2">
+            {models.map((model) => (
+              <ModelToggleItem
+                key={model.id}
+                model={model}
+                hasApiKey={!!apiKeys[model.provider]}
+              />
+            ))}
+          </div>
+
+          <AddCustomModelButton disabled={!apiKeys.replicate} apiKey={apiKeys.replicate} />
         </div>
+      </div>
+
+      {/* Footer */}
+      <div className="p-4 border-t border-zinc-800 shrink-0">
+        <button
+          onClick={handleClose}
+          className="w-full py-2 px-4 bg-purple-600 hover:bg-purple-500 text-white font-medium rounded-lg transition-colors"
+        >
+          Done
+        </button>
       </div>
     </div>
   );

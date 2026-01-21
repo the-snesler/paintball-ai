@@ -132,3 +132,49 @@ body {
     opacity: 0;
   }
 }
+
+/* Settings modal popover styles */
+.settings-popover {
+  position: fixed;
+  inset: 0;
+  margin: auto;
+  transform: scale(1);
+  opacity: 1;
+  transition:
+    transform 0.2s cubic-bezier(0.32, 0.72, 0, 1),
+    opacity 0.2s ease,
+    overlay 0.2s allow-discrete,
+    display 0.2s allow-discrete;
+}
+
+.settings-popover::backdrop {
+  background-color: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  opacity: 1;
+  transition:
+    opacity 0.2s ease,
+    overlay 0.2s allow-discrete,
+    display 0.2s allow-discrete;
+}
+
+/* Closed state */
+.settings-popover:not(:popover-open) {
+  transform: scale(0.95);
+  opacity: 0;
+}
+
+.settings-popover:not(:popover-open)::backdrop {
+  opacity: 0;
+}
+
+/* Starting style for entry animation */
+@starting-style {
+  .settings-popover:popover-open {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+
+  .settings-popover:popover-open::backdrop {
+    opacity: 0;
+  }
+}
