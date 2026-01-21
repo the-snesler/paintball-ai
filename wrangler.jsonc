@@ -14,5 +14,6 @@
 		"directory": "./build/client",
 		"binding": "ASSETS"
 	},
-	"routes": [{ "pattern": "paintball.samnesler.com", "custom_domain": true }]
+	"routes": [{ "pattern": "paintball.samnesler.com", "custom_domain": true }],
+	"preview_urls": true
 }
