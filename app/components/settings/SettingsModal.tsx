@@ -85,7 +85,7 @@ export function SettingsModal() {
       ref={popoverRef}
       id={SETTINGS_POPOVER_ID}
       popover="manual"
-      className="settings-popover bg-zinc-900 border border-zinc-800 rounded-xl w-[calc(100%-2rem)] max-w-lg shadow-2xl max-h-[calc(100vh-2rem)] flex flex-col"
+      className="settings-popover bg-zinc-900 border border-zinc-800 rounded-xl w-[90vw] max-w-lg shadow-2xl max-h-[90vh] flex flex-col"
     >
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b border-zinc-800 shrink-0">

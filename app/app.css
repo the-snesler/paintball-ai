@@ -135,11 +135,11 @@ body {
 
 /* Settings modal popover styles */
 .settings-popover {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  translate: -50% -50%;
-  margin: 0;
+  /* Popover is in top layer - use inset + margin for centering */
+  inset: 0;
+  margin: auto;
+  width: fit-content;
+  height: fit-content;
   transform: scale(1);
   opacity: 1;
   transition:
