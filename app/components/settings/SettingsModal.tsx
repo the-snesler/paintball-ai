@@ -85,7 +85,7 @@ export function SettingsModal() {
       ref={popoverRef}
       id={SETTINGS_POPOVER_ID}
       popover="manual"
-      className="settings-popover bg-zinc-900 border border-zinc-800 rounded-xl w-full max-w-lg shadow-2xl max-h-[85vh] flex flex-col"
+      className="settings-popover bg-zinc-900 border border-zinc-800 rounded-xl w-[calc(100%-2rem)] max-w-lg shadow-2xl max-h-[calc(100vh-2rem)] flex flex-col"
     >
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b border-zinc-800 shrink-0">
@@ -163,15 +163,6 @@ export function SettingsModal() {
         </div>
       </div>
 
-      {/* Footer */}
-      <div className="p-4 border-t border-zinc-800 shrink-0">
-        <button
-          onClick={handleClose}
-          className="w-full py-2 px-4 bg-purple-600 hover:bg-purple-500 text-white font-medium rounded-lg transition-colors"
-        >
-          Done
-        </button>
-      </div>
     </div>
   );
 }
