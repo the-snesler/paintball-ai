@@ -6,6 +6,8 @@ import { ResolutionSection } from "./ResolutionSection";
 import { ReferenceImages } from "./ReferenceImages";
 import { GenerateButton } from "./GenerateButton";
 import { useSettingsStore } from "~/stores/settingsStore";
+import SVG from "react-inlinesvg";
+import drop from "~/drop.svg";
 
 export function Sidebar() {
   const openSettingsModal = useSettingsStore((s) => s.openSettingsModal);
@@ -16,7 +18,7 @@ export function Sidebar() {
       <div className="px-6 py-4 flex items-center justify-between border-b border-zinc-800 h-18">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-lg bg-zinc-800 flex items-center justify-center">
-            <Droplet className="w-4 h-4 text-purple-400" />
+            <SVG src={drop} className="w-4 h-4 text-purple-400" />
           </div>
           <div>
             <h1 className="font-semibold text-sm">Paintball</h1>
@@ -35,10 +37,10 @@ export function Sidebar() {
       {/* Scrollable Content */}
       <div className="flex-1 overflow-y-auto p-4 space-y-6">
         <PromptInput />
+        <ReferenceImages />
         <ModelList />
         <AspectRatioSection />
         <ResolutionSection />
-        <ReferenceImages />
       </div>
 
       {/* Generate Button */}
