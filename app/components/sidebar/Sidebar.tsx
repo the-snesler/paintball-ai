@@ -1,19 +1,19 @@
-import { Droplet, Settings } from "lucide-react";
+import { Droplet, Settings, X } from "lucide-react";
 import { PromptInput } from "./PromptInput";
 import { ModelList } from "./ModelList";
 import { AspectRatioSection } from "./AspectRatioSection";
 import { ResolutionSection } from "./ResolutionSection";
 import { ReferenceImages } from "./ReferenceImages";
 import { GenerateButton } from "./GenerateButton";
-import { useSettingsStore } from "~/stores/settingsStore";
+import { SETTINGS_POPOVER_ID } from "../settings/SettingsModal";
 import SVG from "react-inlinesvg";
 import drop from "~/drop.svg";
 
-export function Sidebar() {
-  const openSettingsModal = useSettingsStore((s) => s.openSettingsModal);
+export const SIDEBAR_POPOVER_ID = "sidebar-popover";
 
+function SidebarContent({ onClose }: { onClose?: () => void }) {
   return (
-    <aside className="w-80 shrink-0 border-r border-zinc-800 bg-zinc-900 flex flex-col h-full">
+    <>
       {/* Header */}
       <div className="px-6 py-4 flex items-center justify-between border-b border-zinc-800 h-18">
         <div className="flex items-center gap-3">
@@ -25,13 +25,24 @@ export function Sidebar() {
             <p className="text-xs text-zinc-500">AI Image Generation</p>
           </div>
         </div>
-        <button
-          onClick={openSettingsModal}
-          className="p-2 rounded-lg hover:bg-zinc-800 transition-colors"
-          aria-label="Settings"
-        >
-          <Settings className="w-4 h-4 text-zinc-400" />
-        </button>
+        <div className="flex items-center gap-1">
+          <button
+            popoverTarget={SETTINGS_POPOVER_ID}
+            className="p-2 rounded-lg hover:bg-zinc-800 transition-colors"
+            aria-label="Settings"
+          >
+            <Settings className="w-4 h-4 text-zinc-400" />
+          </button>
+          {onClose && (
+            <button
+              onClick={onClose}
+              className="p-2 rounded-lg hover:bg-zinc-800 transition-colors md:hidden"
+              aria-label="Close sidebar"
+            >
+              <X className="w-4 h-4 text-zinc-400" />
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Scrollable Content */}
@@ -47,6 +58,31 @@ export function Sidebar() {
       <div className="p-4 border-t border-zinc-800">
         <GenerateButton />
       </div>
+    </>
+  );
+}
+
+export function Sidebar() {
+  return (
+    <aside className="hidden md:flex w-80 shrink-0 border-r border-zinc-800 bg-zinc-900 flex-col h-full">
+      <SidebarContent />
+    </aside>
+  );
+}
+
+export function MobileSidebar() {
+  const handleClose = () => {
+    const popover = document.getElementById(SIDEBAR_POPOVER_ID);
+    popover?.hidePopover();
+  };
+
+  return (
+    <aside
+      id={SIDEBAR_POPOVER_ID}
+      popover="auto"
+      className="sidebar-popover m-0 p-0 w-80 max-w-[85vw] h-full max-h-full border-0 border-r border-zinc-800 bg-zinc-900 flex flex-col"
+    >
+      <SidebarContent onClose={handleClose} />
     </aside>
   );
 }

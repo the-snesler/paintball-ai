@@ -3,15 +3,14 @@ import { useGalleryStore } from "~/stores/galleryStore";
 import { useSettingsStore } from "~/stores/settingsStore";
 import { useImageGeneration } from "~/hooks/useImageGeneration";
 import { getModel } from "~/lib/models";
+import { SETTINGS_POPOVER_ID } from "../settings/SettingsModal";
 
 export function GenerateButton() {
   const prompt = useGalleryStore((s) => s.currentPrompt);
   const modelSelections = useGalleryStore((s) => s.currentModelSelections);
-  const aspectRatio = useGalleryStore((s) => s.currentAspectRatio);
   const isGenerating = useGalleryStore((s) => s.isGenerating);
   const models = useSettingsStore((s) => s.models);
   const apiKeys = useSettingsStore((s) => s.apiKeys);
-  const openSettingsModal = useSettingsStore((s) => s.openSettingsModal);
 
   const { generate } = useImageGeneration();
 
@@ -30,7 +29,8 @@ export function GenerateButton() {
 
   const handleGenerate = () => {
     if (missingKeys) {
-      openSettingsModal();
+      const settingsPopover = document.getElementById(SETTINGS_POPOVER_ID);
+      settingsPopover?.showPopover();
       return;
     }
     if (canGenerate) {

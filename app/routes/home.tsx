@@ -1,6 +1,7 @@
 import type { Route } from "./+types/home";
 import { useEffect } from "react";
-import { Sidebar } from "~/components/sidebar/Sidebar";
+import { Sidebar, MobileSidebar } from "~/components/sidebar/Sidebar";
+import { MobileHeader } from "~/components/sidebar/MobileHeader";
 import { Gallery } from "~/components/gallery/Gallery";
 import { SettingsModal } from "~/components/settings/SettingsModal";
 import { Lightbox } from "~/components/lightbox/Lightbox";
@@ -27,10 +28,12 @@ export default function Home() {
   }, [hasLoaded, loadImages]);
 
   return (
-    <div className="flex h-screen">
+    <div className="flex flex-col md:flex-row h-screen">
+      <MobileHeader />
+      <MobileSidebar />
       <Sidebar />
       <Gallery />
-      {settingsModalOpen && <SettingsModal />}
+      <SettingsModal />
       {isLightboxOpen && <Lightbox />}
     </div>
   );

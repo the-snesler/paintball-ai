@@ -11,6 +11,7 @@
 
 ## Tech Stack
 
+- **Package Manager**: pnpm (use `pnpm install`, not npm)
 - **Framework**: React Router 7 (SPA mode, `ssr: false`)
 - **Styling**: Tailwind CSS 4
 - **State**: Zustand (with localStorage persistence for settings)
