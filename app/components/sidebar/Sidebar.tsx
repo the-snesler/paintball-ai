@@ -5,13 +5,11 @@ import { AspectRatioSection } from "./AspectRatioSection";
 import { ResolutionSection } from "./ResolutionSection";
 import { ReferenceImages } from "./ReferenceImages";
 import { GenerateButton } from "./GenerateButton";
-import { useSettingsStore } from "~/stores/settingsStore";
+import { SETTINGS_POPOVER_ID } from "../settings/SettingsModal";
 
 export const SIDEBAR_POPOVER_ID = "sidebar-popover";
 
 function SidebarContent({ onClose }: { onClose?: () => void }) {
-  const openSettingsModal = useSettingsStore((s) => s.openSettingsModal);
-
   return (
     <>
       {/* Header */}
@@ -27,7 +25,7 @@ function SidebarContent({ onClose }: { onClose?: () => void }) {
         </div>
         <div className="flex items-center gap-1">
           <button
-            onClick={openSettingsModal}
+            popoverTarget={SETTINGS_POPOVER_ID}
             className="p-2 rounded-lg hover:bg-zinc-800 transition-colors"
             aria-label="Settings"
           >

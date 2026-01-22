@@ -118,10 +118,6 @@ interface SettingsState {
   addCustomModel: (id: string, name: string, capabilities: ModelCapabilities) => void;
   removeCustomModel: (id: string) => void;
   updateModelCapabilities: (id: string, capabilities: ModelCapabilities, schemaFetched?: boolean) => void;
-
-  // Modal actions
-  openSettingsModal: () => void;
-  closeSettingsModal: () => void;
 }
 
 export const useSettingsStore = create<SettingsState>()(
@@ -178,9 +174,6 @@ export const useSettingsStore = create<SettingsState>()(
             m.id === id ? { ...m, capabilities, ...(schemaFetched !== undefined && { schemaFetched }) } : m
           ),
         })),
-
-      openSettingsModal: () => set({ settingsModalOpen: true }),
-      closeSettingsModal: () => set({ settingsModalOpen: false }),
     }),
     {
       name: 'studio-settings',

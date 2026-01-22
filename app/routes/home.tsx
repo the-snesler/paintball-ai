@@ -33,7 +33,7 @@ export default function Home() {
       <MobileSidebar />
       <Sidebar />
       <Gallery />
-      {settingsModalOpen && <SettingsModal />}
+      <SettingsModal />
       {isLightboxOpen && <Lightbox />}
     </div>
   );
