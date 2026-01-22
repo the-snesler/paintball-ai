@@ -1,5 +1,6 @@
 import { ImagePlus, X } from "lucide-react";
 import { useCallback } from "react";
+import { CollapsibleSection } from "./CollapsibleSection";
 import { useGalleryStore } from "~/stores/galleryStore";
 import { useSettingsStore } from "~/stores/settingsStore";
 import { anyModelSupportsReferenceImages } from "~/lib/models";
@@ -94,14 +95,10 @@ export function ReferenceImages() {
   );
 
   return (
-    <section>
-      <div className="flex items-center gap-2 mb-2">
-        <ImagePlus className="w-4 h-4 text-zinc-500" />
-        <h2 className="text-xs font-medium text-zinc-400 uppercase tracking-wide">
-          Reference Images
-        </h2>
-      </div>
-
+    <CollapsibleSection
+      icon={<ImagePlus className="w-4 h-4" />}
+      title="Reference Images"
+    >
       {/* Drop zone / Preview area */}
       <div
         onDrop={handleDrop}
@@ -166,6 +163,6 @@ export function ReferenceImages() {
           </div>
         )}
       </div>
-    </section>
+    </CollapsibleSection>
   );
 }

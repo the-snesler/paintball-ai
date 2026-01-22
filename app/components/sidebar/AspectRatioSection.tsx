@@ -1,5 +1,6 @@
 import { Square } from "lucide-react";
 import { ASPECT_RATIOS, anyModelSupportsAspectRatio } from "~/lib/models";
+import { CollapsibleSection } from "./CollapsibleSection";
 import { useGalleryStore } from "~/stores/galleryStore";
 import { useSettingsStore } from "~/stores/settingsStore";
 
@@ -16,13 +17,10 @@ export function AspectRatioSection() {
   const pickerEnabled = anyModelSupportsAspectRatio(models, selectedModels);
 
   return (
-    <section>
-      <div className="flex items-center gap-2 mb-2">
-        <Square className="w-4 h-4 text-zinc-500" />
-        <h2 className="text-xs font-medium text-zinc-400 uppercase tracking-wide">
-          Aspect Ratio
-        </h2>
-      </div>
+    <CollapsibleSection
+      icon={<Square className="w-4 h-4" />}
+      title="Aspect Ratio"
+    >
       <div className="grid grid-cols-6 gap-1.5">
         {ASPECT_RATIOS.map((ar) => {
           const isSelected = aspectRatio === ar.value;
@@ -54,7 +52,7 @@ export function AspectRatioSection() {
           );
         })}
       </div>
-    </section>
+    </CollapsibleSection>
   );
 }
 

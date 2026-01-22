@@ -1,5 +1,6 @@
 import { Maximize } from "lucide-react";
 import { RESOLUTIONS, anyModelSupportsResolution } from "~/lib/models";
+import { CollapsibleSection } from "./CollapsibleSection";
 import { useGalleryStore } from "~/stores/galleryStore";
 import { useSettingsStore } from "~/stores/settingsStore";
 import type { Resolution } from "~/types";
@@ -17,13 +18,10 @@ export function ResolutionSection() {
   const pickerEnabled = anyModelSupportsResolution(models, selectedModels);
 
   return (
-    <section>
-      <div className="flex items-center gap-2 mb-2">
-        <Maximize className="w-4 h-4 text-zinc-500" />
-        <h2 className="text-xs font-medium text-zinc-400 uppercase tracking-wide">
-          Resolution
-        </h2>
-      </div>
+    <CollapsibleSection
+      icon={<Maximize className="w-4 h-4" />}
+      title="Resolution"
+    >
       <div className="flex gap-2">
         {RESOLUTIONS.map((res) => {
           const isSelected = resolution === res;
@@ -47,6 +45,6 @@ export function ResolutionSection() {
           );
         })}
       </div>
-    </section>
+    </CollapsibleSection>
   );
 }
