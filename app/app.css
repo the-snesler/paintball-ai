@@ -160,6 +160,7 @@ body {
 .settings-popover:not(:popover-open) {
   transform: scale(0.95);
   opacity: 0;
+  display: none;
 }
 
 .settings-popover:not(:popover-open)::backdrop {
