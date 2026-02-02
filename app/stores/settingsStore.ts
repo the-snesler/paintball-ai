@@ -107,7 +107,6 @@ const DEFAULT_MODELS: StoredModel[] = [
 interface SettingsState {
   apiKeys: ApiKeys;
   models: StoredModel[];
-  settingsModalOpen: boolean;
 
   // API key actions
   setApiKey: (provider: Provider, key: string | null) => void;
@@ -128,7 +127,6 @@ export const useSettingsStore = create<SettingsState>()(
         replicate: null,
       },
       models: DEFAULT_MODELS,
-      settingsModalOpen: false,
 
       setApiKey: (provider, key) =>
         set((state) => ({

@@ -49,7 +49,6 @@ app/
 
 1. **`settingsStore`** - Persisted to localStorage
    - `apiKeys`: Record of provider → API key
-   - `settingsModalOpen`: Modal visibility
 
 2. **`galleryStore`** - Unified state for inputs and outputs
    - **Gallery items**: `items: GalleryItem[]` - Unified array containing all items
