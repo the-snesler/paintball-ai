@@ -1,4 +1,4 @@
-import { Droplet, Settings, X } from "lucide-react";
+import { ChevronDown, Settings, X } from "lucide-react";
 import { PromptInput } from "./PromptInput";
 import { ModelList } from "./ModelList";
 import { AspectRatioSection } from "./AspectRatioSection";
@@ -8,6 +8,7 @@ import { GenerateButton } from "./GenerateButton";
 import { SETTINGS_POPOVER_ID } from "../settings/SettingsModal";
 import SVG from "react-inlinesvg";
 import drop from "~/drop.svg";
+import { OtherSites } from "./OtherSites";
 
 export const SIDEBAR_POPOVER_ID = "sidebar-popover";
 
@@ -15,20 +16,32 @@ function SidebarContent({ onClose }: { onClose?: () => void }) {
   return (
     <>
       {/* Header */}
-      <div className="px-6 py-4 flex items-center justify-between border-b border-zinc-800 h-18">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-zinc-800 flex items-center justify-center">
+      <div
+        className="px-6 py-4 flex items-center justify-between border-b border-zinc-800 bg-linear-to-br from-purple-950 to-zinc-900 h-18"
+      >
+        <button 
+          popoverTarget="other-sites-popover"
+          className="flex items-center gap-3"
+        >
+          <div className="w-8 h-8 rounded-lg bg-purple-900 border border-purple-700 flex items-center justify-center">
             <SVG src={drop} className="w-4 h-4 text-purple-400" />
           </div>
-          <div>
+          <div className="text-left">
             <h1 className="font-semibold text-sm">Paintball</h1>
-            <p className="text-xs text-zinc-500">AI Image Generation</p>
+            <p className="text-xs text-zinc-500">AI Image Generator</p>
           </div>
-        </div>
+        </button>
         <div className="flex items-center gap-1">
           <button
+            popoverTarget="other-sites-popover"
+            className="p-2 rounded-lg hover:bg-zinc-800 transition-colors cursor-pointer"
+            aria-label="Other sites"
+          >
+            <ChevronDown className="w-4 h-4 text-zinc-400" />
+          </button>
+          <button
             popoverTarget={SETTINGS_POPOVER_ID}
-            className="p-2 rounded-lg hover:bg-zinc-800 transition-colors"
+            className="p-2 rounded-lg hover:bg-zinc-800 transition-colors cursor-pointer"
             aria-label="Settings"
           >
             <Settings className="w-4 h-4 text-zinc-400" />
@@ -44,6 +57,7 @@ function SidebarContent({ onClose }: { onClose?: () => void }) {
           )}
         </div>
       </div>
+      <OtherSites />
 
       {/* Scrollable Content */}
       <div className="flex-1 overflow-y-auto p-4 space-y-6">
