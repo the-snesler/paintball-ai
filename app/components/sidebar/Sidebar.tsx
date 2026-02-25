@@ -3,7 +3,6 @@ import { PromptInput } from "./PromptInput";
 import { ModelList } from "./ModelList";
 import { AspectRatioSection } from "./AspectRatioSection";
 import { ResolutionSection } from "./ResolutionSection";
-import { ReferenceImages } from "./ReferenceImages";
 import { GenerateButton } from "./GenerateButton";
 import { SETTINGS_POPOVER_ID } from "../settings/SettingsModal";
 import SVG from "react-inlinesvg";
@@ -62,7 +61,6 @@ function SidebarContent({ onClose }: { onClose?: () => void }) {
       {/* Scrollable Content */}
       <div className="flex-1 overflow-y-auto p-4 space-y-6">
         <PromptInput />
-        <ReferenceImages />
         <ModelList />
         <AspectRatioSection />
         <ResolutionSection />

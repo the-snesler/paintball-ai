@@ -34,6 +34,7 @@ export function anyModelSupportsResolution(models: StoredModel[], selectedModelI
 
 // Helper to check if any selected model supports reference images
 export function anyModelSupportsReferenceImages(models: StoredModel[], selectedModelIds: string[]): boolean {
+  if (selectedModelIds.length === 0) return true; // If no models selected, allow reference images by default
   return selectedModelIds.some(modelId => {
     const model = getModel(models, modelId);
     return model?.capabilities.supportsReferenceImages;
