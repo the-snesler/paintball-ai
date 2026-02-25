@@ -237,9 +237,11 @@ export function LoadingCard({ item }: LoadingCardProps) {
       {isFailed && (
         <div className="absolute inset-0 flex flex-col items-center justify-center p-4">
           <AlertCircle className="w-8 h-8 text-red-400 mb-2" />
-          <p className="text-sm text-red-400 text-center line-clamp-2">
-            {item.error || "Generation failed"}
-          </p>
+          <div className="w-full max-w-full max-h-28 overflow-y-auto rounded-md bg-black/20 px-2 py-1">
+            <p className="text-xs text-red-300 wrap-break-word whitespace-pre-wrap">
+              {item.error || "Generation failed"}
+            </p>
+          </div>
           {item.canRetry && (
             <button
               onClick={handleRetry}
