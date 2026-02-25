@@ -160,7 +160,7 @@ export async function saveReferenceImage(
   return new Promise((resolve, reject) => {
     const transaction = db.transaction(STORES.references, 'readwrite');
     const store = transaction.objectStore(STORES.references);
-    const request = store.add({ id: image.id, blob: image.blob, name: image.name });
+    const request = store.put({ id: image.id, blob: image.blob, name: image.name });
 
     request.onerror = () => reject(request.error);
     request.onsuccess = () => {
@@ -169,6 +169,45 @@ export async function saveReferenceImage(
         url: URL.createObjectURL(image.blob),
       });
     };
+  });
+}
+
+export async function getReferenceImagesByIds(ids: string[]): Promise<ReferenceImage[]> {
+  if (ids.length === 0) return [];
+
+  const db = await initDB();
+
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(STORES.references, 'readonly');
+    const store = transaction.objectStore(STORES.references);
+    const requests = ids.map((id) =>
+      new Promise<ReferenceImage | null>((requestResolve, requestReject) => {
+        const request = store.get(id);
+
+        request.onerror = () => requestReject(request.error);
+        request.onsuccess = () => {
+          const record = request.result as
+            | { id: string; blob: Blob; name: string }
+            | undefined;
+
+          if (!record) {
+            requestResolve(null);
+            return;
+          }
+
+          requestResolve({
+            id: record.id,
+            blob: record.blob,
+            name: record.name,
+            url: URL.createObjectURL(record.blob),
+          });
+        };
+      })
+    );
+
+    Promise.all(requests)
+      .then((images) => resolve(images.filter((img): img is ReferenceImage => img !== null)))
+      .catch(reject);
   });
 }
 

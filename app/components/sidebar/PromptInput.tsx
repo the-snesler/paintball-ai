@@ -161,11 +161,11 @@ export function PromptInput() {
           onChange={(e) => setPrompt(e.target.value)}
           onPaste={handlePaste}
           placeholder="Describe your image..."
-          className="w-full min-h-24 px-3 pt-2 pb-2 bg-transparent rounded-t-lg text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none resize-none"
+          className="w-full field-sizing-content max-h-1/2 min-h-24 px-3 pt-2 pb-2 bg-transparent rounded-t-lg text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none resize-none"
         />
 
         {isExpanded && (
-          <div className="px-3 pb-2">
+          <div className="px-3 py-2">
             <div className="max-w-full grid grid-cols-3 gap-2">
               {referenceImages.map((img) => (
                 <div key={img.id} className="relative group aspect-square">

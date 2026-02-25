@@ -9,12 +9,15 @@ import {
   Wand2,
 } from "lucide-react";
 import { useGalleryStore } from "~/stores/galleryStore";
+import { getReferenceImagesByIds } from "~/lib/db";
 
 export function Lightbox() {
   const closeLightbox = useGalleryStore((s) => s.closeLightbox);
   const navigateLightbox = useGalleryStore((s) => s.navigateLightbox);
   const deleteItem = useGalleryStore((s) => s.deleteItem);
   const setPrompt = useGalleryStore((s) => s.setPrompt);
+  const addReferenceImage = useGalleryStore((s) => s.addReferenceImage);
+  const clearReferenceImages = useGalleryStore((s) => s.clearReferenceImages);
 
   const image = useGalleryStore((s) => {
     const item = s.items.find((i) => i.id === s.selectedImageId);
@@ -61,11 +64,16 @@ export function Lightbox() {
     navigator.clipboard.writeText(image.prompt);
   }, [image]);
 
-  const handleReusePrompt = useCallback(() => {
+  const handleReusePrompt = useCallback(async () => {
     if (!image) return;
+
+    clearReferenceImages();
+    const references = await getReferenceImagesByIds(image.referenceImageIds);
+    references.forEach((reference) => addReferenceImage(reference));
+
     setPrompt(image.prompt);
     closeLightbox();
-  }, [image, setPrompt, closeLightbox]);
+  }, [image, setPrompt, closeLightbox, clearReferenceImages, addReferenceImage]);
 
   const handleDelete = useCallback(async () => {
     if (!image) return;
