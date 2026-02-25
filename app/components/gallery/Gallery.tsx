@@ -5,17 +5,14 @@ import { ImageCard } from "./ImageCard";
 import { LoadingCard } from "./LoadingCard";
 import { TimelineDivider } from "./TimelineDivider";
 import { ImageOff } from "lucide-react";
-import type { CompletedGalleryItem, FailedGalleryItem, PendingGalleryItem } from "~/types";
+import type { GalleryItem } from "~/types";
 
 export function Gallery() {
   const items = useGalleryStore((s) => s.items);
   const viewMode = useGalleryStore((s) => s.viewMode);
   const isLoading = useGalleryStore((s) => s.isLoading);
-  const getItemsByDate = useGalleryStore((s) => s.getItemsByDate);
 
-  // Filter items by status
-  const pendingItems = items.filter((i) => i.status === 'pending' || i.status === 'generating') as PendingGalleryItem[];
-  const failedItems = items.filter((i) => i.status === 'failed') as FailedGalleryItem[];
+  const itemsByPrompt = groupItemsByPrompt(items);
 
   const totalCount = items.length;
 
@@ -38,9 +35,7 @@ export function Gallery() {
           <GridView items={items} />
         ) : (
           <TimelineView
-            itemsByDate={getItemsByDate()}
-            pendingItems={pendingItems}
-            failedItems={failedItems}
+            itemsByPrompt={itemsByPrompt}
           />
         )}
       </div>
@@ -83,45 +78,75 @@ function GridView({
 }
 
 function TimelineView({
-  itemsByDate,
-  pendingItems,
-  failedItems,
+  itemsByPrompt,
 }: {
-  itemsByDate: Map<string, CompletedGalleryItem[]>;
-  pendingItems: PendingGalleryItem[];
-  failedItems: FailedGalleryItem[];
+  itemsByPrompt: Map<string, GalleryItem[]>;
 }) {
-  const entries = Array.from(itemsByDate.entries());
-  const hasActiveGenerations = pendingItems.length > 0 || failedItems.length > 0;
+  const entries = Array.from(itemsByPrompt.entries());
 
   return (
     <div>
-      {/* Show pending/generating/failed items at the top */}
-      {hasActiveGenerations && (
-        <>
-          <TimelineDivider label="Generating..." />
+      {entries.map(([promptLabel, promptItems]) => (
+        <div key={promptLabel} className="group">
+          <TimelineDivider
+            dateLabel={formatRelativeDate(getFirstCreatedAt(promptItems))}
+            outputCount={promptItems.length}
+            prompt={promptLabel}
+          />
           <MasonryGrid>
-            {pendingItems.map((item) => (
-              <LoadingCard key={item.id} item={item} />
-            ))}
-            {failedItems.map((item) => (
-              <LoadingCard key={item.id} item={item} />
-            ))}
-          </MasonryGrid>
-        </>
-      )}
-
-      {/* Show completed items grouped by date */}
-      {entries.map(([dateLabel, dateItems]) => (
-        <div key={dateLabel}>
-          <TimelineDivider label={dateLabel} />
-          <MasonryGrid>
-            {dateItems.map((item) => (
-              <ImageCard key={item.id} image={item} />
+            {promptItems.map((item) => (
+              item.status === 'completed' ? (
+                <ImageCard key={item.id} image={item} />
+              ) : (
+                <LoadingCard key={item.id} item={item} />
+              )
             ))}
           </MasonryGrid>
         </div>
       ))}
     </div>
   );
+}
+
+function groupItemsByPrompt(items: GalleryItem[]): Map<string, GalleryItem[]> {
+  const grouped = new Map<string, GalleryItem[]>();
+
+  for (const item of items) {
+    const promptKey = item.prompt.trim() || "Untitled prompt";
+    const existing = grouped.get(promptKey) || [];
+    grouped.set(promptKey, [...existing, item]);
+  }
+
+  return grouped;
+}
+
+function getFirstCreatedAt(items: GalleryItem[]): number {
+  const firstCompleted = items.find((item) => item.status === 'completed');
+  return firstCompleted?.createdAt ?? Date.now();
+}
+
+function formatRelativeDate(createdAt: number): string {
+  const now = Date.now();
+  const delta = Math.max(0, now - createdAt);
+  const day = 24 * 60 * 60 * 1000;
+  const minute = 60 * 1000;
+  const hour = 60 * minute;
+
+  if (delta < 30) {
+    return 'Just now';
+  } else if (delta < minute) {
+    return Math.floor(delta / 1000) + ' seconds ago';
+  } else if (delta < 2 * minute) {
+    return "1 minute ago";
+  } else if (delta < hour) {
+    return Math.floor(delta / minute) + ' minutes ago';
+  } else if (Math.floor(delta / hour) == 1) {
+    return "1 hour ago";
+  } else if (delta < day) {
+    return Math.floor(delta / hour) + ' hours ago.';
+  } else if (delta < day * 2) {
+    return "Yesterday";
+  }
+
+  return new Date(createdAt).toLocaleDateString('en-US');
 }
