@@ -17,6 +17,9 @@ interface GalleryState {
   currentAspectRatio: AspectRatio;
   currentResolution: Resolution;
   currentReferenceImages: ReferenceImage[];
+  activeGenerationCount: number;
+  activeGenerationSignatures: Record<string, number>;
+  lastSubmittedSignature: string | null;
   isGenerating: boolean;
 
   // Gallery actions
@@ -43,7 +46,8 @@ interface GalleryState {
   addReferenceImage: (image: ReferenceImage) => void;
   removeReferenceImage: (id: string) => void;
   clearReferenceImages: () => void;
-  setGenerating: (isGenerating: boolean) => void;
+  startGeneration: (signature: string) => void;
+  finishGeneration: (signature: string) => void;
   getSelectedModelIds: () => string[];
   getTotalImageCount: () => number;
 }
@@ -82,6 +86,9 @@ export const useGalleryStore = create<GalleryState>()((set, get) => ({
   currentAspectRatio: '1:1',
   currentResolution: '1K',
   currentReferenceImages: [],
+  activeGenerationCount: 0,
+  activeGenerationSignatures: {},
+  lastSubmittedSignature: null,
   isGenerating: false,
 
   // Gallery actions
@@ -255,7 +262,39 @@ export const useGalleryStore = create<GalleryState>()((set, get) => ({
       return { currentReferenceImages: [] };
     }),
 
-  setGenerating: (isGenerating) => set({ isGenerating }),
+  startGeneration: (signature) =>
+    set((state) => {
+      const nextCount = state.activeGenerationCount + 1;
+      return {
+        activeGenerationCount: nextCount,
+        activeGenerationSignatures: {
+          ...state.activeGenerationSignatures,
+          [signature]: (state.activeGenerationSignatures[signature] ?? 0) + 1,
+        },
+        lastSubmittedSignature: signature,
+        isGenerating: nextCount > 0,
+      };
+    }),
+
+  finishGeneration: (signature) =>
+    set((state) => {
+      const nextCount = Math.max(0, state.activeGenerationCount - 1);
+      const currentSignatureCount = state.activeGenerationSignatures[signature] ?? 0;
+      const nextSignatureCount = Math.max(0, currentSignatureCount - 1);
+      const nextSignatures = { ...state.activeGenerationSignatures };
+
+      if (nextSignatureCount === 0) {
+        delete nextSignatures[signature];
+      } else {
+        nextSignatures[signature] = nextSignatureCount;
+      }
+
+      return {
+        activeGenerationCount: nextCount,
+        activeGenerationSignatures: nextSignatures,
+        isGenerating: nextCount > 0,
+      };
+    }),
 
   getSelectedModelIds: () => {
     const state = get();

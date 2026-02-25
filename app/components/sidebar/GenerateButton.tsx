@@ -2,13 +2,18 @@ import { Sparkles, Loader2 } from "lucide-react";
 import { useGalleryStore } from "~/stores/galleryStore";
 import { useSettingsStore } from "~/stores/settingsStore";
 import { useImageGeneration } from "~/hooks/useImageGeneration";
+import { buildGenerationSignature } from "~/lib/generationSignature";
 import { getModel } from "~/lib/models";
 import { SETTINGS_POPOVER_ID } from "../settings/SettingsModal";
 
 export function GenerateButton() {
   const prompt = useGalleryStore((s) => s.currentPrompt);
   const modelSelections = useGalleryStore((s) => s.currentModelSelections);
-  const isGenerating = useGalleryStore((s) => s.isGenerating);
+  const lastSubmittedSignature = useGalleryStore((s) => s.lastSubmittedSignature);
+  const activeGenerationSignatures = useGalleryStore((s) => s.activeGenerationSignatures);
+  const aspectRatio = useGalleryStore((s) => s.currentAspectRatio);
+  const resolution = useGalleryStore((s) => s.currentResolution);
+  const referenceImages = useGalleryStore((s) => s.currentReferenceImages);
   const models = useSettingsStore((s) => s.models);
   const apiKeys = useSettingsStore((s) => s.apiKeys);
 
@@ -24,8 +29,22 @@ export function GenerateButton() {
     return model && !apiKeys[model.provider];
   });
 
+  const currentSignature = buildGenerationSignature({
+    prompt,
+    modelSelections,
+    aspectRatio,
+    resolution,
+    referenceImages,
+  });
+
+  const isLastSubmittedActive =
+    lastSubmittedSignature !== null && (activeGenerationSignatures[lastSubmittedSignature] ?? 0) > 0;
+
+  const isLockedForCurrentParams =
+    isLastSubmittedActive && lastSubmittedSignature === currentSignature;
+
   const canGenerate =
-    prompt.trim().length > 0 && totalImages > 0 && !missingKeys && !isGenerating;
+    prompt.trim().length > 0 && totalImages > 0 && !missingKeys && !isLockedForCurrentParams;
 
   const handleGenerate = () => {
     if (missingKeys) {
@@ -49,7 +68,7 @@ export function GenerateButton() {
             : "bg-zinc-800 text-zinc-500 cursor-not-allowed"
         }`}
       >
-        {isGenerating ? (
+        {isLockedForCurrentParams ? (
           <>
             <Loader2 className="w-4 h-4 animate-spin" />
             Generating...

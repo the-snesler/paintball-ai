@@ -1,7 +1,8 @@
 import { useCallback } from "react";
 import { useGalleryStore } from "~/stores/galleryStore";
 import { useSettingsStore } from "~/stores/settingsStore";
-import { saveImage } from "~/lib/db";
+import { getReferenceImagesByIds, saveImage, saveReferenceImage } from "~/lib/db";
+import { buildGenerationSignature } from "~/lib/generationSignature";
 import { getModel } from "~/lib/models";
 import type { ApiKeys, AspectRatio, GalleryItem, Provider, Resolution, StoredModel } from "~/types";
 import { GoogleGenAI } from "@google/genai";
@@ -18,7 +19,7 @@ interface GenerationTask {
   prompt: string;
   aspectRatio: AspectRatio;
   resolution: Resolution | null;
-  referenceImages: Array<{ blob: Blob }>;
+  referenceImages: Array<{ id: string; blob: Blob }>;
 }
 
 // Custom error class for rate limiting
@@ -43,8 +44,18 @@ export function useImageGeneration() {
   const referenceImages = useGalleryStore((s) => s.currentReferenceImages);
   const addItems = useGalleryStore((s) => s.addItems);
   const updateItem = useGalleryStore((s) => s.updateItem);
-  const setGenerating = useGalleryStore((s) => s.setGenerating);
+  const startGeneration = useGalleryStore((s) => s.startGeneration);
+  const finishGeneration = useGalleryStore((s) => s.finishGeneration);
   const getItem = useGalleryStore((s) => s.getItem);
+
+  const persistReferences = useCallback(async (images: Array<{ id: string; blob: Blob; name: string }>) => {
+    await Promise.all(
+      images.map(async (image) => {
+        const saved = await saveReferenceImage(image);
+        URL.revokeObjectURL(saved.url);
+      })
+    );
+  }, []);
 
   // Execute a single generation with retry logic
   const executeWithRetry = useCallback(async (
@@ -105,6 +116,8 @@ export function useImageGeneration() {
     const model = getModel(models, item.modelId);
     if (!model) return;
 
+    const persistedReferences = await getReferenceImagesByIds(item.referenceImageIds);
+
     const task: GenerationTask = {
       id: itemId,
       modelId: item.modelId,
@@ -113,7 +126,10 @@ export function useImageGeneration() {
       prompt: item.prompt,
       aspectRatio: item.aspectRatio,
       resolution: item.resolution,
-      referenceImages: [], // Reference images are not stored with failed items
+      referenceImages: persistedReferences.map((referenceImage) => ({
+        id: referenceImage.id,
+        blob: referenceImage.blob,
+      })),
     };
 
     updateItem(itemId, { status: "generating" });
@@ -131,7 +147,7 @@ export function useImageGeneration() {
         width: result.width,
         height: result.height,
         createdAt: Date.now(),
-        referenceImageIds: [],
+        referenceImageIds: task.referenceImages.map((referenceImage) => referenceImage.id),
         metadata: result.metadata,
       });
 
@@ -151,6 +167,14 @@ export function useImageGeneration() {
   }, [apiKeys, models, getItem, updateItem, executeWithRetry]);
 
   const generate = useCallback(async () => {
+    const signature = buildGenerationSignature({
+      prompt,
+      modelSelections,
+      aspectRatio,
+      resolution,
+      referenceImages,
+    });
+
     // Build tasks for each model/count
     const tasks: GenerationTask[] = [];
     const pendingItems: GalleryItem[] = [];
@@ -173,7 +197,7 @@ export function useImageGeneration() {
           prompt,
           aspectRatio,
           resolution: taskResolution,
-          referenceImages: referenceImages.map((r) => ({ blob: r.blob })),
+          referenceImages: referenceImages.map((r) => ({ id: r.id, blob: r.blob })),
         });
 
         pendingItems.push({
@@ -192,57 +216,66 @@ export function useImageGeneration() {
 
     if (tasks.length === 0) return;
 
-    // Add pending items to gallery immediately
-    addItems(pendingItems);
-    setGenerating(true);
-
-    // Execute all tasks in parallel
-    const results = await Promise.allSettled(
-      tasks.map(async (task) => {
-        updateItem(task.id, { status: "generating" });
-
-        try {
-          const result = await executeWithRetry(task, apiKeys, 0);
-
-          // Save to IndexedDB
-          await saveImage({
-            blob: result.blob,
-            prompt: task.prompt,
-            modelId: task.modelId,
-            modelName: task.modelName,
-            aspectRatio: task.aspectRatio,
-            resolution: task.resolution,
-            width: result.width,
-            height: result.height,
-            createdAt: Date.now(),
-            referenceImageIds: [],
-            metadata: result.metadata,
-          });
-
-          // Update item to completed status with image data
-          updateItem(task.id, {
-            status: "completed",
-            blob: result.blob,
-            url: URL.createObjectURL(result.blob),
-            width: result.width,
-            height: result.height,
-            createdAt: Date.now(),
-            metadata: result.metadata,
-          });
-
-          return result;
-        } catch (error) {
-          const message = error instanceof Error ? error.message : "Generation failed";
-          updateItem(task.id, { status: "failed", error: message, canRetry: true });
-          throw error;
-        }
-      })
+    await persistReferences(
+      referenceImages.map((image) => ({
+        id: image.id,
+        blob: image.blob,
+        name: image.name,
+      }))
     );
 
-    // Mark generation as complete
-    setGenerating(false);
+    // Add pending items to gallery immediately
+    addItems(pendingItems);
+    startGeneration(signature);
 
-    return results;
+    try {
+      // Execute all tasks in parallel
+      const results = await Promise.allSettled(
+        tasks.map(async (task) => {
+          updateItem(task.id, { status: "generating" });
+
+          try {
+            const result = await executeWithRetry(task, apiKeys, 0);
+
+            // Save to IndexedDB
+            await saveImage({
+              blob: result.blob,
+              prompt: task.prompt,
+              modelId: task.modelId,
+              modelName: task.modelName,
+              aspectRatio: task.aspectRatio,
+              resolution: task.resolution,
+              width: result.width,
+              height: result.height,
+              createdAt: Date.now(),
+              referenceImageIds: task.referenceImages.map((referenceImage) => referenceImage.id),
+              metadata: result.metadata,
+            });
+
+            // Update item to completed status with image data
+            updateItem(task.id, {
+              status: "completed",
+              blob: result.blob,
+              url: URL.createObjectURL(result.blob),
+              width: result.width,
+              height: result.height,
+              createdAt: Date.now(),
+              metadata: result.metadata,
+            });
+
+            return result;
+          } catch (error) {
+            const message = error instanceof Error ? error.message : "Generation failed";
+            updateItem(task.id, { status: "failed", error: message, canRetry: true });
+            throw error;
+          }
+        })
+      );
+
+      return results;
+    } finally {
+      finishGeneration(signature);
+    }
   }, [
     prompt,
     modelSelections,
@@ -253,8 +286,10 @@ export function useImageGeneration() {
     models,
     addItems,
     updateItem,
-    setGenerating,
+    startGeneration,
+    finishGeneration,
     executeWithRetry,
+    persistReferences,
   ]);
 
   return { generate, retryItem };
