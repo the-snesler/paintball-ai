@@ -1,121 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { BUILT_IN_MODELS, isBuiltInModel, mergeWithBuiltInModels } from '~/lib/builtInModels';
 import type { ApiKeys, ModelCapabilities, Provider, StoredModel } from '~/types';
-
-// Default models that come pre-populated
-const DEFAULT_MODELS: StoredModel[] = [
-  // Google models (hardcoded capabilities)
-  {
-    id: 'gemini-2.5-flash-image',
-    name: 'Gemini 2.5 Flash',
-    provider: 'google',
-    enabled: true,
-    icon: '/icons/google.svg',
-    capabilities: {
-      supportsAspectRatios: true,
-      supportsResolution: false,
-      supportsReferenceImages: true,
-      maxReferenceImages: 10,
-    },
-  },
-  {
-    id: 'gemini-3-pro-image-preview',
-    name: 'Gemini 3.0 Pro',
-    provider: 'google',
-    enabled: true,
-    icon: '/icons/google.svg',
-    capabilities: {
-      supportsAspectRatios: true,
-      supportsResolution: true,
-      supportsReferenceImages: true,
-      maxReferenceImages: 10,
-    },
-  },
-  {
-    id: 'gemini-3.1-flash-image-preview',
-    name: 'Gemini 3.1 Flash',
-    provider: 'google',
-    enabled: true,
-    icon: '/icons/google.svg',
-    capabilities: {
-      supportsAspectRatios: true,
-      supportsResolution: true,
-      supportsReferenceImages: true,
-      maxReferenceImages: 10,
-    },
-  },
-  // Replicate models (removable like custom models)
-  {
-    id: 'replicate/google/nano-banana',
-    name: 'Nano Banana',
-    provider: 'replicate',
-    enabled: true,
-    isCustom: true,
-    icon: '/icons/google.svg',
-    capabilities: {
-      supportsAspectRatios: true,
-      supportsResolution: false,
-      supportsReferenceImages: true,
-      maxReferenceImages: 10,
-    },
-  },
-  {
-    id: 'replicate/google/nano-banana-pro',
-    name: 'Nano Banana Pro',
-    provider: 'replicate',
-    enabled: true,
-    isCustom: true,
-    icon: '/icons/google.svg',
-    capabilities: {
-      supportsAspectRatios: true,
-      supportsResolution: true,
-      supportsReferenceImages: true,
-      maxReferenceImages: 14,
-    },
-  },
-  {
-    id: 'replicate/openai/gpt-image-1.5',
-    name: 'GPT Image 1.5',
-    provider: 'replicate',
-    enabled: true,
-    isCustom: true,
-    icon: '/icons/openai.svg',
-    capabilities: {
-      supportsAspectRatios: true,
-      supportsResolution: false,
-      supportsReferenceImages: true,
-      maxReferenceImages: 1,
-    },
-  },
-  {
-    id: 'replicate/black-forest-labs/flux-2-flex',
-    name: 'Flux 2 Flex',
-    provider: 'replicate',
-    enabled: true,
-    isCustom: true,
-    icon: '/icons/bfl.svg',
-    capabilities: {
-      supportsAspectRatios: true,
-      supportsResolution: false,
-      supportsReferenceImages: true,
-      maxReferenceImages: 1,
-    },
-  },
-  {
-    id: 'replicate/bytedance/seedream-4.5',
-    name: 'SeeDream 4.5',
-    provider: 'replicate',
-    enabled: true,
-    isCustom: true,
-    icon: '/icons/bytedance.svg',
-    capabilities: {
-      supportsAspectRatios: true,
-      supportsResolution: false,
-      supportsReferenceImages: false,
-      maxReferenceImages: 0,
-    },
-  },
-];
 
 interface SettingsState {
   apiKeys: ApiKeys;
@@ -139,7 +25,7 @@ export const useSettingsStore = create<SettingsState>()(
         google: null,
         replicate: null,
       },
-      models: DEFAULT_MODELS,
+      models: BUILT_IN_MODELS,
 
       setApiKey: (provider, key) =>
         set((state) => ({
@@ -176,7 +62,9 @@ export const useSettingsStore = create<SettingsState>()(
 
       removeCustomModel: (id) =>
         set((state) => ({
-          models: state.models.filter((m) => m.id !== id),
+          models: state.models.some((m) => m.id === id && m.isCustom)
+            ? state.models.filter((m) => m.id !== id)
+            : state.models,
         })),
 
       updateModelCapabilities: (id, capabilities, schemaFetched) =>
@@ -188,7 +76,7 @@ export const useSettingsStore = create<SettingsState>()(
     }),
     {
       name: 'studio-settings',
-      version: 3, // Bump version for migration
+      version: 4,
       partialize: (state) => ({
         apiKeys: state.apiKeys,
         models: state.models,
@@ -203,7 +91,7 @@ export const useSettingsStore = create<SettingsState>()(
               google: state.apiKeys?.google ?? null,
               replicate: state.apiKeys?.replicate ?? null,
             },
-            models: DEFAULT_MODELS,
+            models: BUILT_IN_MODELS,
           };
         }
 
@@ -212,6 +100,7 @@ export const useSettingsStore = create<SettingsState>()(
           const iconMap: Record<string, string> = {
             'gemini-2.5-flash-image': '/icons/google.svg',
             'gemini-3-pro-image-preview': '/icons/google.svg',
+            'gemini-3.1-flash-image-preview': '/icons/google.svg',
             'replicate/google/nano-banana': '/icons/google.svg',
             'replicate/google/nano-banana-pro': '/icons/google.svg',
             'replicate/openai/gpt-image-1.5': '/icons/openai.svg',
@@ -227,6 +116,27 @@ export const useSettingsStore = create<SettingsState>()(
             })),
           };
         }
+
+        if (version < 4) {
+          state = {
+            ...state,
+            models: mergeWithBuiltInModels(state.models),
+          };
+        }
+
+        if (version >= 4) {
+          state = {
+            ...state,
+            models: mergeWithBuiltInModels(state.models),
+          };
+        }
+
+        state = {
+          ...state,
+          models: state.models?.map((model) =>
+            isBuiltInModel(model.id) ? { ...model, isCustom: undefined } : model
+          ),
+        };
 
         return state;
       },
