@@ -31,6 +31,19 @@ const DEFAULT_MODELS: StoredModel[] = [
       maxReferenceImages: 10,
     },
   },
+  {
+    id: 'gemini-3.1-flash-image-preview',
+    name: 'Gemini 3.1 Flash',
+    provider: 'google',
+    enabled: true,
+    icon: '/icons/google.svg',
+    capabilities: {
+      supportsAspectRatios: true,
+      supportsResolution: true,
+      supportsReferenceImages: true,
+      maxReferenceImages: 10,
+    },
+  },
   // Replicate models (removable like custom models)
   {
     id: 'replicate/google/nano-banana',
