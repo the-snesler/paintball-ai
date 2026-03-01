@@ -6,6 +6,9 @@ import type { ApiKeys, ModelCapabilities, Provider, StoredModel } from '~/types'
 interface SettingsState {
   apiKeys: ApiKeys;
   models: StoredModel[];
+  desktopNotificationsEnabled: boolean;
+  notificationPromptDismissed: boolean;
+  requestedOutputCount: number;
 
   // API key actions
   setApiKey: (provider: Provider, key: string | null) => void;
@@ -16,6 +19,11 @@ interface SettingsState {
   addCustomModel: (id: string, name: string, capabilities: ModelCapabilities) => void;
   removeCustomModel: (id: string) => void;
   updateModelCapabilities: (id: string, capabilities: ModelCapabilities, schemaFetched?: boolean) => void;
+
+  // Notification actions
+  setDesktopNotificationsEnabled: (enabled: boolean) => void;
+  dismissNotificationPrompt: () => void;
+  incrementRequestedOutputCount: (count?: number) => void;
 }
 
 export const useSettingsStore = create<SettingsState>()(
@@ -26,6 +34,9 @@ export const useSettingsStore = create<SettingsState>()(
         replicate: null,
       },
       models: BUILT_IN_MODELS,
+      desktopNotificationsEnabled: false,
+      notificationPromptDismissed: false,
+      requestedOutputCount: 0,
 
       setApiKey: (provider, key) =>
         set((state) => ({
@@ -73,16 +84,36 @@ export const useSettingsStore = create<SettingsState>()(
             m.id === id ? { ...m, capabilities, ...(schemaFetched !== undefined && { schemaFetched }) } : m
           ),
         })),
+
+      setDesktopNotificationsEnabled: (enabled) =>
+        set({ desktopNotificationsEnabled: enabled }),
+
+      dismissNotificationPrompt: () =>
+        set({ notificationPromptDismissed: true }),
+
+      incrementRequestedOutputCount: (count = 1) =>
+        set((state) => ({
+          requestedOutputCount: state.requestedOutputCount + Math.max(0, count),
+        })),
     }),
     {
       name: 'studio-settings',
-      version: 4,
+      version: 5,
       partialize: (state) => ({
         apiKeys: state.apiKeys,
         models: state.models,
+        desktopNotificationsEnabled: state.desktopNotificationsEnabled,
+        notificationPromptDismissed: state.notificationPromptDismissed,
+        requestedOutputCount: state.requestedOutputCount,
       }),
       migrate: (persisted, version) => {
-        let state = persisted as { apiKeys?: ApiKeys; models?: StoredModel[] };
+        let state = persisted as {
+          apiKeys?: ApiKeys;
+          models?: StoredModel[];
+          desktopNotificationsEnabled?: boolean;
+          notificationPromptDismissed?: boolean;
+          requestedOutputCount?: number;
+        };
 
         if (version < 2) {
           // Migration from v1: add models array
@@ -131,11 +162,23 @@ export const useSettingsStore = create<SettingsState>()(
           };
         }
 
+        if (version < 5) {
+          state = {
+            ...state,
+            desktopNotificationsEnabled: false,
+            notificationPromptDismissed: false,
+            requestedOutputCount: 0,
+          };
+        }
+
         state = {
           ...state,
           models: state.models?.map((model) =>
             isBuiltInModel(model.id) ? { ...model, isCustom: undefined } : model
           ),
+          desktopNotificationsEnabled: state.desktopNotificationsEnabled ?? false,
+          notificationPromptDismissed: state.notificationPromptDismissed ?? false,
+          requestedOutputCount: state.requestedOutputCount ?? 0,
         };
 
         return state;

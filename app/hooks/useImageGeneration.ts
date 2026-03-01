@@ -36,6 +36,7 @@ class RateLimitError extends Error {
 export function useImageGeneration() {
   const apiKeys = useSettingsStore((s) => s.apiKeys);
   const models = useSettingsStore((s) => s.models);
+  const incrementRequestedOutputCount = useSettingsStore((s) => s.incrementRequestedOutputCount);
 
   const prompt = useGalleryStore((s) => s.currentPrompt);
   const modelSelections = useGalleryStore((s) => s.currentModelSelections);
@@ -132,6 +133,7 @@ export function useImageGeneration() {
       })),
     };
 
+    incrementRequestedOutputCount(1);
     updateItem(itemId, { status: "generating" });
 
     try {
@@ -164,7 +166,7 @@ export function useImageGeneration() {
       const message = error instanceof Error ? error.message : "Generation failed";
       updateItem(itemId, { status: "failed", error: message, canRetry: true });
     }
-  }, [apiKeys, models, getItem, updateItem, executeWithRetry]);
+  }, [apiKeys, models, getItem, updateItem, executeWithRetry, incrementRequestedOutputCount]);
 
   const generate = useCallback(async () => {
     const signature = buildGenerationSignature({
@@ -215,6 +217,8 @@ export function useImageGeneration() {
     }
 
     if (tasks.length === 0) return;
+
+    incrementRequestedOutputCount(tasks.length);
 
     await persistReferences(
       referenceImages.map((image) => ({
@@ -290,6 +294,7 @@ export function useImageGeneration() {
     finishGeneration,
     executeWithRetry,
     persistReferences,
+    incrementRequestedOutputCount,
   ]);
 
   return { generate, retryItem };
