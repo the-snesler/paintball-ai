@@ -4,14 +4,20 @@ import { ModelList } from "./ModelList";
 import { AspectRatioSection } from "./AspectRatioSection";
 import { ResolutionSection } from "./ResolutionSection";
 import { GenerateButton } from "./GenerateButton";
-import { SETTINGS_POPOVER_ID } from "../settings/SettingsModal";
 import SVG from "react-inlinesvg";
 import drop from "~/drop.svg";
 import { OtherSites } from "./OtherSites";
+import { useGalleryStore } from "~/stores/galleryStore";
 
 export const SIDEBAR_POPOVER_ID = "sidebar-popover";
 
-function SidebarContent({ onClose }: { onClose?: () => void }) {
+function SidebarContent({
+  onClose,
+  onOpenSettings,
+}: {
+  onClose?: () => void;
+  onOpenSettings?: () => void;
+}) {
   return (
     <>
       {/* Header */}
@@ -39,7 +45,7 @@ function SidebarContent({ onClose }: { onClose?: () => void }) {
             <ChevronDown className="w-4 h-4 text-zinc-400" />
           </button>
           <button
-            popoverTarget={SETTINGS_POPOVER_ID}
+            onClick={onOpenSettings}
             className="p-2 rounded-lg hover:bg-zinc-800 transition-colors cursor-pointer"
             aria-label="Settings"
           >
@@ -75,17 +81,26 @@ function SidebarContent({ onClose }: { onClose?: () => void }) {
 }
 
 export function Sidebar() {
+  const openSettingsPanel = useGalleryStore((s) => s.openSettingsPanel);
+
   return (
     <aside className="hidden md:flex w-80 shrink-0 border-r border-zinc-800 bg-zinc-900 flex-col h-full">
-      <SidebarContent />
+      <SidebarContent onOpenSettings={openSettingsPanel} />
     </aside>
   );
 }
 
 export function MobileSidebar() {
+  const openSettingsPanel = useGalleryStore((s) => s.openSettingsPanel);
+
   const handleClose = () => {
     const popover = document.getElementById(SIDEBAR_POPOVER_ID);
     popover?.hidePopover();
+  };
+
+  const handleOpenSettings = () => {
+    handleClose();
+    openSettingsPanel();
   };
 
   return (
@@ -94,7 +109,7 @@ export function MobileSidebar() {
       popover="auto"
       className="sidebar-popover m-0 p-0 w-80 max-w-[85vw] h-full max-h-full border-0 border-r border-zinc-800 bg-zinc-900 flex flex-col"
     >
-      <SidebarContent onClose={handleClose} />
+      <SidebarContent onClose={handleClose} onOpenSettings={handleOpenSettings} />
     </aside>
   );
 }

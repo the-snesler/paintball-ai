@@ -1,4 +1,4 @@
-import { LayoutGrid, Clock } from "lucide-react";
+import { LayoutDashboard, GalleryVertical } from "lucide-react";
 import NumberFlow from "@number-flow/react";
 import { useGalleryStore } from "~/stores/galleryStore";
 import type { ViewMode } from "~/types";
@@ -12,7 +12,7 @@ export function GalleryHeader({ count }: GalleryHeaderProps) {
   const setViewMode = useGalleryStore((s) => s.setViewMode);
 
   return (
-    <header className="flex items-center justify-between px-6 py-4 border-b border-zinc-800 h-18">
+    <header className="flex items-center gap-2 px-6 py-4 border-b border-zinc-800 h-18">
       <h2 className="text-sm font-medium text-zinc-400 uppercase tracking-wide">
         <NumberFlow
           value={count}
@@ -24,20 +24,22 @@ export function GalleryHeader({ count }: GalleryHeaderProps) {
         /> Generation{count !== 1 ? "s" : ""}
       </h2>
 
+      <div className="flex-1" />
+
       <div className="flex items-center bg-zinc-900 rounded-lg p-1">
         <ViewModeButton
           mode="grid"
           currentMode={viewMode}
           onClick={() => setViewMode("grid")}
-          icon={<LayoutGrid className="w-4 h-4" />}
-          label="Grid"
+          icon={<LayoutDashboard className="w-4 h-4" />}
+          label=""
         />
         <ViewModeButton
           mode="timeline"
           currentMode={viewMode}
           onClick={() => setViewMode("timeline")}
-          icon={<Clock className="w-4 h-4" />}
-          label="Timeline"
+          icon={<GalleryVertical className="w-4 h-4" />}
+          label=""
         />
       </div>
     </header>

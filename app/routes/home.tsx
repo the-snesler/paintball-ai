@@ -3,7 +3,7 @@ import { useEffect } from "react";
 import { Sidebar, MobileSidebar } from "~/components/sidebar/Sidebar";
 import { MobileHeader } from "~/components/sidebar/MobileHeader";
 import { Gallery } from "~/components/gallery/Gallery";
-import { SettingsModal } from "~/components/settings/SettingsModal";
+import { SettingsModal } from "~/components/settings/Settings";
 import { Lightbox } from "~/components/lightbox/Lightbox";
 import { useGalleryStore } from "~/stores/galleryStore";
 
@@ -17,6 +17,7 @@ export function meta({}: Route.MetaArgs) {
 export default function Home() {
   const loadImages = useGalleryStore((s) => s.loadImages);
   const hasLoaded = useGalleryStore((s) => s.hasLoaded);
+  const activeMainPanel = useGalleryStore((s) => s.activeMainPanel);
   const isLightboxOpen = useGalleryStore((s) => s.isLightboxOpen);
 
   useEffect(() => {
@@ -30,8 +31,7 @@ export default function Home() {
       <MobileHeader />
       <MobileSidebar />
       <Sidebar />
-      <Gallery />
-      <SettingsModal />
+      {activeMainPanel === "settings" ? <SettingsModal /> : <Gallery />}
       {isLightboxOpen && <Lightbox />}
     </div>
   );

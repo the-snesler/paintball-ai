@@ -5,6 +5,7 @@ import { getAllImages, deleteImage as dbDeleteImage } from '~/lib/db';
 interface GalleryState {
   // Gallery items (unified pending + completed)
   items: GalleryItem[];
+  activeMainPanel: 'gallery' | 'settings';
   viewMode: ViewMode;
   selectedImageId: string | null;
   isLightboxOpen: boolean;
@@ -30,6 +31,8 @@ interface GalleryState {
   deleteItem: (id: string) => Promise<void>;
   dismissItem: (id: string) => void;
   getItem: (id: string) => GalleryItem | undefined;
+  openSettingsPanel: () => void;
+  openGalleryPanel: () => void;
   setViewMode: (mode: ViewMode) => void;
   openLightbox: (imageId: string) => void;
   closeLightbox: () => void;
@@ -74,6 +77,7 @@ function formatDateKey(timestamp: number): string {
 export const useGalleryStore = create<GalleryState>()((set, get) => ({
   // Gallery state
   items: [],
+  activeMainPanel: 'gallery',
   viewMode: 'grid',
   selectedImageId: null,
   isLightboxOpen: false,
@@ -164,6 +168,10 @@ export const useGalleryStore = create<GalleryState>()((set, get) => ({
     })),
 
   getItem: (id) => get().items.find((i) => i.id === id),
+
+  openSettingsPanel: () => set({ activeMainPanel: 'settings' }),
+
+  openGalleryPanel: () => set({ activeMainPanel: 'gallery' }),
 
   setViewMode: (viewMode) => set({ viewMode }),
 

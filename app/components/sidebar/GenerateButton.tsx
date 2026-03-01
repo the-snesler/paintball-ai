@@ -4,7 +4,6 @@ import { useSettingsStore } from "~/stores/settingsStore";
 import { useImageGeneration } from "~/hooks/useImageGeneration";
 import { buildGenerationSignature } from "~/lib/generationSignature";
 import { getModel } from "~/lib/models";
-import { SETTINGS_POPOVER_ID } from "../settings/SettingsModal";
 
 export function GenerateButton() {
   const prompt = useGalleryStore((s) => s.currentPrompt);
@@ -14,6 +13,7 @@ export function GenerateButton() {
   const aspectRatio = useGalleryStore((s) => s.currentAspectRatio);
   const resolution = useGalleryStore((s) => s.currentResolution);
   const referenceImages = useGalleryStore((s) => s.currentReferenceImages);
+  const openSettingsPanel = useGalleryStore((s) => s.openSettingsPanel);
   const models = useSettingsStore((s) => s.models);
   const apiKeys = useSettingsStore((s) => s.apiKeys);
 
@@ -48,8 +48,7 @@ export function GenerateButton() {
 
   const handleGenerate = () => {
     if (missingKeys) {
-      const settingsPopover = document.getElementById(SETTINGS_POPOVER_ID);
-      settingsPopover?.showPopover();
+      openSettingsPanel();
       return;
     }
     if (canGenerate) {
