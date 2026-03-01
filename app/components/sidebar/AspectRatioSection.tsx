@@ -73,7 +73,7 @@ function AspectRatioPreview({
 
   return (
     <div
-      className={`border rounded-sm ${
+      className={`border-2 rounded-sm ${
         isSelected ? "border-purple-500 bg-purple-500/20" : "border-zinc-600"
       }`}
       style={{ width: `${w}px`, height: `${h}px` }}

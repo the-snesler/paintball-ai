@@ -34,7 +34,7 @@ export function CollapsibleSection({
           {badge}
           <ChevronDown 
             className={`w-4 h-4 text-zinc-500 group-hover:text-zinc-400 transition-transform duration-200 ${
-              expanded ? "rotate-180" : ""
+              !expanded ? "-rotate-90" : ""
             }`}
           />
         </div>

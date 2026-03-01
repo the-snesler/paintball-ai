@@ -57,14 +57,15 @@ export function GenerateButton() {
   };
 
   return (
-    <div>
+    <div className="relative group">
+      <div className="bg-purple-800 rounded-lg absolute inset-0 pointer-events-none group-hover:bg-purple-600 transition"></div>
       <button
         onClick={handleGenerate}
         disabled={!canGenerate && !missingKeys}
-        className={`w-full flex items-center justify-center gap-2 py-3 px-4 rounded-lg font-medium transition-all ${
+        className={`w-full flex items-center justify-center gap-2 py-3 px-4 rounded-lg font-medium transition-all cursor-pointer border-2 ${
           canGenerate || missingKeys
-            ? "bg-purple-600 hover:bg-purple-500 text-white"
-            : "bg-zinc-800 text-zinc-500 cursor-not-allowed"
+            ? "bg-purple-600 hover:bg-purple-500 text-white border-purple-500 hover:border-purple-400 -translate-y-1 active:translate-y-0 hover:-translate-y-2 shadow-lg"
+            : "bg-zinc-800 text-zinc-500 cursor-not-allowed border-zinc-700 translate-y-0"
         }`}
       >
         {isLockedForCurrentParams ? (
