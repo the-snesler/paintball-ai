@@ -201,7 +201,7 @@ export function PromptInput() {
           }`}
         >
           <ImagePlus className="w-4 h-4" />
-          {referenceImages.length > 0 ? "Attach more" : "Attach"}
+          {referenceImages.length > 0 ? "Attach more" : "Attach references"}
           <input
             type="file"
             accept="image/*"
