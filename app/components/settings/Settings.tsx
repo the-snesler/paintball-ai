@@ -1,7 +1,7 @@
-import { X, Key, Eye, EyeOff, Check, Sparkles, ChevronDown, Loader2, Bell } from "lucide-react";
+import { Key, Eye, EyeOff, Check, Sparkles, ChevronDown, Loader2, Bell } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
+import { GalleryHeader } from "~/components/gallery/GalleryHeader";
 import { useSettingsStore } from "~/stores/settingsStore";
-import { useGalleryStore } from "~/stores/galleryStore";
 import { fetchModelInfo } from "~/lib/replicateSchema";
 import type { Provider } from "~/types";
 import ModelToggleItem from "./ModelToggle";
@@ -27,7 +27,6 @@ export function SettingsModal() {
   const setApiKey = useSettingsStore((s) => s.setApiKey);
   const setDesktopNotificationsEnabled = useSettingsStore((s) => s.setDesktopNotificationsEnabled);
   const updateModelCapabilities = useSettingsStore((s) => s.updateModelCapabilities);
-  const openGalleryPanel = useGalleryStore((s) => s.openGalleryPanel);
 
   const apiKeysDetailsRef = useRef<HTMLDetailsElement | null>(null);
   const desktopNotificationsDetailsRef = useRef<HTMLDetailsElement | null>(null);
@@ -132,18 +131,7 @@ export function SettingsModal() {
 
   return (
     <main className="flex-1 flex flex-col h-full overflow-hidden bg-zinc-950">
-      {/* Header */}
-      <div className="flex items-center px-6 py-4 h-18 border-b border-zinc-800 shrink-0 gap-2">
-      <h2 className="text-sm font-medium text-zinc-400 uppercase tracking-wide">Settings</h2>
-        <div className="flex-1" />
-        <button
-          onClick={openGalleryPanel}
-          className="p-1.5 rounded-lg hover:bg-zinc-800 transition-colors"
-          aria-label="Close settings"
-        >
-          <X className="w-5 h-5 text-zinc-400" />
-        </button>
-      </div>
+      <GalleryHeader title="Settings" />
 
       {/* Content */}
       <div className="p-4 space-y-6 overflow-y-auto flex-1">

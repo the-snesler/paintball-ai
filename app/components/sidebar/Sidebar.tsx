@@ -1,4 +1,4 @@
-import { ChevronDown, Settings, X } from "lucide-react";
+import { ChevronDown, X } from "lucide-react";
 import { PromptInput } from "./PromptInput";
 import { ModelList } from "./ModelList";
 import { AspectRatioSection } from "./AspectRatioSection";
@@ -7,16 +7,13 @@ import { GenerateButton } from "./GenerateButton";
 import SVG from "react-inlinesvg";
 import drop from "~/drop.svg";
 import { OtherSites } from "./OtherSites";
-import { useGalleryStore } from "~/stores/galleryStore";
 
 export const SIDEBAR_POPOVER_ID = "sidebar-popover";
 
 function SidebarContent({
   onClose,
-  onOpenSettings,
 }: {
   onClose?: () => void;
-  onOpenSettings?: () => void;
 }) {
   return (
     <>
@@ -43,13 +40,6 @@ function SidebarContent({
             aria-label="Other sites"
           >
             <ChevronDown className="w-4 h-4 text-zinc-400" />
-          </button>
-          <button
-            onClick={onOpenSettings}
-            className="p-2 rounded-lg hover:bg-zinc-800 transition-colors cursor-pointer"
-            aria-label="Settings"
-          >
-            <Settings className="w-4 h-4 text-zinc-400" />
           </button>
           {onClose && (
             <button
@@ -81,26 +71,17 @@ function SidebarContent({
 }
 
 export function Sidebar() {
-  const openSettingsPanel = useGalleryStore((s) => s.openSettingsPanel);
-
   return (
     <aside className="hidden md:flex w-80 shrink-0 border-r border-zinc-800 bg-zinc-900 flex-col h-full">
-      <SidebarContent onOpenSettings={openSettingsPanel} />
+      <SidebarContent />
     </aside>
   );
 }
 
 export function MobileSidebar() {
-  const openSettingsPanel = useGalleryStore((s) => s.openSettingsPanel);
-
   const handleClose = () => {
     const popover = document.getElementById(SIDEBAR_POPOVER_ID);
     popover?.hidePopover();
-  };
-
-  const handleOpenSettings = () => {
-    handleClose();
-    openSettingsPanel();
   };
 
   return (
@@ -109,7 +90,7 @@ export function MobileSidebar() {
       popover="auto"
       className="sidebar-popover m-0 p-0 w-80 max-w-[85vw] h-full max-h-full border-0 border-r border-zinc-800 bg-zinc-900 flex flex-col"
     >
-      <SidebarContent onClose={handleClose} onOpenSettings={handleOpenSettings} />
+      <SidebarContent onClose={handleClose} />
     </aside>
   );
 }

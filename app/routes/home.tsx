@@ -1,9 +1,8 @@
 import type { Route } from "./+types/home";
 import { useEffect, useRef } from "react";
+import { Outlet } from "react-router";
 import { Sidebar, MobileSidebar } from "~/components/sidebar/Sidebar";
 import { MobileHeader } from "~/components/sidebar/MobileHeader";
-import { Gallery } from "~/components/gallery/Gallery";
-import { SettingsModal } from "~/components/settings/Settings";
 import { NotificationPermissionPrompt } from "~/components/settings/NotificationPermissionPrompt";
 import { Lightbox } from "~/components/lightbox/Lightbox";
 import { useGalleryStore } from "~/stores/galleryStore";
@@ -19,7 +18,6 @@ export function meta({}: Route.MetaArgs) {
 export default function Home() {
   const loadImages = useGalleryStore((s) => s.loadImages);
   const hasLoaded = useGalleryStore((s) => s.hasLoaded);
-  const activeMainPanel = useGalleryStore((s) => s.activeMainPanel);
   const isLightboxOpen = useGalleryStore((s) => s.isLightboxOpen);
   const items = useGalleryStore((s) => s.items);
   const desktopNotificationsEnabled = useSettingsStore((s) => s.desktopNotificationsEnabled);
@@ -70,7 +68,7 @@ export default function Home() {
       <MobileHeader />
       <MobileSidebar />
       <Sidebar />
-      {activeMainPanel === "settings" ? <SettingsModal /> : <Gallery />}
+      <Outlet />
       {isLightboxOpen && <Lightbox />}
       <NotificationPermissionPrompt />
     </div>

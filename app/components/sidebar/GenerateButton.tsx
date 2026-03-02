@@ -1,4 +1,5 @@
 import { Sparkles, Loader2 } from "lucide-react";
+import { useNavigate } from "react-router";
 import { useGalleryStore } from "~/stores/galleryStore";
 import { useSettingsStore } from "~/stores/settingsStore";
 import { useImageGeneration } from "~/hooks/useImageGeneration";
@@ -13,9 +14,9 @@ export function GenerateButton() {
   const aspectRatio = useGalleryStore((s) => s.currentAspectRatio);
   const resolution = useGalleryStore((s) => s.currentResolution);
   const referenceImages = useGalleryStore((s) => s.currentReferenceImages);
-  const openSettingsPanel = useGalleryStore((s) => s.openSettingsPanel);
   const models = useSettingsStore((s) => s.models);
   const apiKeys = useSettingsStore((s) => s.apiKeys);
+  const navigate = useNavigate();
 
   const { generate } = useImageGeneration();
 
@@ -48,7 +49,7 @@ export function GenerateButton() {
 
   const handleGenerate = () => {
     if (missingKeys) {
-      openSettingsPanel();
+      navigate("/settings");
       return;
     }
     if (canGenerate) {
