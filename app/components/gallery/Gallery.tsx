@@ -242,7 +242,7 @@ function formatRelativeDate(createdAt: number): string {
   } else if (Math.floor(delta / hour) == 1) {
     return "1 hour ago";
   } else if (delta < day) {
-    return Math.floor(delta / hour) + ' hours ago.';
+    return Math.floor(delta / hour) + ' hours ago';
   } else if (delta < day * 2) {
     return "Yesterday";
   }
