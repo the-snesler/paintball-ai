@@ -7,10 +7,12 @@ AI image generation gallery with multi-model support. Runs mostly in the user's 
 ## Features
 
 - Multiple concurrent generations from different models
+- Full-resolution originals with lightweight gallery thumbnails (max 400px wide)
 - Reference image support for editing workflows
 - Custom aspect ratios
 - Masonry gallery layout with grid/list views
 - Drag & drop images from gallery to reference inputs
+- Multi-select gallery actions: bulk delete, bulk download, and bulk attach to prompt references
 
 ## Stack
 

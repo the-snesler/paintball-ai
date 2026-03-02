@@ -4,6 +4,7 @@ import { useSettingsStore } from "~/stores/settingsStore";
 import { getReferenceImagesByIds, saveImage, saveReferenceImage } from "~/lib/db";
 import { buildGenerationSignature } from "~/lib/generationSignature";
 import { getModel } from "~/lib/models";
+import { createThumbnailBlob, getImageDimensions } from "~/lib/imageProcessing";
 import type { ApiKeys, AspectRatio, GalleryItem, Provider, Resolution, StoredModel } from "~/types";
 import { GoogleGenAI } from "@google/genai";
 import Replicate from "replicate";
@@ -138,9 +139,12 @@ export function useImageGeneration() {
 
     try {
       const result = await executeWithRetry(task, apiKeys, 0);
+      const thumbnailBlob = await createThumbnailBlob(result.blob, 400);
+      const createdAt = Date.now();
 
       await saveImage({
-        blob: result.blob,
+        originalBlob: result.blob,
+        thumbnailBlob,
         prompt: task.prompt,
         modelId: task.modelId,
         modelName: task.modelName,
@@ -148,18 +152,20 @@ export function useImageGeneration() {
         resolution: task.resolution,
         width: result.width,
         height: result.height,
-        createdAt: Date.now(),
+        createdAt,
         referenceImageIds: task.referenceImages.map((referenceImage) => referenceImage.id),
         metadata: result.metadata,
       });
 
       updateItem(itemId, {
         status: "completed",
-        blob: result.blob,
-        url: URL.createObjectURL(result.blob),
+        originalBlob: result.blob,
+        originalUrl: URL.createObjectURL(result.blob),
+        thumbnailBlob,
+        thumbnailUrl: URL.createObjectURL(thumbnailBlob),
         width: result.width,
         height: result.height,
-        createdAt: Date.now(),
+        createdAt,
         metadata: result.metadata,
       });
     } catch (error) {
@@ -241,10 +247,13 @@ export function useImageGeneration() {
 
           try {
             const result = await executeWithRetry(task, apiKeys, 0);
+            const thumbnailBlob = await createThumbnailBlob(result.blob, 400);
+            const createdAt = Date.now();
 
             // Save to IndexedDB
             await saveImage({
-              blob: result.blob,
+              originalBlob: result.blob,
+              thumbnailBlob,
               prompt: task.prompt,
               modelId: task.modelId,
               modelName: task.modelName,
@@ -252,7 +261,7 @@ export function useImageGeneration() {
               resolution: task.resolution,
               width: result.width,
               height: result.height,
-              createdAt: Date.now(),
+              createdAt,
               referenceImageIds: task.referenceImages.map((referenceImage) => referenceImage.id),
               metadata: result.metadata,
             });
@@ -260,11 +269,13 @@ export function useImageGeneration() {
             // Update item to completed status with image data
             updateItem(task.id, {
               status: "completed",
-              blob: result.blob,
-              url: URL.createObjectURL(result.blob),
+              originalBlob: result.blob,
+              originalUrl: URL.createObjectURL(result.blob),
+              thumbnailBlob,
+              thumbnailUrl: URL.createObjectURL(thumbnailBlob),
               width: result.width,
               height: result.height,
-              createdAt: Date.now(),
+              createdAt,
               metadata: result.metadata,
             });
 
@@ -527,17 +538,3 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-function getImageDimensions(blob: Blob): Promise<{ width: number; height: number }> {
-  return new Promise((resolve) => {
-    const img = new Image();
-    img.onload = () => {
-      resolve({ width: img.width, height: img.height });
-      URL.revokeObjectURL(img.src);
-    };
-    img.onerror = () => {
-      resolve({ width: 1024, height: 1024 });
-      URL.revokeObjectURL(img.src);
-    };
-    img.src = URL.createObjectURL(blob);
-  });
-}

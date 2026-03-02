@@ -52,8 +52,8 @@ export function Lightbox() {
     if (!image || image.status !== "completed") return;
 
     const link = document.createElement("a");
-    link.href = image.url;
-    link.download = `${image.modelName}-${Date.now()}.png`;
+    link.href = image.originalUrl;
+    link.download = `${image.modelName}-${Date.now()}.${getBlobExtension(image.originalBlob)}`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -121,7 +121,7 @@ export function Lightbox() {
       {/* Image container */}
       <div className="relative max-w-[90vw] max-h-[85vh] animate-fade-in">
         <img
-          src={image.url}
+          src={image.originalUrl}
           alt={image.prompt}
           className="max-w-full max-h-[85vh] object-contain rounded-lg"
         />
@@ -186,6 +186,14 @@ export function Lightbox() {
       </div>
     </div>
   );
+}
+
+function getBlobExtension(blob: Blob): string {
+  const type = blob.type.toLowerCase();
+  if (type.includes("png")) return "png";
+  if (type.includes("webp")) return "webp";
+  if (type.includes("jpeg") || type.includes("jpg")) return "jpg";
+  return "png";
 }
 
 function ActionButton({

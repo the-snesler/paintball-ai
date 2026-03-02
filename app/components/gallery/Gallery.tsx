@@ -1,16 +1,18 @@
+import { useState } from "react";
 import { useGalleryStore } from "~/stores/galleryStore";
 import { GalleryHeader } from "./GalleryHeader";
 import { MasonryGrid } from "./MasonryGrid";
 import { ImageCard } from "./ImageCard";
 import { LoadingCard } from "./LoadingCard";
 import { TimelineDivider } from "./TimelineDivider";
-import { ImageOff } from "lucide-react";
+import { ImageOff, Paperclip, Download, Trash2, X } from "lucide-react";
 import type { GalleryItem } from "~/types";
 
 export function Gallery() {
   const items = useGalleryStore((s) => s.items);
   const viewMode = useGalleryStore((s) => s.viewMode);
   const isLoading = useGalleryStore((s) => s.isLoading);
+  const selectedCount = useGalleryStore((s) => s.selectedItemIds.length);
 
   const itemsByPrompt = groupItemsByPrompt(items);
 
@@ -25,10 +27,10 @@ export function Gallery() {
   }
 
   return (
-    <main className="flex-1 flex flex-col h-full overflow-hidden bg-zinc-950">
+    <main className="relative flex-1 flex flex-col h-full overflow-hidden bg-zinc-950">
       <GalleryHeader count={totalCount} />
 
-      <div className="flex-1 overflow-y-auto p-6">
+      <div className={`flex-1 overflow-y-auto p-6 ${selectedCount > 0 ? "pb-28" : ""}`}>
         {totalCount === 0 ? (
           <EmptyState />
         ) : viewMode === "grid" ? (
@@ -39,7 +41,104 @@ export function Gallery() {
           />
         )}
       </div>
+
+      <SelectionActionPopup />
     </main>
+  );
+}
+
+function SelectionActionPopup() {
+  const selectedCount = useGalleryStore((s) => s.selectedItemIds.length);
+  const clearSelection = useGalleryStore((s) => s.clearSelection);
+  const deleteSelectedItems = useGalleryStore((s) => s.deleteSelectedItems);
+  const downloadSelectedItems = useGalleryStore((s) => s.downloadSelectedItems);
+  const attachSelectedItemsToPrompt = useGalleryStore((s) => s.attachSelectedItemsToPrompt);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  if (selectedCount === 0) {
+    return null;
+  }
+
+  const handleAttachSelected = () => {
+    const result = attachSelectedItemsToPrompt();
+    if (!result.success && result.reason) {
+      alert(result.reason);
+    }
+  };
+
+  const handleDeleteSelected = async () => {
+    if (isDeleting) return;
+    if (!confirm(`Delete ${selectedCount} selected image${selectedCount === 1 ? "" : "s"}?`)) {
+      return;
+    }
+
+    setIsDeleting(true);
+    try {
+      await deleteSelectedItems();
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  return (
+    <div className="pointer-events-none absolute inset-x-0 bottom-5 z-20 flex justify-center px-6">
+      <div className="pointer-events-auto flex items-center gap-2 rounded-xl border border-zinc-700 bg-zinc-900/95 backdrop-blur-sm px-3 py-2 shadow-lg animate-slide-up">
+        <span className="text-xs font-medium text-zinc-300 mr-1">
+          {selectedCount} selected
+        </span>
+
+        <PopupActionButton
+          icon={<X className="w-3.5 h-3.5" />}
+          label="Deselect all"
+          onClick={clearSelection}
+        />
+
+        <PopupActionButton
+          icon={<Paperclip className="w-3.5 h-3.5" />}
+          label="Attach"
+          onClick={handleAttachSelected}
+        />
+        <PopupActionButton
+          icon={<Download className="w-3.5 h-3.5" />}
+          label="Download"
+          onClick={downloadSelectedItems}
+        />
+        <PopupActionButton
+          icon={<Trash2 className="w-3.5 h-3.5" />}
+          label={isDeleting ? "Deleting..." : "Delete"}
+          onClick={() => {
+            void handleDeleteSelected();
+          }}
+          variant="danger"
+        />
+      </div>
+    </div>
+  );
+}
+
+function PopupActionButton({
+  icon,
+  label,
+  onClick,
+  variant = "default",
+}: {
+  icon: React.ReactNode;
+  label: string;
+  onClick: () => void;
+  variant?: "default" | "danger";
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-medium transition-colors ${
+        variant === "danger"
+          ? "text-red-300 hover:bg-red-500/10"
+          : "text-zinc-200 hover:bg-zinc-800"
+      }`}
+    >
+      {icon}
+      {label}
+    </button>
   );
 }
 

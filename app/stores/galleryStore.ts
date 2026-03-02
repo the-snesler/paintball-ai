@@ -1,12 +1,15 @@
 import { create } from 'zustand';
-import type { GalleryItem, ViewMode, AspectRatio, Resolution, ReferenceImage, CompletedGalleryItem, CompletedGalleryItemFields, FailedGalleryItemFields, PendingGalleryItemFields } from '~/types';
-import { getAllImages, deleteImage as dbDeleteImage } from '~/lib/db';
+import type { GalleryItem, ViewMode, AspectRatio, Resolution, ReferenceImage, CompletedGalleryItem, CompletedGalleryItemFields, FailedGalleryItemFields, PendingGalleryItemFields, AttachSelectedItemsResult } from '~/types';
+import { getAllImages, deleteImage as dbDeleteImage, toDisplayImage } from '~/lib/db';
+import { canAttachReferenceCount } from '~/lib/models';
+import { useSettingsStore } from './settingsStore';
 
 interface GalleryState {
   // Gallery items (unified pending + completed)
   items: GalleryItem[];
   viewMode: ViewMode;
   selectedImageId: string | null;
+  selectedItemIds: string[];
   isLightboxOpen: boolean;
   isLoading: boolean;
   hasLoaded: boolean;
@@ -37,6 +40,11 @@ interface GalleryState {
   getSelectedItem: () => CompletedGalleryItem | null;
   getCompletedItems: () => CompletedGalleryItem[];
   getItemsByDate: () => Map<string, CompletedGalleryItem[]>;
+  toggleItemSelection: (id: string) => void;
+  clearSelection: () => void;
+  deleteSelectedItems: () => Promise<number>;
+  downloadSelectedItems: () => number;
+  attachSelectedItemsToPrompt: () => AttachSelectedItemsResult;
 
   // Input settings actions
   setPrompt: (prompt: string) => void;
@@ -76,6 +84,7 @@ export const useGalleryStore = create<GalleryState>()((set, get) => ({
   items: [],
   viewMode: 'grid',
   selectedImageId: null,
+  selectedItemIds: [],
   isLightboxOpen: false,
   isLoading: false,
   hasLoaded: false,
@@ -96,23 +105,7 @@ export const useGalleryStore = create<GalleryState>()((set, get) => ({
     set({ isLoading: true });
     try {
       const storedImages = await getAllImages();
-      // Map stored images to GalleryItems with status: 'completed'
-      const items = storedImages.map((img) => ({
-        id: img.id,
-        status: 'completed' as const,
-        modelId: img.modelId,
-        modelName: img.modelName,
-        prompt: img.prompt,
-        aspectRatio: img.aspectRatio,
-        resolution: img.resolution as Resolution | null,
-        referenceImageIds: img.referenceImageIds,
-        blob: img.blob,
-        url: URL.createObjectURL(img.blob),
-        width: img.width,
-        height: img.height,
-        createdAt: img.createdAt,
-        metadata: img.metadata,
-      }));
+      const items = storedImages.map((img) => toDisplayImage(img));
       set({ items, hasLoaded: true });
     } catch (error) {
       console.error('Failed to load images:', error);
@@ -145,12 +138,14 @@ export const useGalleryStore = create<GalleryState>()((set, get) => ({
     try {
       await dbDeleteImage(id);
       if (item?.status === 'completed') {
-        URL.revokeObjectURL(item.url);
+        URL.revokeObjectURL(item.originalUrl);
+        URL.revokeObjectURL(item.thumbnailUrl);
       }
       set((state) => ({
         items: state.items.filter((i) => i.id !== id),
         isLightboxOpen: state.selectedImageId === id ? false : state.isLightboxOpen,
         selectedImageId: state.selectedImageId === id ? null : state.selectedImageId,
+        selectedItemIds: state.selectedItemIds.filter((selectedId) => selectedId !== id),
       }));
     } catch (error) {
       console.error('Failed to delete image:', error);
@@ -223,6 +218,133 @@ export const useGalleryStore = create<GalleryState>()((set, get) => ({
     }
 
     return grouped;
+  },
+
+  toggleItemSelection: (id) =>
+    set((state) => {
+      const item = state.items.find((entry) => entry.id === id);
+      if (!item || item.status !== 'completed') {
+        return state;
+      }
+
+      const isSelected = state.selectedItemIds.includes(id);
+      return {
+        selectedItemIds: isSelected
+          ? state.selectedItemIds.filter((selectedId) => selectedId !== id)
+          : [...state.selectedItemIds, id],
+      };
+    }),
+
+  clearSelection: () => set({ selectedItemIds: [] }),
+
+  deleteSelectedItems: async () => {
+    const state = get();
+    const selectedSet = new Set(state.selectedItemIds);
+    const selectedItems = state.items.filter(
+      (item): item is CompletedGalleryItem => item.status === 'completed' && selectedSet.has(item.id)
+    );
+
+    if (selectedItems.length === 0) {
+      return 0;
+    }
+
+    await Promise.all(selectedItems.map((item) => dbDeleteImage(item.id)));
+    selectedItems.forEach((item) => {
+      URL.revokeObjectURL(item.originalUrl);
+      URL.revokeObjectURL(item.thumbnailUrl);
+    });
+
+    const selectedImageId = get().selectedImageId;
+
+    set((currentState) => ({
+      items: currentState.items.filter((item) => !selectedSet.has(item.id)),
+      selectedItemIds: [],
+      isLightboxOpen:
+        selectedImageId && selectedSet.has(selectedImageId)
+          ? false
+          : currentState.isLightboxOpen,
+      selectedImageId:
+        selectedImageId && selectedSet.has(selectedImageId)
+          ? null
+          : currentState.selectedImageId,
+    }));
+
+    return selectedItems.length;
+  },
+
+  downloadSelectedItems: () => {
+    const state = get();
+    const selectedSet = new Set(state.selectedItemIds);
+    const selectedItems = state.items.filter(
+      (item): item is CompletedGalleryItem => item.status === 'completed' && selectedSet.has(item.id)
+    );
+
+    selectedItems.forEach((item, index) => {
+      const extension = getBlobExtension(item.originalBlob);
+      const link = document.createElement('a');
+      link.href = item.originalUrl;
+      link.download = `${sanitizeFilename(item.modelName)}-${item.createdAt}-${index + 1}.${extension}`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    });
+
+    return selectedItems.length;
+  },
+
+  attachSelectedItemsToPrompt: () => {
+    const state = get();
+    const selectedSet = new Set(state.selectedItemIds);
+    const selectedItems = state.items.filter(
+      (item): item is CompletedGalleryItem => item.status === 'completed' && selectedSet.has(item.id)
+    );
+
+    if (selectedItems.length === 0) {
+      return {
+        success: false,
+        attachedCount: 0,
+        maxAllowed: null,
+        reason: 'No images selected.',
+      } satisfies AttachSelectedItemsResult;
+    }
+
+    const settingsState = useSettingsStore.getState();
+    const selectedModelIds = Object.entries(state.currentModelSelections)
+      .filter(([, count]) => count > 0)
+      .map(([modelId]) => modelId);
+
+    const totalReferences = state.currentReferenceImages.length + selectedItems.length;
+    const fit = canAttachReferenceCount(settingsState.models, selectedModelIds, totalReferences);
+
+    if (!fit.allowed) {
+      return {
+        success: false,
+        attachedCount: 0,
+        maxAllowed: fit.maxAllowed,
+        reason:
+          fit.maxAllowed === null
+            ? 'One or more selected models do not support reference images.'
+            : `Selected images exceed the current model limit (${fit.maxAllowed} max).`,
+      } satisfies AttachSelectedItemsResult;
+    }
+
+    const newReferences: ReferenceImage[] = selectedItems.map((item) => ({
+      id: crypto.randomUUID(),
+      blob: item.originalBlob,
+      url: URL.createObjectURL(item.originalBlob),
+      name: `${item.modelName} - ${item.prompt.slice(0, 40).trim() || 'Image'}`,
+    }));
+
+    set((currentState) => ({
+      currentReferenceImages: [...currentState.currentReferenceImages, ...newReferences],
+      selectedItemIds: [],
+    }));
+
+    return {
+      success: true,
+      attachedCount: newReferences.length,
+      maxAllowed: fit.maxAllowed,
+    } satisfies AttachSelectedItemsResult;
   },
 
   // Input settings actions
@@ -308,3 +430,16 @@ export const useGalleryStore = create<GalleryState>()((set, get) => ({
     return Object.values(state.currentModelSelections).reduce((sum, count) => sum + count, 0);
   },
 }));
+
+function sanitizeFilename(value: string): string {
+  return value.replace(/[^a-zA-Z0-9-_]+/g, '-').replace(/^-+|-+$/g, '').toLowerCase() || 'image';
+}
+
+function getBlobExtension(blob: Blob): string {
+  const type = blob.type.toLowerCase();
+
+  if (type.includes('png')) return 'png';
+  if (type.includes('webp')) return 'webp';
+  if (type.includes('jpeg') || type.includes('jpg')) return 'jpg';
+  return 'png';
+}

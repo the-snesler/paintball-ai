@@ -40,3 +40,39 @@ export function anyModelSupportsReferenceImages(models: StoredModel[], selectedM
     return model?.capabilities.supportsReferenceImages;
   });
 }
+
+export function getStrictReferenceImageLimit(models: StoredModel[], selectedModelIds: string[]): number | null {
+  if (selectedModelIds.length === 0) {
+    return Infinity;
+  }
+
+  let limit = Infinity;
+
+  for (const modelId of selectedModelIds) {
+    const model = getModel(models, modelId);
+    if (!model || !model.capabilities.supportsReferenceImages) {
+      return null;
+    }
+
+    limit = Math.min(limit, model.capabilities.maxReferenceImages);
+  }
+
+  return Number.isFinite(limit) ? limit : Infinity;
+}
+
+export function canAttachReferenceCount(
+  models: StoredModel[],
+  selectedModelIds: string[],
+  totalReferenceCount: number
+): { allowed: boolean; maxAllowed: number | null } {
+  const maxAllowed = getStrictReferenceImageLimit(models, selectedModelIds);
+
+  if (maxAllowed === null) {
+    return { allowed: false, maxAllowed: null };
+  }
+
+  return {
+    allowed: totalReferenceCount <= maxAllowed,
+    maxAllowed,
+  };
+}

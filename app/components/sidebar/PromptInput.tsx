@@ -11,6 +11,7 @@ export function PromptInput() {
   const addReferenceImage = useGalleryStore((s) => s.addReferenceImage);
   const removeReferenceImage = useGalleryStore((s) => s.removeReferenceImage);
   const modelSelections = useGalleryStore((s) => s.currentModelSelections);
+  const galleryItems = useGalleryStore((s) => s.items);
   const models = useSettingsStore((s) => s.models);
   const [isDragOver, setIsDragOver] = useState(false);
 
@@ -48,15 +49,34 @@ export function PromptInput() {
       if (!enabled) return;
 
       try {
-        const { blob, name } = JSON.parse(imageData);
+        const { imageId, blob, name } = JSON.parse(imageData) as {
+          imageId?: string;
+          blob?: string;
+          name?: string;
+        };
+
+        if (imageId) {
+          const galleryItem = galleryItems.find((item) => item.id === imageId);
+          if (galleryItem && galleryItem.status === "completed") {
+            addReferenceImage({
+              id: crypto.randomUUID(),
+              blob: galleryItem.originalBlob,
+              url: URL.createObjectURL(galleryItem.originalBlob),
+              name: name || "Gallery image",
+            });
+            return;
+          }
+        }
+
         if (typeof blob === "string") {
           fetch(blob)
             .then((res) => res.blob())
             .then((blobData) => {
+              const objectUrl = URL.createObjectURL(blobData);
               addReferenceImage({
                 id: crypto.randomUUID(),
                 blob: blobData,
-                url: blob,
+                url: objectUrl,
                 name: name || "Gallery image",
               });
             });
@@ -65,7 +85,7 @@ export function PromptInput() {
         // Ignore invalid drag payloads.
       }
     },
-    [addReferenceImage, enabled]
+    [addReferenceImage, enabled, galleryItems]
   );
 
   const handlePaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {

@@ -74,8 +74,10 @@ export type PendingGalleryItem = BaseGalleryItem & PendingGalleryItemFields;
 
 export interface CompletedGalleryItemFields {
   status: 'completed';
-  blob: Blob;
-  url: string; // Object URL for display
+  originalBlob: Blob;
+  originalUrl: string; // Object URL for full-quality display/download
+  thumbnailBlob: Blob;
+  thumbnailUrl: string; // Object URL for gallery card display
   width: number;
   height: number;
   createdAt: number;
@@ -97,7 +99,8 @@ export type GalleryItem = PendingGalleryItem | CompletedGalleryItem | FailedGall
 // Stored version without URL (URLs are created at runtime)
 export interface StoredImageRecord {
   id: string;
-  blob: Blob;
+  originalBlob: Blob;
+  thumbnailBlob: Blob;
   prompt: string;
   modelId: string;
   modelName: string;
@@ -111,6 +114,13 @@ export interface StoredImageRecord {
 }
 
 export type ViewMode = 'grid' | 'timeline';
+
+export interface AttachSelectedItemsResult {
+  success: boolean;
+  attachedCount: number;
+  maxAllowed: number | null;
+  reason?: string;
+}
 
 // Settings types
 export interface ApiKeys {

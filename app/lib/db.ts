@@ -1,7 +1,8 @@
 import type { CompletedGalleryItem, ReferenceImage, StoredImageRecord } from '~/types';
+import { createThumbnailBlob } from './imageProcessing';
 
 const DB_NAME = 'studio-image-gallery';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 const STORES = {
   images: 'images',
@@ -9,6 +10,21 @@ const STORES = {
 } as const;
 
 let dbInstance: IDBDatabase | null = null;
+
+interface LegacyStoredImageRecord {
+  id: string;
+  blob: Blob;
+  prompt: string;
+  modelId: string;
+  modelName: string;
+  aspectRatio: StoredImageRecord['aspectRatio'];
+  resolution: StoredImageRecord['resolution'];
+  width: number;
+  height: number;
+  createdAt: number;
+  referenceImageIds: string[];
+  metadata: Record<string, unknown>;
+}
 
 export async function initDB(): Promise<IDBDatabase> {
   if (dbInstance) return dbInstance;
@@ -62,37 +78,8 @@ export async function getImages(
   limit: number = 50,
   offset: number = 0
 ): Promise<StoredImageRecord[]> {
-  const db = await initDB();
-
-  return new Promise((resolve, reject) => {
-    const transaction = db.transaction(STORES.images, 'readonly');
-    const store = transaction.objectStore(STORES.images);
-    const index = store.index('byCreatedAt');
-    const images: StoredImageRecord[] = [];
-    let skipped = 0;
-
-    // Open cursor in reverse order (newest first)
-    const request = index.openCursor(null, 'prev');
-
-    request.onerror = () => reject(request.error);
-    request.onsuccess = (event) => {
-      const cursor = (event.target as IDBRequest<IDBCursorWithValue>).result;
-
-      if (cursor) {
-        if (skipped < offset) {
-          skipped++;
-          cursor.continue();
-        } else if (images.length < limit) {
-          images.push(cursor.value);
-          cursor.continue();
-        } else {
-          resolve(images);
-        }
-      } else {
-        resolve(images);
-      }
-    };
-  });
+  const all = await getAllImages();
+  return all.slice(offset, offset + limit);
 }
 
 export async function getAllImages(): Promise<StoredImageRecord[]> {
@@ -106,8 +93,18 @@ export async function getAllImages(): Promise<StoredImageRecord[]> {
 
     request.onerror = () => reject(request.error);
     request.onsuccess = () => {
-      // Reverse to get newest first
-      resolve(request.result.reverse());
+      const records = request.result.reverse() as Array<StoredImageRecord | LegacyStoredImageRecord>;
+
+      void (async () => {
+        try {
+          const normalized = await Promise.all(
+            records.map((record) => normalizeStoredImageRecord(db, record))
+          );
+          resolve(normalized);
+        } catch (error) {
+          reject(error);
+        }
+      })();
     };
   });
 }
@@ -121,7 +118,22 @@ export async function getImageById(id: string): Promise<StoredImageRecord | null
     const request = store.get(id);
 
     request.onerror = () => reject(request.error);
-    request.onsuccess = () => resolve(request.result || null);
+    request.onsuccess = () => {
+      const record = request.result as StoredImageRecord | LegacyStoredImageRecord | undefined;
+      if (!record) {
+        resolve(null);
+        return;
+      }
+
+      void (async () => {
+        try {
+          const normalized = await normalizeStoredImageRecord(db, record);
+          resolve(normalized);
+        } catch (error) {
+          reject(error);
+        }
+      })();
+    };
   });
 }
 
@@ -229,11 +241,63 @@ export function toDisplayImage(stored: StoredImageRecord): CompletedGalleryItem 
   return {
     ...stored,
     status: 'completed',
-    url: URL.createObjectURL(stored.blob),
+    originalUrl: URL.createObjectURL(stored.originalBlob),
+    thumbnailUrl: URL.createObjectURL(stored.thumbnailBlob),
   };
 }
 
 // Helper to revoke Object URL when no longer needed
 export function revokeImageUrl(image: CompletedGalleryItem | ReferenceImage): void {
+  if ('thumbnailUrl' in image) {
+    URL.revokeObjectURL(image.originalUrl);
+    URL.revokeObjectURL(image.thumbnailUrl);
+    return;
+  }
+
   URL.revokeObjectURL(image.url);
+}
+
+async function normalizeStoredImageRecord(
+  db: IDBDatabase,
+  record: StoredImageRecord | LegacyStoredImageRecord
+): Promise<StoredImageRecord> {
+  if ('originalBlob' in record && 'thumbnailBlob' in record) {
+    return record;
+  }
+
+  const legacy = record as LegacyStoredImageRecord;
+  const thumbnailBlob = await createThumbnailBlob(legacy.blob, 400);
+
+  const normalized: StoredImageRecord = {
+    id: legacy.id,
+    originalBlob: legacy.blob,
+    thumbnailBlob,
+    prompt: legacy.prompt,
+    modelId: legacy.modelId,
+    modelName: legacy.modelName,
+    aspectRatio: legacy.aspectRatio,
+    resolution: legacy.resolution,
+    width: legacy.width,
+    height: legacy.height,
+    createdAt: legacy.createdAt,
+    referenceImageIds: legacy.referenceImageIds ?? [],
+    metadata: legacy.metadata ?? {},
+  };
+
+  await persistMigratedImageRecord(db, normalized);
+  return normalized;
+}
+
+async function persistMigratedImageRecord(
+  db: IDBDatabase,
+  record: StoredImageRecord
+): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(STORES.images, 'readwrite');
+    const store = transaction.objectStore(STORES.images);
+    const request = store.put(record);
+
+    request.onerror = () => reject(request.error);
+    request.onsuccess = () => resolve();
+  });
 }
