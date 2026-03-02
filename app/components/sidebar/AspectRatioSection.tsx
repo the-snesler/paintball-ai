@@ -29,7 +29,7 @@ export function AspectRatioSection() {
           return (
             <button
               key={ar.value}
-              onClick={() => pickerEnabled && setAspectRatio(ar.value)}
+              onClick={() => pickerEnabled && setAspectRatio(isSelected ? null : ar.value)}
               disabled={!pickerEnabled}
               className={`flex flex-col items-center gap-1 p-1.5 rounded-lg transition-colors ${
                 showSelectedStyle

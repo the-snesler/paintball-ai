@@ -9,7 +9,11 @@ interface LoadingCardProps {
   item: GalleryItem;
 }
 
-function getAspectRatioValue(aspectRatio: AspectRatio): number {
+function getAspectRatioValue(aspectRatio: AspectRatio | null): number {
+  if (!aspectRatio) {
+    return 1;
+  }
+
   const ratios: Record<AspectRatio, number> = {
     "1:1": 1,
     "16:9": 16 / 9,

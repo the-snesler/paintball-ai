@@ -135,8 +135,12 @@ export function Lightbox() {
             <p className="text-sm text-zinc-300">{image.prompt}</p>
             <div className="flex items-center gap-2 mt-2 text-xs text-zinc-500">
               <span>{image.modelName}</span>
-              <span>·</span>
-              <span>{image.aspectRatio}</span>
+              {image.aspectRatio && (
+                <>
+                  <span>·</span>
+                  <span>{image.aspectRatio}</span>
+                </>
+              )}
               {image.resolution && (
                 <>
                   <span>·</span>

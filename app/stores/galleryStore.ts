@@ -5,7 +5,6 @@ import { getAllImages, deleteImage as dbDeleteImage } from '~/lib/db';
 interface GalleryState {
   // Gallery items (unified pending + completed)
   items: GalleryItem[];
-  activeMainPanel: 'gallery' | 'settings';
   viewMode: ViewMode;
   selectedImageId: string | null;
   isLightboxOpen: boolean;
@@ -15,7 +14,7 @@ interface GalleryState {
   // Current input settings (for UI controls)
   currentPrompt: string;
   currentModelSelections: Record<string, number>;
-  currentAspectRatio: AspectRatio;
+  currentAspectRatio: AspectRatio | null;
   currentResolution: Resolution;
   currentReferenceImages: ReferenceImage[];
   activeGenerationCount: number;
@@ -31,8 +30,6 @@ interface GalleryState {
   deleteItem: (id: string) => Promise<void>;
   dismissItem: (id: string) => void;
   getItem: (id: string) => GalleryItem | undefined;
-  openSettingsPanel: () => void;
-  openGalleryPanel: () => void;
   setViewMode: (mode: ViewMode) => void;
   openLightbox: (imageId: string) => void;
   closeLightbox: () => void;
@@ -44,7 +41,7 @@ interface GalleryState {
   // Input settings actions
   setPrompt: (prompt: string) => void;
   setModelCount: (modelId: string, count: number) => void;
-  setAspectRatio: (ratio: AspectRatio) => void;
+  setAspectRatio: (ratio: AspectRatio | null) => void;
   setResolution: (resolution: Resolution) => void;
   addReferenceImage: (image: ReferenceImage) => void;
   removeReferenceImage: (id: string) => void;
@@ -77,7 +74,6 @@ function formatDateKey(timestamp: number): string {
 export const useGalleryStore = create<GalleryState>()((set, get) => ({
   // Gallery state
   items: [],
-  activeMainPanel: 'gallery',
   viewMode: 'grid',
   selectedImageId: null,
   isLightboxOpen: false,
@@ -87,7 +83,7 @@ export const useGalleryStore = create<GalleryState>()((set, get) => ({
   // Input settings state
   currentPrompt: '',
   currentModelSelections: {},
-  currentAspectRatio: '1:1',
+  currentAspectRatio: null,
   currentResolution: '1K',
   currentReferenceImages: [],
   activeGenerationCount: 0,
@@ -107,7 +103,7 @@ export const useGalleryStore = create<GalleryState>()((set, get) => ({
         modelId: img.modelId,
         modelName: img.modelName,
         prompt: img.prompt,
-        aspectRatio: img.aspectRatio as AspectRatio,
+        aspectRatio: img.aspectRatio,
         resolution: img.resolution as Resolution | null,
         referenceImageIds: img.referenceImageIds,
         blob: img.blob,
@@ -168,10 +164,6 @@ export const useGalleryStore = create<GalleryState>()((set, get) => ({
     })),
 
   getItem: (id) => get().items.find((i) => i.id === id),
-
-  openSettingsPanel: () => set({ activeMainPanel: 'settings' }),
-
-  openGalleryPanel: () => set({ activeMainPanel: 'gallery' }),
 
   setViewMode: (viewMode) => set({ viewMode }),
 

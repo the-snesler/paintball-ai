@@ -3,7 +3,7 @@ import type { AspectRatio, ReferenceImage, Resolution } from "~/types";
 interface GenerationSignatureInput {
   prompt: string;
   modelSelections: Record<string, number>;
-  aspectRatio: AspectRatio;
+  aspectRatio: AspectRatio | null;
   resolution: Resolution;
   referenceImages: ReferenceImage[];
 }

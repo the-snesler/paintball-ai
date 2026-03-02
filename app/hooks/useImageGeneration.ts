@@ -17,7 +17,7 @@ interface GenerationTask {
   modelName: string;
   provider: Provider;
   prompt: string;
-  aspectRatio: AspectRatio;
+  aspectRatio: AspectRatio | null;
   resolution: Resolution | null;
   referenceImages: Array<{ id: string; blob: Blob }>;
 }
@@ -190,6 +190,7 @@ export function useImageGeneration() {
       for (let i = 0; i < count; i++) {
         const taskId = crypto.randomUUID();
         const taskResolution = model.capabilities.supportsResolution ? resolution : null;
+        const taskAspectRatio = model.capabilities.supportsAspectRatios ? aspectRatio : null;
 
         tasks.push({
           id: taskId,
@@ -197,7 +198,7 @@ export function useImageGeneration() {
           modelName: model.name,
           provider: model.provider,
           prompt,
-          aspectRatio,
+          aspectRatio: taskAspectRatio,
           resolution: taskResolution,
           referenceImages: referenceImages.map((r) => ({ id: r.id, blob: r.blob })),
         });
@@ -208,7 +209,7 @@ export function useImageGeneration() {
           modelId,
           modelName: model.name,
           prompt,
-          aspectRatio,
+          aspectRatio: taskAspectRatio,
           resolution: taskResolution,
           referenceImageIds: referenceImages.map((r) => r.id),
           retryCount: 0,
@@ -352,10 +353,14 @@ async function executeGoogleGeneration(
 
   const config = {
     responseModalities: ["IMAGE"],
-    imageConfig: {
-      aspectRatio: task.aspectRatio,
-      ...(task.resolution && { imageSize: task.resolution }),
-    },
+    ...(task.aspectRatio || task.resolution
+      ? {
+          imageConfig: {
+            ...(task.aspectRatio && { aspectRatio: task.aspectRatio }),
+            ...(task.resolution && { imageSize: task.resolution }),
+          },
+        }
+      : {}),
   };
 
   let response;
@@ -427,7 +432,8 @@ async function executeReplicateGeneration(
   task: GenerationTask,
   apiKey: string
 ): Promise<{ blob: Blob; width: number; height: number; metadata: Record<string, unknown> }> {
-  const replicate = new Replicate({ auth: apiKey, baseUrl: window.location.href + "proxy/replicate/v1" });
+  const baseUrl = new URL("/proxy/replicate/v1", window.location.origin).toString();
+  const replicate = new Replicate({ auth: apiKey, baseUrl });
 
   // Convert reference image blobs to data URIs
   const imageInputs = await Promise.all(
@@ -437,9 +443,11 @@ async function executeReplicateGeneration(
   // Build input payload
   const input: Record<string, unknown> = {
     prompt: task.prompt,
-    aspect_ratio: task.aspectRatio,
     output_format: "png",
   };
+  if (task.aspectRatio) {
+    input.aspect_ratio = task.aspectRatio;
+  }
   if (imageInputs.length > 0) {
     input.image_input = imageInputs;
   }

@@ -47,7 +47,7 @@ export interface ReferenceImage {
 export interface GenerationRequest {
   prompt: string;
   modelSelections: Record<string, number>; // modelId -> count
-  aspectRatio: AspectRatio;
+  aspectRatio: AspectRatio | null;
   resolution: Resolution | null;
   referenceImages: ReferenceImage[];
 }
@@ -58,7 +58,7 @@ export interface BaseGalleryItem {
   modelId: string;
   modelName: string;
   prompt: string;
-  aspectRatio: AspectRatio;
+  aspectRatio: AspectRatio | null;
   resolution: Resolution | null;
   referenceImageIds: string[];
 }
@@ -101,7 +101,7 @@ export interface StoredImageRecord {
   prompt: string;
   modelId: string;
   modelName: string;
-  aspectRatio: AspectRatio;
+  aspectRatio: AspectRatio | null;
   resolution: Resolution | null;
   width: number;
   height: number;
