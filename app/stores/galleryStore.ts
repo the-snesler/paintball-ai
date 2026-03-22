@@ -79,6 +79,14 @@ function formatDateKey(timestamp: number): string {
   });
 }
 
+export const DEFAULT_GENERATION_STATE = {
+  currentPrompt: '',
+  currentModelSelections: {},
+  currentAspectRatio: null,
+  currentResolution: '1K' as Resolution,
+  currentReferenceImages: [],
+}
+
 export const useGalleryStore = create<GalleryState>()((set, get) => ({
   // Gallery state
   items: [],
@@ -90,11 +98,9 @@ export const useGalleryStore = create<GalleryState>()((set, get) => ({
   hasLoaded: false,
 
   // Input settings state
-  currentPrompt: '',
-  currentModelSelections: {},
-  currentAspectRatio: null,
-  currentResolution: '1K',
-  currentReferenceImages: [],
+  ...DEFAULT_GENERATION_STATE,
+  
+  // Generation tracking
   activeGenerationCount: 0,
   activeGenerationSignatures: {},
   lastSubmittedSignature: null,

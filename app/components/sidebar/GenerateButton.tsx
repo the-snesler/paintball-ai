@@ -1,6 +1,6 @@
-import { Sparkles, Loader2 } from "lucide-react";
+import { Sparkles, Loader2, Trash2 } from "lucide-react";
 import { useNavigate } from "react-router";
-import { useGalleryStore } from "~/stores/galleryStore";
+import { DEFAULT_GENERATION_STATE, useGalleryStore } from "~/stores/galleryStore";
 import { useSettingsStore } from "~/stores/settingsStore";
 import { useImageGeneration } from "~/hooks/useImageGeneration";
 import { buildGenerationSignature } from "~/lib/generationSignature";
@@ -57,30 +57,52 @@ export function GenerateButton() {
     }
   };
 
+  const handleClear = () => {
+    useGalleryStore.setState(DEFAULT_GENERATION_STATE);
+  }
+
+  const generateEnabled = canGenerate || missingKeys;
+
   return (
-    <div className="relative group">
-      <div className="bg-purple-800 rounded-lg absolute inset-0 pointer-events-none group-hover:bg-purple-600 transition"></div>
-      <button
-        onClick={handleGenerate}
-        disabled={!canGenerate && !missingKeys}
-        className={`w-full flex items-center justify-center gap-2 py-3 px-4 rounded-lg font-medium transition-all cursor-pointer border-2 ${
-          canGenerate || missingKeys
-            ? "bg-purple-600 hover:bg-purple-500 text-white border-purple-500 hover:border-purple-400 -translate-y-1 active:translate-y-0 hover:-translate-y-2 shadow-lg"
-            : "bg-zinc-800 text-zinc-500 cursor-not-allowed border-zinc-700 translate-y-0"
-        }`}
-      >
-        {isLockedForCurrentParams ? (
-          <>
-            <Loader2 className="w-4 h-4 animate-spin" />
-            Generating...
-          </>
-        ) : (
-          <>
-            <Sparkles className="w-4 h-4" />
-            Generate
-          </>
-        )}
-      </button>
+    <div className="flex gap-4">
+      <div className="relative group flex-1">
+        <div className="bg-purple-800 rounded-lg absolute inset-0 pointer-events-none group-hover:bg-purple-600 transition"></div>
+        <button
+          onClick={handleGenerate}
+          disabled={!generateEnabled}
+          className={`w-full flex items-center justify-center gap-2 py-3 px-4 rounded-lg font-medium transition-all cursor-pointer border-2 ${
+            generateEnabled
+              ? "bg-purple-600 hover:bg-purple-500 text-white border-purple-500 hover:border-purple-400 -translate-y-1 active:translate-y-0 hover:-translate-y-2 shadow-lg"
+              : "bg-zinc-800 text-zinc-500 cursor-not-allowed border-zinc-700 translate-y-0"
+          }`}
+        >
+          {isLockedForCurrentParams ? (
+            <>
+              <Loader2 className="w-4 h-4 animate-spin" />
+              Generating...
+            </>
+          ) : (
+            <>
+              <Sparkles className="w-4 h-4" />
+              Generate
+            </>
+          )}
+        </button>
+      </div>
+      <div className="relative group">
+        <div className="bg-red-800 rounded-lg absolute inset-0 pointer-events-none group-hover:bg-red-600 transition"></div>
+        <button
+          onClick={handleClear}
+          disabled={!canGenerate}
+          className={`w-full h-full flex items-center justify-center gap-2 py-3 px-4 rounded-lg font-medium transition-all cursor-pointer border-2 ${
+            canGenerate
+              ? "bg-red-600 hover:bg-red-500 text-white border-red-500 hover:border-red-400 -translate-y-1 active:translate-y-0 hover:-translate-y-2 shadow-lg"
+              : "bg-zinc-800 text-zinc-500 cursor-not-allowed border-zinc-700 translate-y-0"
+          }`}
+        >
+          <Trash2 className="w-4 h-4" />
+        </button>
+      </div>
     </div>
   );
 }
