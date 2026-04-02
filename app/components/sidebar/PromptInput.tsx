@@ -10,6 +10,7 @@ export function PromptInput() {
   const referenceImages = useGalleryStore((s) => s.currentReferenceImages);
   const addReferenceImage = useGalleryStore((s) => s.addReferenceImage);
   const removeReferenceImage = useGalleryStore((s) => s.removeReferenceImage);
+  const openLightbox = useGalleryStore((s) => s.openLightbox);
   const modelSelections = useGalleryStore((s) => s.currentModelSelections);
   const galleryItems = useGalleryStore((s) => s.items);
   const models = useSettingsStore((s) => s.models);
@@ -189,13 +190,28 @@ export function PromptInput() {
             <div className="max-w-full grid grid-cols-3 gap-2">
               {referenceImages.map((img) => (
                 <div key={img.id} className="relative group aspect-square">
-                  <img
-                    src={img.url}
-                    alt={img.name}
-                    className="w-full h-full object-cover rounded"
-                  />
                   <button
-                    onClick={() => removeReferenceImage(img.id)}
+                    type="button"
+                    onClick={() =>
+                      openLightbox({
+                        kind: "reference",
+                        image: { id: img.id, url: img.url, name: img.name },
+                      })
+                    }
+                    className="block w-full h-full cursor-zoom-in"
+                  >
+                    <img
+                      src={img.url}
+                      alt={img.name}
+                      className="w-full h-full object-cover rounded"
+                    />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      removeReferenceImage(img.id);
+                    }}
                     disabled={!enabled}
                     className="absolute -top-1 -right-1 w-5 h-5 bg-zinc-900 border border-zinc-700 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
                   >

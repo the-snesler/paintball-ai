@@ -18,14 +18,20 @@ export function Lightbox() {
   const setPrompt = useGalleryStore((s) => s.setPrompt);
   const addReferenceImage = useGalleryStore((s) => s.addReferenceImage);
   const clearReferenceImages = useGalleryStore((s) => s.clearReferenceImages);
+  const lightboxTarget = useGalleryStore((s) => s.lightboxTarget);
 
-  const image = useGalleryStore((s) => {
-    const item = s.items.find((i) => i.id === s.selectedImageId);
+  const galleryImage = useGalleryStore((s) => {
+    if (s.lightboxTarget?.kind !== "gallery") return null;
+    const item = s.items.find((i) => i.id === s.lightboxTarget.imageId);
     return item && item.status === "completed" ? item : null;
   });
 
-  const showNavigation = useGalleryStore(
-    (s) => s.items.filter((i) => i.status === "completed").length > 1
+  const referenceImage = lightboxTarget?.kind === "reference" ? lightboxTarget.image : null;
+
+  const showNavigation = useGalleryStore((s) =>
+    s.lightboxTarget?.kind === "gallery"
+      ? s.items.filter((i) => i.status === "completed").length > 1
+      : false
   );
 
   // Keyboard navigation
@@ -36,53 +42,60 @@ export function Lightbox() {
           closeLightbox();
           break;
         case "ArrowLeft":
-          navigateLightbox("prev");
+          if (lightboxTarget?.kind === "gallery") {
+            navigateLightbox("prev");
+          }
           break;
         case "ArrowRight":
-          navigateLightbox("next");
+          if (lightboxTarget?.kind === "gallery") {
+            navigateLightbox("next");
+          }
           break;
       }
     };
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [closeLightbox, navigateLightbox]);
+  }, [closeLightbox, lightboxTarget, navigateLightbox]);
 
   const handleDownload = useCallback(() => {
-    if (!image || image.status !== "completed") return;
+    if (!galleryImage || galleryImage.status !== "completed") return;
 
     const link = document.createElement("a");
-    link.href = image.originalUrl;
-    link.download = `${image.modelName}-${Date.now()}.${getBlobExtension(image.originalBlob)}`;
+    link.href = galleryImage.originalUrl;
+    link.download = `${galleryImage.modelName}-${Date.now()}.${getBlobExtension(galleryImage.originalBlob)}`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-  }, [image]);
+  }, [galleryImage]);
 
   const handleCopyPrompt = useCallback(() => {
-    if (!image) return;
-    navigator.clipboard.writeText(image.prompt);
-  }, [image]);
+    if (!galleryImage) return;
+    navigator.clipboard.writeText(galleryImage.prompt);
+  }, [galleryImage]);
 
   const handleReusePrompt = useCallback(async () => {
-    if (!image) return;
+    if (!galleryImage) return;
 
     clearReferenceImages();
-    const references = await getReferenceImagesByIds(image.referenceImageIds);
+    const references = await getReferenceImagesByIds(galleryImage.referenceImageIds);
     references.forEach((reference) => addReferenceImage(reference));
 
-    setPrompt(image.prompt);
+    setPrompt(galleryImage.prompt);
     closeLightbox();
-  }, [image, setPrompt, closeLightbox, clearReferenceImages, addReferenceImage]);
+  }, [galleryImage, setPrompt, closeLightbox, clearReferenceImages, addReferenceImage]);
 
   const handleDelete = useCallback(async () => {
-    if (!image) return;
+    if (!galleryImage) return;
     if (confirm("Delete this image?")) {
-      await deleteItem(image.id);
+      await deleteItem(galleryImage.id);
     }
-  }, [image, deleteItem]);
+  }, [galleryImage, deleteItem]);
 
-  if (!image) return null;
+  if (!galleryImage && !referenceImage) return null;
+
+  const imageSrc = galleryImage?.originalUrl ?? referenceImage?.url ?? "";
+  const imageAlt = galleryImage?.prompt ?? referenceImage?.name ?? "Image preview";
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
@@ -121,69 +134,71 @@ export function Lightbox() {
       {/* Image container */}
       <div className="relative max-w-[90vw] max-h-[85vh] animate-fade-in">
         <img
-          src={image.originalUrl}
-          alt={image.prompt}
+          src={imageSrc}
+          alt={imageAlt}
           className="max-w-full max-h-[85vh] object-contain rounded-lg"
         />
       </div>
 
       {/* Bottom controls */}
-      <div className="absolute bottom-0 left-0 right-0 p-6">
-        <div className="max-w-2xl mx-auto">
-          {/* Prompt */}
-          <div className="bg-zinc-900/90 backdrop-blur-sm rounded-t-lg p-4 border-b border-zinc-800">
-            <p className="text-sm text-zinc-300">{image.prompt}</p>
-            <div className="flex items-center gap-2 mt-2 text-xs text-zinc-500">
-              <span>{image.modelName}</span>
-              {image.aspectRatio && (
-                <>
-                  <span>·</span>
-                  <span>{image.aspectRatio}</span>
-                </>
-              )}
-              {image.resolution && (
-                <>
-                  <span>·</span>
-                  <span>{image.resolution}</span>
-                </>
-              )}
-              {image.createdAt && (
-                <>
-                  <span>·</span>
-                  <span>
-                    {new Date(image.createdAt).toLocaleString()}
-                  </span>
-                </>
-              )}
+      {galleryImage && (
+        <div className="absolute bottom-0 left-0 right-0 p-6">
+          <div className="max-w-2xl mx-auto">
+            {/* Prompt */}
+            <div className="bg-zinc-900/90 backdrop-blur-sm rounded-t-lg p-4 border-b border-zinc-800">
+              <p className="text-sm text-zinc-300">{galleryImage.prompt}</p>
+              <div className="flex items-center gap-2 mt-2 text-xs text-zinc-500">
+                <span>{galleryImage.modelName}</span>
+                {galleryImage.aspectRatio && (
+                  <>
+                    <span>·</span>
+                    <span>{galleryImage.aspectRatio}</span>
+                  </>
+                )}
+                {galleryImage.resolution && (
+                  <>
+                    <span>·</span>
+                    <span>{galleryImage.resolution}</span>
+                  </>
+                )}
+                {galleryImage.createdAt && (
+                  <>
+                    <span>·</span>
+                    <span>
+                      {new Date(galleryImage.createdAt).toLocaleString()}
+                    </span>
+                  </>
+                )}
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="bg-zinc-900/90 backdrop-blur-sm rounded-b-lg p-2 flex items-center justify-center gap-2">
+              <ActionButton
+                icon={<Download className="w-4 h-4" />}
+                label="Download"
+                onClick={handleDownload}
+              />
+              <ActionButton
+                icon={<Copy className="w-4 h-4" />}
+                label="Copy Prompt"
+                onClick={handleCopyPrompt}
+              />
+              <ActionButton
+                icon={<Wand2 className="w-4 h-4" />}
+                label="Re-use Prompt"
+                onClick={handleReusePrompt}
+              />
+              <ActionButton
+                icon={<Trash2 className="w-4 h-4" />}
+                label="Delete"
+                onClick={handleDelete}
+                variant="danger"
+              />
             </div>
           </div>
-
-          {/* Actions */}
-          <div className="bg-zinc-900/90 backdrop-blur-sm rounded-b-lg p-2 flex items-center justify-center gap-2">
-            <ActionButton
-              icon={<Download className="w-4 h-4" />}
-              label="Download"
-              onClick={handleDownload}
-            />
-            <ActionButton
-              icon={<Copy className="w-4 h-4" />}
-              label="Copy Prompt"
-              onClick={handleCopyPrompt}
-            />
-            <ActionButton
-              icon={<Wand2 className="w-4 h-4" />}
-              label="Re-use Prompt"
-              onClick={handleReusePrompt}
-            />
-            <ActionButton
-              icon={<Trash2 className="w-4 h-4" />}
-              label="Delete"
-              onClick={handleDelete}
-              variant="danger"
-            />
-          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

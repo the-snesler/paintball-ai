@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { GalleryItem, ViewMode, AspectRatio, Resolution, ReferenceImage, CompletedGalleryItem, CompletedGalleryItemFields, FailedGalleryItemFields, PendingGalleryItemFields, AttachSelectedItemsResult } from '~/types';
+import type { GalleryItem, ViewMode, AspectRatio, Resolution, ReferenceImage, CompletedGalleryItem, CompletedGalleryItemFields, FailedGalleryItemFields, PendingGalleryItemFields, AttachSelectedItemsResult, LightboxTarget } from '~/types';
 import { getAllImages, deleteImage as dbDeleteImage, toDisplayImage } from '~/lib/db';
 import { canAttachReferenceCount } from '~/lib/models';
 import { useSettingsStore } from './settingsStore';
@@ -8,7 +8,7 @@ interface GalleryState {
   // Gallery items (unified pending + completed)
   items: GalleryItem[];
   viewMode: ViewMode;
-  selectedImageId: string | null;
+  lightboxTarget: LightboxTarget | null;
   selectedItemIds: string[];
   isLightboxOpen: boolean;
   isLoading: boolean;
@@ -34,7 +34,7 @@ interface GalleryState {
   dismissItem: (id: string) => void;
   getItem: (id: string) => GalleryItem | undefined;
   setViewMode: (mode: ViewMode) => void;
-  openLightbox: (imageId: string) => void;
+  openLightbox: (target: LightboxTarget) => void;
   closeLightbox: () => void;
   navigateLightbox: (direction: 'prev' | 'next') => void;
   getSelectedItem: () => CompletedGalleryItem | null;
@@ -91,7 +91,7 @@ export const useGalleryStore = create<GalleryState>()((set, get) => ({
   // Gallery state
   items: [],
   viewMode: 'grid',
-  selectedImageId: null,
+  lightboxTarget: null,
   selectedItemIds: [],
   isLightboxOpen: false,
   isLoading: false,
@@ -149,8 +149,14 @@ export const useGalleryStore = create<GalleryState>()((set, get) => ({
       }
       set((state) => ({
         items: state.items.filter((i) => i.id !== id),
-        isLightboxOpen: state.selectedImageId === id ? false : state.isLightboxOpen,
-        selectedImageId: state.selectedImageId === id ? null : state.selectedImageId,
+        isLightboxOpen:
+          state.lightboxTarget?.kind === 'gallery' && state.lightboxTarget.imageId === id
+            ? false
+            : state.isLightboxOpen,
+        lightboxTarget:
+          state.lightboxTarget?.kind === 'gallery' && state.lightboxTarget.imageId === id
+            ? null
+            : state.lightboxTarget,
         selectedItemIds: state.selectedItemIds.filter((selectedId) => selectedId !== id),
       }));
     } catch (error) {
@@ -168,23 +174,24 @@ export const useGalleryStore = create<GalleryState>()((set, get) => ({
 
   setViewMode: (viewMode) => set({ viewMode }),
 
-  openLightbox: (imageId) =>
+  openLightbox: (target) =>
     set({
-      selectedImageId: imageId,
+      lightboxTarget: target,
       isLightboxOpen: true,
     }),
 
   closeLightbox: () =>
     set({
       isLightboxOpen: false,
+      lightboxTarget: null,
     }),
 
   navigateLightbox: (direction) => {
     const state = get();
-    if (!state.selectedImageId) return;
+    if (state.lightboxTarget?.kind !== 'gallery') return;
 
     const completedItems = state.items.filter((i) => i.status === 'completed');
-    const currentIndex = completedItems.findIndex((i) => i.id === state.selectedImageId);
+    const currentIndex = completedItems.findIndex((i) => i.id === state.lightboxTarget.imageId);
     if (currentIndex === -1) return;
 
     let newIndex: number;
@@ -194,12 +201,16 @@ export const useGalleryStore = create<GalleryState>()((set, get) => ({
       newIndex = currentIndex < completedItems.length - 1 ? currentIndex + 1 : 0;
     }
 
-    set({ selectedImageId: completedItems[newIndex].id });
+    set({ lightboxTarget: { kind: 'gallery', imageId: completedItems[newIndex].id } });
   },
 
   getSelectedItem: () => {
     const state = get();
-    const item = state.items.find((i) => i.id === state.selectedImageId);
+    if (state.lightboxTarget?.kind !== 'gallery') {
+      return null;
+    }
+
+    const item = state.items.find((i) => i.id === state.lightboxTarget.imageId);
     if (item && item.status === 'completed') {
       return item;
     }
@@ -260,19 +271,19 @@ export const useGalleryStore = create<GalleryState>()((set, get) => ({
       URL.revokeObjectURL(item.thumbnailUrl);
     });
 
-    const selectedImageId = get().selectedImageId;
+    const lightboxTarget = get().lightboxTarget;
 
     set((currentState) => ({
       items: currentState.items.filter((item) => !selectedSet.has(item.id)),
       selectedItemIds: [],
       isLightboxOpen:
-        selectedImageId && selectedSet.has(selectedImageId)
+        lightboxTarget?.kind === 'gallery' && selectedSet.has(lightboxTarget.imageId)
           ? false
           : currentState.isLightboxOpen,
-      selectedImageId:
-        selectedImageId && selectedSet.has(selectedImageId)
+      lightboxTarget:
+        lightboxTarget?.kind === 'gallery' && selectedSet.has(lightboxTarget.imageId)
           ? null
-          : currentState.selectedImageId,
+          : currentState.lightboxTarget,
     }));
 
     return selectedItems.length;

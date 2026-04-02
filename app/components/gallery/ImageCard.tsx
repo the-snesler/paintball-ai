@@ -21,7 +21,7 @@ export function ImageCard({ image }: ImageCardProps) {
       return;
     }
 
-    openLightbox(image.id);
+    openLightbox({ kind: "gallery", imageId: image.id });
   };
 
   const handleSelectToggle = (event: ChangeEvent<HTMLInputElement>) => {

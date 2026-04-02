@@ -44,6 +44,18 @@ export interface ReferenceImage {
   name: string;
 }
 
+export interface LightboxGalleryTarget {
+  kind: 'gallery';
+  imageId: string;
+}
+
+export interface LightboxReferenceTarget {
+  kind: 'reference';
+  image: Pick<ReferenceImage, 'id' | 'url' | 'name'>;
+}
+
+export type LightboxTarget = LightboxGalleryTarget | LightboxReferenceTarget;
+
 export interface GenerationRequest {
   prompt: string;
   modelSelections: Record<string, number>; // modelId -> count
