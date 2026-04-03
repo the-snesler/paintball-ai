@@ -1,4 +1,4 @@
-import { Sparkles, Loader2, Trash2 } from "lucide-react";
+import { Sparkles, Loader2, KeyRound } from "lucide-react";
 import { useNavigate } from "react-router";
 import { DEFAULT_GENERATION_STATE, useGalleryStore } from "~/stores/galleryStore";
 import { useSettingsStore } from "~/stores/settingsStore";
@@ -46,7 +46,9 @@ export function GenerateButton() {
     isLastSubmittedActive && lastSubmittedSignature === currentSignature;
 
   const canGenerate =
-    prompt.trim().length > 0 && totalImages > 0 && !missingKeys && !isLockedForCurrentParams;
+    prompt.trim().length > 0 && totalImages > 0 && !isLockedForCurrentParams;
+
+  const canClear = prompt.trim().length !== 0 || totalImages > 0
 
   const handleGenerate = () => {
     if (missingKeys) {
@@ -62,19 +64,15 @@ export function GenerateButton() {
     useGalleryStore.setState(DEFAULT_GENERATION_STATE);
   }
 
-  const generateEnabled = canGenerate || missingKeys;
-
-  const numGenerations = Object.values(modelSelections).reduce((acc, e) => acc + e, 0)
-
   return (
     <div className="flex flex-col gap-2">
       <div className="relative group flex-1">
         <div className="bg-purple-800 rounded-lg absolute inset-0 pointer-events-none group-hover:bg-purple-600 transition"></div>
         <button
           onClick={handleGenerate}
-          disabled={!generateEnabled}
+          disabled={!canGenerate}
           className={`w-full flex items-center justify-center gap-2 py-3 px-4 rounded-lg font-medium transition-all border-2 ${
-            generateEnabled
+            canGenerate
               ? "bg-purple-600 hover:bg-purple-500 text-white border-purple-500 hover:border-purple-400 -translate-y-1 active:translate-y-0 hover:-translate-y-2 shadow-lg cursor-pointer "
               : "bg-zinc-800 text-zinc-500 cursor-not-allowed border-zinc-700 translate-y-0"
           }`}
@@ -83,6 +81,11 @@ export function GenerateButton() {
             <>
               <Loader2 className="w-4 h-4 animate-spin" />
               Generating...
+            </>
+          ) : missingKeys ? (
+            <>
+              <KeyRound className="w-4 h-4" />
+              Missing keys
             </>
           ) : (
             <>
@@ -95,7 +98,7 @@ export function GenerateButton() {
       <div className="w-full flex justify-center">
         <span className="text-xs text-zinc-400">
           <NumberFlow
-              value={numGenerations}
+              value={totalImages}
               format={{ useGrouping: false }}
               transformTiming={{ duration: 300, easing: 'ease-out' }}
               spinTiming={{ duration: 300, easing: 'ease-out' }}
@@ -105,7 +108,7 @@ export function GenerateButton() {
           {" • "}
           <button
             onClick={handleClear}
-            disabled={!canGenerate}
+            disabled={!canClear}
             className="disabled:text-zinc-400 text-center disabled:hover:no-underline hover:underline text-red-400 hover:cursor-pointer disabled:hover:cursor-not-allowed"
           >
             Clear
