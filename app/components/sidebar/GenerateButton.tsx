@@ -5,6 +5,7 @@ import { useSettingsStore } from "~/stores/settingsStore";
 import { useImageGeneration } from "~/hooks/useImageGeneration";
 import { buildGenerationSignature } from "~/lib/generationSignature";
 import { getModel } from "~/lib/models";
+import NumberFlow from "@number-flow/react";
 
 export function GenerateButton() {
   const prompt = useGalleryStore((s) => s.currentPrompt);
@@ -63,16 +64,18 @@ export function GenerateButton() {
 
   const generateEnabled = canGenerate || missingKeys;
 
+  const numGenerations = Object.values(modelSelections).reduce((acc, e) => acc + e, 0)
+
   return (
-    <div className="flex gap-4">
+    <div className="flex flex-col gap-2">
       <div className="relative group flex-1">
         <div className="bg-purple-800 rounded-lg absolute inset-0 pointer-events-none group-hover:bg-purple-600 transition"></div>
         <button
           onClick={handleGenerate}
           disabled={!generateEnabled}
-          className={`w-full flex items-center justify-center gap-2 py-3 px-4 rounded-lg font-medium transition-all cursor-pointer border-2 ${
+          className={`w-full flex items-center justify-center gap-2 py-3 px-4 rounded-lg font-medium transition-all border-2 ${
             generateEnabled
-              ? "bg-purple-600 hover:bg-purple-500 text-white border-purple-500 hover:border-purple-400 -translate-y-1 active:translate-y-0 hover:-translate-y-2 shadow-lg"
+              ? "bg-purple-600 hover:bg-purple-500 text-white border-purple-500 hover:border-purple-400 -translate-y-1 active:translate-y-0 hover:-translate-y-2 shadow-lg cursor-pointer "
               : "bg-zinc-800 text-zinc-500 cursor-not-allowed border-zinc-700 translate-y-0"
           }`}
         >
@@ -89,19 +92,25 @@ export function GenerateButton() {
           )}
         </button>
       </div>
-      <div className="relative group">
-        <div className="bg-red-800 rounded-lg absolute inset-0 pointer-events-none group-hover:bg-red-600 transition"></div>
-        <button
-          onClick={handleClear}
-          disabled={!canGenerate}
-          className={`w-full h-full flex items-center justify-center gap-2 py-3 px-4 rounded-lg font-medium transition-all cursor-pointer border-2 ${
-            canGenerate
-              ? "bg-red-600 hover:bg-red-500 text-white border-red-500 hover:border-red-400 -translate-y-1 active:translate-y-0 hover:-translate-y-2 shadow-lg"
-              : "bg-zinc-800 text-zinc-500 cursor-not-allowed border-zinc-700 translate-y-0"
-          }`}
-        >
-          <Trash2 className="w-4 h-4" />
-        </button>
+      <div className="w-full flex justify-center">
+        <span className="text-xs text-zinc-400">
+          <NumberFlow
+              value={numGenerations}
+              format={{ useGrouping: false }}
+              transformTiming={{ duration: 300, easing: 'ease-out' }}
+              spinTiming={{ duration: 300, easing: 'ease-out' }}
+              opacityTiming={{ duration: 150, easing: 'ease-out' }}
+              willChange
+            />{" pending"}
+          {" • "}
+          <button
+            onClick={handleClear}
+            disabled={!canGenerate}
+            className="disabled:text-zinc-400 text-center disabled:hover:no-underline hover:underline text-red-400 hover:cursor-pointer disabled:hover:cursor-not-allowed"
+          >
+            Clear
+          </button>
+        </span>
       </div>
     </div>
   );
