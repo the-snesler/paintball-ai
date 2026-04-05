@@ -1,5 +1,5 @@
 import { ImagePlus, Loader2, Sparkles, X, Wand2 } from "lucide-react";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { anyModelSupportsReferenceImages } from "~/lib/models";
 import { IMPROVE_PROMPT_SYSTEM } from "~/lib/prompts";
 import { callTextModel, isTextModelAvailable } from "~/lib/textModel";
@@ -18,6 +18,15 @@ export function PromptInput() {
   const models = useSettingsStore((s) => s.models);
   const [isDragOver, setIsDragOver] = useState(false);
   const [isImproving, setIsImproving] = useState(false);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const supportsFieldSizing = useMemo(() => {
+    if (typeof CSS === "undefined" || typeof CSS.supports !== "function") {
+      return false;
+    }
+
+    return CSS.supports("field-sizing", "content");
+  }, []);
 
   const selectedModels = useMemo(
     () =>
@@ -173,6 +182,16 @@ export function PromptInput() {
     }
   }, [prompt, isImproving, setPrompt]);
 
+  useLayoutEffect(() => {
+    if (supportsFieldSizing) return;
+
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+
+    textarea.style.height = "0px";
+    textarea.style.height = `${textarea.scrollHeight}px`;
+  }, [prompt, supportsFieldSizing]);
+
   return (
     <section>
       <div className="flex items-center gap-2 mb-2">
@@ -194,6 +213,7 @@ export function PromptInput() {
         }`}
       >
         <textarea
+          ref={textareaRef}
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
           onPaste={handlePaste}
