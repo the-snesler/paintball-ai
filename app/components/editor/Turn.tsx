@@ -1,5 +1,6 @@
 import { Check, Link2 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useShallow } from "zustand/react/shallow";
 import { useGalleryStore } from "~/stores/galleryStore";
 import { useEditorStore } from "~/stores/editorStore";
 import type { EditorTurn } from "~/types";
@@ -11,8 +12,10 @@ interface TurnProps {
 }
 
 export function Turn({ turn, turnIndex, isFirst = false }: TurnProps) {
-  const items = useGalleryStore((s) =>
-    turn.itemIds.map((id) => s.items.find((item) => item.id === id)).filter(Boolean)
+  const items = useGalleryStore(
+    useShallow((s) =>
+      turn.itemIds.map((id) => s.items.find((item) => item.id === id)).filter(Boolean)
+    )
   ) as ReturnType<typeof useGalleryStore.getState>["items"];
 
   const selectedItemId = useEditorStore((s) => s.selectedItemId);
