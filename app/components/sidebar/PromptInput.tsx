@@ -1,6 +1,8 @@
-import { ImagePlus, X, Wand2 } from "lucide-react";
+import { ImagePlus, Loader2, Sparkles, X, Wand2 } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
 import { anyModelSupportsReferenceImages } from "~/lib/models";
+import { IMPROVE_PROMPT_SYSTEM } from "~/lib/prompts";
+import { callTextModel, isTextModelAvailable } from "~/lib/textModel";
 import { useGalleryStore } from "~/stores/galleryStore";
 import { useSettingsStore } from "~/stores/settingsStore";
 
@@ -15,6 +17,7 @@ export function PromptInput() {
   const galleryItems = useGalleryStore((s) => s.items);
   const models = useSettingsStore((s) => s.models);
   const [isDragOver, setIsDragOver] = useState(false);
+  const [isImproving, setIsImproving] = useState(false);
 
   const selectedModels = useMemo(
     () =>
@@ -24,12 +27,12 @@ export function PromptInput() {
     [modelSelections]
   );
 
-  const enabled = anyModelSupportsReferenceImages(models, selectedModels);
+  const referenceEnabled = anyModelSupportsReferenceImages(models, selectedModels);
   const isExpanded = isDragOver || referenceImages.length > 0;
 
   const addFiles = useCallback(
     (files: File[]) => {
-      if (!enabled) return;
+      if (!referenceEnabled) return;
 
       const imageFiles = files.filter((file) => file.type.startsWith("image/"));
       for (const file of imageFiles) {
@@ -42,12 +45,12 @@ export function PromptInput() {
         });
       }
     },
-    [addReferenceImage, enabled]
+    [addReferenceImage, referenceEnabled]
   );
 
   const addGalleryImage = useCallback(
     (imageData: string) => {
-      if (!enabled) return;
+      if (!referenceEnabled) return;
 
       try {
         const { imageId, blob, name } = JSON.parse(imageData) as {
@@ -86,11 +89,11 @@ export function PromptInput() {
         // Ignore invalid drag payloads.
       }
     },
-    [addReferenceImage, enabled, galleryItems]
+    [addReferenceImage, referenceEnabled, galleryItems]
   );
 
   const handlePaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
-    if (!enabled) return;
+    if (!referenceEnabled) return;
 
     const items = e.clipboardData.items;
     for (const item of items) {
@@ -109,7 +112,7 @@ export function PromptInput() {
       e.stopPropagation();
       setIsDragOver(false);
 
-      if (!enabled) return;
+      if (!referenceEnabled) return;
 
       const imageData = e.dataTransfer.getData("application/json");
       if (imageData) {
@@ -118,29 +121,29 @@ export function PromptInput() {
 
       addFiles(Array.from(e.dataTransfer.files));
     },
-    [addFiles, addGalleryImage, enabled]
+    [addFiles, addGalleryImage, referenceEnabled]
   );
 
   const handleDragEnter = useCallback(
     (e: React.DragEvent) => {
       e.preventDefault();
       e.stopPropagation();
-      if (enabled) {
+      if (referenceEnabled) {
         setIsDragOver(true);
       }
     },
-    [enabled]
+    [referenceEnabled]
   );
 
   const handleDragOver = useCallback(
     (e: React.DragEvent) => {
       e.preventDefault();
       e.stopPropagation();
-      if (enabled) {
+      if (referenceEnabled) {
         setIsDragOver(true);
       }
     },
-    [enabled]
+    [referenceEnabled]
   );
 
   const handleDragLeave = useCallback((e: React.DragEvent) => {
@@ -157,6 +160,19 @@ export function PromptInput() {
     [addFiles]
   );
 
+  const handleImprovePrompt = useCallback(async () => {
+    if (!prompt.trim() || isImproving) return;
+    setIsImproving(true);
+    try {
+      const improved = await callTextModel(IMPROVE_PROMPT_SYSTEM, prompt);
+      setPrompt(improved.trim());
+    } catch {
+      // Leave prompt unchanged on failure
+    } finally {
+      setIsImproving(false);
+    }
+  }, [prompt, isImproving, setPrompt]);
+
   return (
     <section>
       <div className="flex items-center gap-2 mb-2">
@@ -172,7 +188,7 @@ export function PromptInput() {
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         className={`bg-zinc-800 border rounded-lg transition-colors ${
-          isDragOver && enabled
+          isDragOver && referenceEnabled
             ? "border-purple-500 ring-1 ring-purple-500"
             : "border-zinc-700"
         }`}
@@ -212,7 +228,7 @@ export function PromptInput() {
                       event.stopPropagation();
                       removeReferenceImage(img.id);
                     }}
-                    disabled={!enabled}
+                    disabled={!referenceEnabled}
                     className="absolute -top-1 -right-1 w-5 h-5 bg-zinc-900 border border-zinc-700 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
                   >
                     <X className="w-3 h-3 text-zinc-400" />
@@ -229,24 +245,40 @@ export function PromptInput() {
           </div>
         )}
 
-        <label
-          className={`inline-flex items-center gap-1 text-xs transition-colors ml-3 mb-3 ${
-            enabled
-              ? "cursor-pointer text-zinc-400 hover:text-zinc-300"
-              : "cursor-not-allowed text-zinc-600"
-          }`}
-        >
-          <ImagePlus className="w-4 h-4" />
-          {referenceImages.length > 0 ? "Attach more" : "Attach references"}
-          <input
-            type="file"
-            accept="image/*"
-            multiple
-            onChange={handleFileSelect}
-            disabled={!enabled}
-            className="hidden"
-          />
-        </label>
+        <div className="flex items-center justify-between mx-3 mb-3">
+          <label
+            className={`inline-flex items-center gap-1 text-xs transition-colors ${
+              referenceEnabled
+                ? "cursor-pointer text-zinc-400 hover:text-zinc-300"
+                : "cursor-not-allowed text-zinc-600"
+            }`}
+          >
+            <ImagePlus className="w-4 h-4" />
+            {referenceImages.length > 0 ? "Attach more" : "Attach references"}
+            <input
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={handleFileSelect}
+              disabled={!referenceEnabled}
+              className="hidden"
+            />
+          </label>
+
+          <button
+            type="button"
+            onClick={handleImprovePrompt}
+            disabled={!isTextModelAvailable() || !prompt.trim() || isImproving}
+            className="inline-flex items-center gap-1 text-xs transition-colors text-zinc-400 hover:text-zinc-300 disabled:cursor-not-allowed disabled:text-zinc-600"
+          >
+            {isImproving ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            ) : (
+              <Sparkles className="w-3.5 h-3.5" />
+            )}
+            {isImproving ? "Improving..." : "Improve"}
+          </button>
+        </div>
       </div>
     </section>
   );

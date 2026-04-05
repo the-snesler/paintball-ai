@@ -32,6 +32,7 @@ export interface StoredModel {
   enabled: boolean;
   isCustom?: boolean; // true for user-added models
   schemaFetched?: boolean; // true if capabilities were fetched from Replicate API
+  schemaMapping?: SchemaMapping; // parameter translation for non-standard Replicate models
   capabilities: ModelCapabilities;
   icon?: string; // Path to custom icon SVG (e.g., "/icons/google.svg")
 }
@@ -132,6 +133,19 @@ export interface AttachSelectedItemsResult {
   attachedCount: number;
   maxAllowed: number | null;
   reason?: string;
+}
+
+// Text model types
+export interface TextModelConfig {
+  provider: Provider;
+  modelId: string;
+}
+
+export interface SchemaMapping {
+  resolution?: Record<string, string>;
+  imageInputKey?: string;
+  maxReferenceImages?: number;
+  extraDefaults?: Record<string, unknown>;
 }
 
 // Settings types

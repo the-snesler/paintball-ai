@@ -1,11 +1,12 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { BUILT_IN_MODELS, isBuiltInModel, mergeWithBuiltInModels } from '~/lib/builtInModels';
-import type { ApiKeys, ModelCapabilities, Provider, StoredModel } from '~/types';
+import type { ApiKeys, ModelCapabilities, Provider, SchemaMapping, StoredModel, TextModelConfig } from '~/types';
 
 interface SettingsState {
   apiKeys: ApiKeys;
   models: StoredModel[];
+  textModel: TextModelConfig;
   desktopNotificationsEnabled: boolean;
   notificationPromptDismissed: boolean;
   requestedOutputCount: number;
@@ -16,9 +17,12 @@ interface SettingsState {
 
   // Model actions
   setModelEnabled: (id: string, enabled: boolean) => void;
-  addCustomModel: (id: string, name: string, capabilities: ModelCapabilities) => void;
+  addCustomModel: (id: string, name: string, capabilities: ModelCapabilities, schemaMapping?: SchemaMapping, icon?: string) => void;
   removeCustomModel: (id: string) => void;
   updateModelCapabilities: (id: string, capabilities: ModelCapabilities, schemaFetched?: boolean) => void;
+
+  // Text model actions
+  setTextModel: (config: TextModelConfig) => void;
 
   // Notification actions
   setDesktopNotificationsEnabled: (enabled: boolean) => void;
@@ -34,6 +38,7 @@ export const useSettingsStore = create<SettingsState>()(
         replicate: null,
       },
       models: BUILT_IN_MODELS,
+      textModel: { provider: 'google', modelId: 'gemini-3-flash-preview' },
       desktopNotificationsEnabled: false,
       notificationPromptDismissed: false,
       requestedOutputCount: 0,
@@ -55,7 +60,7 @@ export const useSettingsStore = create<SettingsState>()(
           ),
         })),
 
-      addCustomModel: (id, name, capabilities) =>
+      addCustomModel: (id, name, capabilities, schemaMapping, icon) =>
         set((state) => ({
           models: [
             ...state.models,
@@ -67,6 +72,8 @@ export const useSettingsStore = create<SettingsState>()(
               isCustom: true,
               schemaFetched: true,
               capabilities,
+              ...(schemaMapping && { schemaMapping }),
+              ...(icon && { icon }),
             },
           ],
         })),
@@ -85,6 +92,9 @@ export const useSettingsStore = create<SettingsState>()(
           ),
         })),
 
+      setTextModel: (config) =>
+        set({ textModel: config }),
+
       setDesktopNotificationsEnabled: (enabled) =>
         set({ desktopNotificationsEnabled: enabled }),
 
@@ -98,10 +108,11 @@ export const useSettingsStore = create<SettingsState>()(
     }),
     {
       name: 'studio-settings',
-      version: 5,
+      version: 6,
       partialize: (state) => ({
         apiKeys: state.apiKeys,
         models: state.models,
+        textModel: state.textModel,
         desktopNotificationsEnabled: state.desktopNotificationsEnabled,
         notificationPromptDismissed: state.notificationPromptDismissed,
         requestedOutputCount: state.requestedOutputCount,
@@ -110,6 +121,7 @@ export const useSettingsStore = create<SettingsState>()(
         let state = persisted as {
           apiKeys?: ApiKeys;
           models?: StoredModel[];
+          textModel?: TextModelConfig;
           desktopNotificationsEnabled?: boolean;
           notificationPromptDismissed?: boolean;
           requestedOutputCount?: number;
@@ -168,6 +180,13 @@ export const useSettingsStore = create<SettingsState>()(
             desktopNotificationsEnabled: false,
             notificationPromptDismissed: false,
             requestedOutputCount: 0,
+          };
+        }
+
+        if (version < 6) {
+          state = {
+            ...state,
+            textModel: { provider: 'google', modelId: 'gemini-3-flash-preview' },
           };
         }
 

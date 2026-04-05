@@ -1,12 +1,13 @@
 import { Plus, Loader2 } from "lucide-react";
 import { useState } from "react";
-import { fetchModelInfo } from "~/lib/replicateSchema";
+import { resolveModelCapabilities } from "~/lib/replicateSchema";
 import { useSettingsStore } from "~/stores/settingsStore";
 
 export default function AddCustomModelButton({ disabled, apiKey }: { disabled?: boolean; apiKey: string | null }) {
   const [isAdding, setIsAdding] = useState(false);
   const [modelId, setModelId] = useState("");
   const [loading, setLoading] = useState(false);
+  const [loadingStatus, setLoadingStatus] = useState("");
   const [error, setError] = useState<string | null>(null);
 
   const addCustomModel = useSettingsStore((s) => s.addCustomModel);
@@ -32,14 +33,20 @@ export default function AddCustomModelButton({ disabled, apiKey }: { disabled?: 
     setError(null);
 
     try {
-      const { name, capabilities } = await fetchModelInfo(modelId, apiKey!);
-      addCustomModel(modelId, name, capabilities);
+      const { name, capabilities, schemaMapping, icon } = await resolveModelCapabilities(
+        modelId,
+        apiKey!,
+        setLoadingStatus,
+      );
+
+      addCustomModel(modelId, name, capabilities, schemaMapping, icon);
       setModelId("");
       setIsAdding(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to fetch model");
     } finally {
       setLoading(false);
+      setLoadingStatus("");
     }
   };
 
@@ -94,7 +101,7 @@ export default function AddCustomModelButton({ disabled, apiKey }: { disabled?: 
       </div>
       {error && <p className="text-xs text-red-400">{error}</p>}
       <p className="text-xs text-zinc-500">
-        Enter a Replicate model ID like "stability-ai/sdxl" or "black-forest-labs/flux-schnell"
+        {loadingStatus || 'Enter a Replicate model ID like "stability-ai/sdxl" or "black-forest-labs/flux-schnell"'}
       </p>
     </div>
   );

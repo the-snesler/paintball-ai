@@ -1,4 +1,4 @@
-import { Key, Eye, EyeOff, Check, Sparkles, ChevronDown, Loader2, Bell } from "lucide-react";
+import { Key, Eye, EyeOff, Check, Sparkles, ChevronDown, Loader2, Bell, Brain } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { GalleryHeader } from "~/components/gallery/GalleryHeader";
 import { useSettingsStore } from "~/stores/settingsStore";
@@ -23,8 +23,10 @@ const providers: { id: Provider; name: string; description: string }[] = [
 export function SettingsModal() {
   const apiKeys = useSettingsStore((s) => s.apiKeys);
   const models = useSettingsStore((s) => s.models);
+  const textModel = useSettingsStore((s) => s.textModel);
   const desktopNotificationsEnabled = useSettingsStore((s) => s.desktopNotificationsEnabled);
   const setApiKey = useSettingsStore((s) => s.setApiKey);
+  const setTextModel = useSettingsStore((s) => s.setTextModel);
   const setDesktopNotificationsEnabled = useSettingsStore((s) => s.setDesktopNotificationsEnabled);
   const updateModelCapabilities = useSettingsStore((s) => s.updateModelCapabilities);
 
@@ -215,6 +217,67 @@ export function SettingsModal() {
               >
                 {requestingPermission ? "Requesting..." : "Request permission"}
               </button>
+            )}
+          </div>
+        </details>
+
+        {/* Text Model Section */}
+        <details className="group space-y-3">
+          <summary className="flex items-center justify-between w-full text-left cursor-pointer list-none [&::-webkit-details-marker]:hidden">
+            <div className="flex items-center gap-2">
+              <Brain className="w-4 h-4 text-purple-400" />
+              <span className="text-sm font-medium">Text model</span>
+              {(apiKeys.google || apiKeys.replicate) && (
+                <Check className="w-4 h-4 text-green-500" />
+              )}
+            </div>
+            <ChevronDown className="w-4 h-4 text-zinc-400 -rotate-90 transition-transform duration-200 group-open:rotate-0" />
+          </summary>
+
+          <div className="space-y-3 rounded-lg border border-zinc-800 bg-zinc-900/60 p-3 ml-6">
+            <p className="text-xs text-zinc-500">
+              Used for prompt improvement and smart model configuration.
+            </p>
+
+            <div className="space-y-2">
+              <label className="block text-xs font-medium text-zinc-300">Provider</label>
+              <select
+                value={textModel.provider}
+                onChange={(e) =>
+                  setTextModel({
+                    ...textModel,
+                    provider: e.target.value as Provider,
+                    modelId:
+                      e.target.value === "google"
+                        ? "gemini-3-flash-preview"
+                        : "google/gemini-3-flash",
+                  })
+                }
+                className="w-full py-2 px-3 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-zinc-100 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-colors"
+              >
+                <option value="google">Google AI</option>
+                <option value="replicate">Replicate</option>
+              </select>
+            </div>
+
+            <div className="space-y-2">
+              <label className="block text-xs font-medium text-zinc-300">Model ID</label>
+              <input
+                type="text"
+                value={textModel.modelId}
+                onChange={(e) =>
+                  setTextModel({ ...textModel, modelId: e.target.value })
+                }
+                className="w-full py-2 px-3 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-colors"
+              />
+            </div>
+
+            {!apiKeys[textModel.provider] && (
+              <p className="text-xs text-amber-400">
+                {apiKeys[textModel.provider === "google" ? "replicate" : "google"]
+                  ? `No ${textModel.provider === "google" ? "Google" : "Replicate"} key — will fall back to ${textModel.provider === "google" ? "Replicate" : "Google"}.`
+                  : "No API keys configured. Add one above to enable text model features."}
+              </p>
             )}
           </div>
         </details>

@@ -5,7 +5,7 @@ import { getReferenceImagesByIds, saveImage, saveReferenceImage } from "~/lib/db
 import { buildGenerationSignature } from "~/lib/generationSignature";
 import { getModel } from "~/lib/models";
 import { createThumbnailBlob, getImageDimensions } from "~/lib/imageProcessing";
-import type { ApiKeys, AspectRatio, GalleryItem, Provider, Resolution, StoredModel } from "~/types";
+import type { ApiKeys, AspectRatio, GalleryItem, Provider, Resolution } from "~/types";
 import { GoogleGenAI } from "@google/genai";
 import Replicate from "replicate";
 
@@ -451,6 +451,10 @@ async function executeReplicateGeneration(
     task.referenceImages.map(async (ref) => blobToBase64(ref.blob))
   );
 
+  // Look up schema mapping for this model
+  const model = useSettingsStore.getState().models.find((m) => m.id === task.modelId);
+  const mapping = model?.schemaMapping;
+
   // Build input payload
   const input: Record<string, unknown> = {
     prompt: task.prompt,
@@ -460,10 +464,20 @@ async function executeReplicateGeneration(
     input.aspect_ratio = task.aspectRatio;
   }
   if (imageInputs.length > 0) {
-    input.image_input = imageInputs;
+    const imageKey = mapping?.imageInputKey ?? "image_input";
+    input[imageKey] = imageInputs;
   }
   if (task.resolution) {
-    input.resolution = task.resolution;
+    input.resolution = mapping?.resolution?.[task.resolution] ?? task.resolution;
+  }
+
+  // Apply extra defaults (don't override explicit values)
+  if (mapping?.extraDefaults) {
+    for (const [key, value] of Object.entries(mapping.extraDefaults)) {
+      if (!(key in input)) {
+        input[key] = value;
+      }
+    }
   }
 
   const replicateModel = task.modelId.replace("replicate/", "") as `${string}/${string}`;
