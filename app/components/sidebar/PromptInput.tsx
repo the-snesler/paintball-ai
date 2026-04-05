@@ -173,14 +173,17 @@ export function PromptInput() {
     if (!prompt.trim() || isImproving) return;
     setIsImproving(true);
     try {
-      const improved = await callTextModel(IMPROVE_PROMPT_SYSTEM, prompt);
+      const images = referenceImages.length > 0
+        ? referenceImages.map((r) => r.blob)
+        : undefined;
+      const improved = await callTextModel(IMPROVE_PROMPT_SYSTEM, prompt, images);
       setPrompt(improved.trim());
     } catch {
       // Leave prompt unchanged on failure
     } finally {
       setIsImproving(false);
     }
-  }, [prompt, isImproving, setPrompt]);
+  }, [prompt, isImproving, setPrompt, referenceImages]);
 
   useLayoutEffect(() => {
     if (supportsFieldSizing) return;

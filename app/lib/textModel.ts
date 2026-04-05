@@ -2,6 +2,7 @@ import { GoogleGenAI } from "@google/genai";
 import Replicate from "replicate";
 import { useSettingsStore } from "~/stores/settingsStore";
 import type { Provider } from "~/types";
+import { blobToBase64 } from "./util";
 
 const DEFAULT_GOOGLE_MODEL = "gemini-3-flash-preview";
 const DEFAULT_REPLICATE_MODEL = "google/gemini-3-flash";
@@ -44,12 +45,13 @@ export function isTextModelAvailable(): boolean {
 
 export async function callTextModel(
   systemPrompt: string,
-  userPrompt: string
+  userPrompt: string,
+  images?: Blob[],
 ): Promise<string> {
   const { provider, apiKey, modelId } = resolveProvider();
 
   if (provider === "google") {
-    return callGoogleTextModel(apiKey, modelId, systemPrompt, userPrompt);
+    return callGoogleTextModel(apiKey, modelId, systemPrompt, userPrompt, images);
   }
 
   return callReplicateTextModel(apiKey, modelId, systemPrompt, userPrompt);
@@ -59,16 +61,33 @@ async function callGoogleTextModel(
   apiKey: string,
   modelId: string,
   systemPrompt: string,
-  userPrompt: string
+  userPrompt: string,
+  images?: Blob[],
 ): Promise<string> {
   const ai = new GoogleGenAI({ apiKey });
+
+  const parts: Array<{ text?: string; inlineData?: { mimeType: string; data: string } }> = [];
+
+  if (images?.length) {
+    for (const blob of images) {
+      const base64 = await blobToBase64(blob);
+      parts.push({
+        inlineData: {
+          mimeType: blob.type || "image/png",
+          data: base64.split(",")[1],
+        },
+      });
+    }
+  }
+
+  parts.push({ text: userPrompt });
 
   const response = await ai.models.generateContent({
     model: modelId,
     config: {
       systemInstruction: systemPrompt,
     },
-    contents: [{ role: "user", parts: [{ text: userPrompt }] }],
+    contents: [{ role: "user", parts }],
   });
 
   const text = response.text;

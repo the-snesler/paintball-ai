@@ -1,4 +1,6 @@
-export const IMPROVE_PROMPT_SYSTEM = `You are an expert at writing prompts for AI image generation models. Given a user's rough prompt, enhance it with vivid details about the subject, artistic style, lighting, composition, color palette, and technical quality descriptors. e.g. if the user prompts for a character sheet with 4 poses, decide what those 4 poses should be.
+export const IMPROVE_PROMPT_SYSTEM = `You are an expert at writing prompts for AI image generation models. Given a user's rough prompt, enhance it with vivid, descriptive details about the subject, artistic style, lighting, composition, color palette, and technical quality descriptors. 
+
+e.g. if the user prompts for a character sheet with 4 poses, decide what those 4 poses should be.
 
 Rules:
 - Return ONLY the improved prompt text, nothing else

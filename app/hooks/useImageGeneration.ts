@@ -8,6 +8,7 @@ import { createThumbnailBlob, getImageDimensions } from "~/lib/imageProcessing";
 import type { ApiKeys, AspectRatio, GalleryItem, Provider, Resolution } from "~/types";
 import { GoogleGenAI } from "@google/genai";
 import Replicate from "replicate";
+import { blobToBase64, sleep } from "../lib/util";
 
 const MAX_RETRIES = 3;
 const BASE_BACKOFF_MS = 1000;
@@ -538,17 +539,3 @@ async function executeReplicateGeneration(
     metadata: {},
   };
 }
-
-function blobToBase64(blob: Blob): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result as string);
-    reader.onerror = reject;
-    reader.readAsDataURL(blob);
-  });
-}
-
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
