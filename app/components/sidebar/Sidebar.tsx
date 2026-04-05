@@ -7,7 +7,6 @@ import { ResolutionSection } from "./ResolutionSection";
 import { GenerateButton } from "./GenerateButton";
 import SVG from "react-inlinesvg";
 import drop from "~/drop.svg";
-import { OtherSites } from "./OtherSites";
 
 export const SIDEBAR_POPOVER_ID = "sidebar-popover";
 
@@ -19,7 +18,7 @@ function SidebarContent({ onClose }: { onClose?: () => void }) {
     <>
       {/* Header */}
       <div className="flex h-18 items-center justify-between border-b border-zinc-800 bg-linear-to-br from-purple-950 to-zinc-900 px-6 py-4">
-        <button popoverTarget="other-sites-popover" className="flex items-center gap-3">
+        <div className="flex items-center gap-3">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-purple-700 bg-purple-900">
             <SVG src={drop} className="h-4 w-4 text-purple-400" />
           </div>
@@ -27,15 +26,8 @@ function SidebarContent({ onClose }: { onClose?: () => void }) {
             <h1 className="text-sm font-semibold">Paintball</h1>
             <p className="text-xs text-zinc-500">AI Image Generator</p>
           </div>
-        </button>
+        </div>
         <div className="flex items-center gap-1">
-          <button
-            popoverTarget="other-sites-popover"
-            className="cursor-pointer rounded-lg p-2 transition-colors hover:bg-zinc-800"
-            aria-label="Other sites"
-          >
-            <ChevronDown className="h-4 w-4 text-zinc-400" />
-          </button>
           {onClose && (
             <button
               onClick={onClose}
@@ -47,7 +39,6 @@ function SidebarContent({ onClose }: { onClose?: () => void }) {
           )}
         </div>
       </div>
-      <OtherSites />
 
       {/* Scrollable Content */}
       <div className="flex-1 space-y-6 overflow-y-auto p-4">
