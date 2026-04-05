@@ -153,3 +153,16 @@ export interface ApiKeys {
   google: string | null;
   replicate: string | null;
 }
+
+// Editor types
+export interface EditorTurn {
+  id: string;
+  instruction: string;
+  /** Gallery item ID used as reference (null = original source image) */
+  sourceItemId: string | null;
+  /** Snapshot of reference blob at time of edit */
+  sourceBlob: Blob;
+  /** Gallery item IDs for all generated results in this turn */
+  itemIds: string[];
+  createdAt: number;
+}

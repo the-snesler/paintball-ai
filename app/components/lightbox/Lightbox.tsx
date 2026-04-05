@@ -7,11 +7,14 @@ import {
   Trash2,
   Copy,
   Wand2,
+  PencilLine,
 } from "lucide-react";
+import { useNavigate } from "react-router";
 import { useGalleryStore } from "~/stores/galleryStore";
 import { getReferenceImagesByIds } from "~/lib/db";
 
 export function Lightbox() {
+  const navigate = useNavigate();
   const closeLightbox = useGalleryStore((s) => s.closeLightbox);
   const navigateLightbox = useGalleryStore((s) => s.navigateLightbox);
   const deleteItem = useGalleryStore((s) => s.deleteItem);
@@ -142,8 +145,8 @@ export function Lightbox() {
 
       {/* Bottom controls */}
       {galleryImage && (
-        <div className="absolute bottom-0 left-0 right-0 p-6">
-          <div className="max-w-2xl mx-auto">
+        <div className="absolute bottom-0 left-0 right-0 p-6 pointer-events-none">
+          <div className="max-w-3xl mx-auto pointer-events-auto">
             {/* Prompt */}
             <div className="bg-zinc-900/90 backdrop-blur-sm rounded-t-lg p-4 border-b border-zinc-800">
               <p className="text-sm text-zinc-300">{galleryImage.prompt}</p>
@@ -188,6 +191,14 @@ export function Lightbox() {
                 icon={<Wand2 className="w-4 h-4" />}
                 label="Re-use Prompt"
                 onClick={handleReusePrompt}
+              />
+              <ActionButton
+                icon={<PencilLine className="w-4 h-4" />}
+                label="Open in Editor"
+                onClick={() => {
+                  closeLightbox();
+                  navigate(`/editor?imageId=${galleryImage.id}`);
+                }}
               />
               <ActionButton
                 icon={<Trash2 className="w-4 h-4" />}

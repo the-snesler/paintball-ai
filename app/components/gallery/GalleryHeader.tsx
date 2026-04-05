@@ -1,4 +1,4 @@
-import { LayoutDashboard, GalleryVertical, Settings } from "lucide-react";
+import { LayoutDashboard, GalleryVertical, Settings, FilePenLine } from "lucide-react";
 import NumberFlow from "@number-flow/react";
 import { useLocation, useNavigate } from "react-router";
 import { useGalleryStore } from "~/stores/galleryStore";
@@ -14,20 +14,19 @@ export function GalleryHeader({ count = 0, title }: GalleryHeaderProps) {
   const navigate = useNavigate();
   const viewMode = useGalleryStore((s) => s.viewMode);
   const setViewMode = useGalleryStore((s) => s.setViewMode);
-  const isSettingsRoute = location.pathname === "/settings";
+  const isRoot = location.pathname === "/";
 
   const handleViewModeSelect = (mode: ViewMode) => {
     setViewMode(mode);
     navigate("/");
   };
 
-  const openSettings = () => {
-    navigate("/settings");
-  };
+  const openSettings = () => navigate("/settings");
+  const openEditor = () => navigate("/editor");
 
   return (
     <header className="flex items-center gap-2 px-6 py-4 border-b border-zinc-800 h-18">
-      <h2 className="text-sm font-medium text-zinc-400 uppercase tracking-wide">
+      <h2 className="text-sm font-medium text-zinc-400 uppercase tracking-wide truncate">
         {title ? (
           title
         ) : (
@@ -50,22 +49,34 @@ export function GalleryHeader({ count = 0, title }: GalleryHeaderProps) {
         <div className="flex gap-1 items-center bg-zinc-900 rounded-lg p-1">
           <ViewModeButton
             onClick={() => handleViewModeSelect("grid")}
-            isActive={!isSettingsRoute && viewMode === "grid"}
+            isActive={isRoot && viewMode === "grid"}
             icon={<LayoutDashboard className="w-4 h-4" />}
             label=""
           />
           <ViewModeButton
             onClick={() => handleViewModeSelect("timeline")}
-            isActive={!isSettingsRoute && viewMode === "timeline"}
+            isActive={isRoot && viewMode === "timeline"}
             icon={<GalleryVertical className="w-4 h-4" />}
             label=""
           />
         </div>
         <button
+          onClick={openEditor}
+          aria-label="Open Editor"
+          title="Open Editor"
+          className={`flex h-8 w-8 items-center justify-center rounded-md transition-colors ${
+            location.pathname === "/editor"
+              ? "bg-zinc-800 text-zinc-100"
+              : "text-zinc-400 hover:bg-zinc-800 hover:text-zinc-300"
+          }`}
+        >
+          <FilePenLine className="w-4 h-4" />
+        </button>
+        <button
           onClick={openSettings}
           aria-label="Settings"
           className={`flex h-8 w-8 items-center justify-center rounded-md transition-colors ${
-            isSettingsRoute
+            location.pathname === "/settings"
               ? "bg-zinc-800 text-zinc-100"
               : "text-zinc-400 hover:bg-zinc-800 hover:text-zinc-300"
           }`}

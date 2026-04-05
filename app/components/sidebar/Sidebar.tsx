@@ -1,4 +1,5 @@
 import { ChevronDown, X } from "lucide-react";
+import { useLocation } from "react-router";
 import { PromptInput } from "./PromptInput";
 import { ModelList } from "./ModelList";
 import { AspectRatioSection } from "./AspectRatioSection";
@@ -15,13 +16,16 @@ function SidebarContent({
 }: {
   onClose?: () => void;
 }) {
+  const location = useLocation();
+  const isEditorRoute = location.pathname === "/editor";
+
   return (
     <>
       {/* Header */}
       <div
         className="px-6 py-4 flex items-center justify-between border-b border-zinc-800 bg-linear-to-br from-purple-950 to-zinc-900 h-18"
       >
-        <button 
+        <button
           popoverTarget="other-sites-popover"
           className="flex items-center gap-3"
         >
@@ -56,16 +60,18 @@ function SidebarContent({
 
       {/* Scrollable Content */}
       <div className="flex-1 overflow-y-auto p-4 space-y-6">
-        <PromptInput />
+        {!isEditorRoute && <PromptInput />}
         <ModelList />
         <AspectRatioSection />
         <ResolutionSection />
       </div>
 
-      {/* Generate Button */}
-      <div className="p-4 border-t border-zinc-800">
-        <GenerateButton />
-      </div>
+      {/* Generate Button — hidden in editor mode */}
+      {!isEditorRoute && (
+        <div className="p-4 border-t border-zinc-800">
+          <GenerateButton />
+        </div>
+      )}
     </>
   );
 }

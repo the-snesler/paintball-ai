@@ -9,6 +9,13 @@ Rules:
 - Add specific artistic and technical details that will improve generation quality
 - When reasonable, keep the result under 500 characters`;
 
+export const REVERSE_PROMPT_SYSTEM = `You analyze images and write precise prompts that could recreate them with an AI image generation model. Study the subject, visual style, composition, lighting, color palette, and any distinctive details.
+
+Rules:
+- Return ONLY the prompt text, no preamble, labels, or explanation
+- Be specific and descriptive — concrete details over vague adjectives
+- Keep the result under 400 characters`;
+
 export const SCHEMA_MAPPING_SYSTEM = `You analyze Replicate model API schemas and produce parameter mappings.
 
 Our application sends these parameters to Replicate models:
