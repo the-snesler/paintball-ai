@@ -39,129 +39,143 @@ export function useImageGeneration() {
   const finishGeneration = useGalleryStore((s) => s.finishGeneration);
   const getItem = useGalleryStore((s) => s.getItem);
 
-  const persistReferences = useCallback(async (images: Array<{ id: string; blob: Blob; name: string }>) => {
-    await Promise.all(
-      images.map(async (image) => {
-        const saved = await saveReferenceImage(image);
-        URL.revokeObjectURL(saved.url);
-      })
-    );
-  }, []);
+  const persistReferences = useCallback(
+    async (images: Array<{ id: string; blob: Blob; name: string }>) => {
+      await Promise.all(
+        images.map(async (image) => {
+          const saved = await saveReferenceImage(image);
+          URL.revokeObjectURL(saved.url);
+        })
+      );
+    },
+    []
+  );
 
   // Execute a single generation with retry logic
-  const executeWithRetry = useCallback(async (
-    task: GenerationTask,
-    apiKeys: ApiKeys,
-    retryCount: number = 0
-  ): Promise<{ blob: Blob; width: number; height: number; metadata: Record<string, unknown> }> => {
-    try {
-      return await executeGenerationTask(task, apiKeys);
-    } catch (error) {
-      // Handle rate limiting - wait and retry indefinitely
-      if (error instanceof RateLimitError) {
-        const waitMs = error.retryAfter * 1000;
-        const waitUntil = Date.now() + waitMs;
-        
-        updateItem(task.id, { 
-          status: "waiting", 
-          retryCount,
-          waitingUntil: waitUntil,
-          retryAfter: error.retryAfter
-        });
-        
-        await sleep(waitMs);
-        
-        // After waiting, try again (don't increment retry count for rate limits)
-        updateItem(task.id, { status: "generating", retryCount });
-        return executeWithRetry(task, apiKeys, retryCount);
+  const executeWithRetry = useCallback(
+    async (
+      task: GenerationTask,
+      apiKeys: ApiKeys,
+      retryCount: number = 0
+    ): Promise<{
+      blob: Blob;
+      width: number;
+      height: number;
+      metadata: Record<string, unknown>;
+    }> => {
+      try {
+        return await executeGenerationTask(task, apiKeys);
+      } catch (error) {
+        // Handle rate limiting - wait and retry indefinitely
+        if (error instanceof RateLimitError) {
+          const waitMs = error.retryAfter * 1000;
+          const waitUntil = Date.now() + waitMs;
+
+          updateItem(task.id, {
+            status: "waiting",
+            retryCount,
+            waitingUntil: waitUntil,
+            retryAfter: error.retryAfter,
+          });
+
+          await sleep(waitMs);
+
+          // After waiting, try again (don't increment retry count for rate limits)
+          updateItem(task.id, { status: "generating", retryCount });
+          return executeWithRetry(task, apiKeys, retryCount);
+        }
+
+        // Handle other errors with exponential backoff, up to MAX_RETRIES
+        if (retryCount < MAX_RETRIES) {
+          const backoffMs = BASE_BACKOFF_MS * Math.pow(2, retryCount);
+          const waitUntil = Date.now() + backoffMs;
+
+          updateItem(task.id, {
+            status: "waiting",
+            retryCount: retryCount + 1,
+            waitingUntil: waitUntil,
+            retryAfter: Math.ceil(backoffMs / 1000),
+          });
+
+          await sleep(backoffMs);
+
+          updateItem(task.id, { status: "generating", retryCount: retryCount + 1 });
+          return executeWithRetry(task, apiKeys, retryCount + 1);
+        }
+
+        // Max retries exceeded, throw the error
+        throw error;
       }
-      
-      // Handle other errors with exponential backoff, up to MAX_RETRIES
-      if (retryCount < MAX_RETRIES) {
-        const backoffMs = BASE_BACKOFF_MS * Math.pow(2, retryCount);
-        const waitUntil = Date.now() + backoffMs;
-        
-        updateItem(task.id, { 
-          status: "waiting", 
-          retryCount: retryCount + 1,
-          waitingUntil: waitUntil,
-          retryAfter: Math.ceil(backoffMs / 1000)
-        });
-        
-        await sleep(backoffMs);
-        
-        updateItem(task.id, { status: "generating", retryCount: retryCount + 1 });
-        return executeWithRetry(task, apiKeys, retryCount + 1);
-      }
-      
-      // Max retries exceeded, throw the error
-      throw error;
-    }
-  }, [updateItem]);
+    },
+    [updateItem]
+  );
 
   // Retry a failed item
-  const retryItem = useCallback(async (itemId: string) => {
-    const item = getItem(itemId);
-    if (!item || item.status !== 'failed') return;
+  const retryItem = useCallback(
+    async (itemId: string) => {
+      const item = getItem(itemId);
+      if (!item || item.status !== "failed") return;
 
-    const model = getModel(models, item.modelId);
-    if (!model) return;
+      const model = getModel(models, item.modelId);
+      if (!model) return;
 
-    const persistedReferences = await getReferenceImagesByIds(item.referenceImageIds);
+      const persistedReferences = await getReferenceImagesByIds(item.referenceImageIds);
 
-    const task: GenerationTask = {
-      id: itemId,
-      modelId: item.modelId,
-      modelName: item.modelName,
-      provider: model.provider,
-      prompt: item.prompt,
-      aspectRatio: item.aspectRatio,
-      resolution: item.resolution,
-      referenceImages: persistedReferences.map((referenceImage) => ({
-        id: referenceImage.id,
-        blob: referenceImage.blob,
-      })),
-    };
+      const task: GenerationTask = {
+        id: itemId,
+        modelId: item.modelId,
+        modelName: item.modelName,
+        provider: model.provider,
+        prompt: item.prompt,
+        aspectRatio: item.aspectRatio,
+        resolution: item.resolution,
+        referenceImages: persistedReferences.map((referenceImage) => ({
+          id: referenceImage.id,
+          blob: referenceImage.blob,
+        })),
+      };
 
-    incrementRequestedOutputCount(1);
-    updateItem(itemId, { status: "generating" });
+      incrementRequestedOutputCount(1);
+      updateItem(itemId, { status: "generating" });
 
-    try {
-      const result = await executeWithRetry(task, apiKeys, 0);
-      const thumbnailBlob = await createThumbnailBlob(result.blob, 400);
-      const createdAt = Date.now();
+      try {
+        const result = await executeWithRetry(task, apiKeys, 0);
+        const thumbnailBlob = await createThumbnailBlob(result.blob, 400);
+        const createdAt = Date.now();
 
-      await saveImage({
-        originalBlob: result.blob,
-        thumbnailBlob,
-        prompt: task.prompt,
-        modelId: task.modelId,
-        modelName: task.modelName,
-        aspectRatio: task.aspectRatio,
-        resolution: task.resolution,
-        width: result.width,
-        height: result.height,
-        createdAt,
-        referenceImageIds: task.referenceImages.map((referenceImage) => referenceImage.id),
-        metadata: result.metadata,
-      });
+        await saveImage({
+          originalBlob: result.blob,
+          thumbnailBlob,
+          prompt: task.prompt,
+          modelId: task.modelId,
+          modelName: task.modelName,
+          aspectRatio: task.aspectRatio,
+          resolution: task.resolution,
+          width: result.width,
+          height: result.height,
+          createdAt,
+          referenceImageIds: task.referenceImages.map((referenceImage) => referenceImage.id),
+          metadata: result.metadata,
+        });
 
-      updateItem(itemId, {
-        status: "completed",
-        originalBlob: result.blob,
-        originalUrl: URL.createObjectURL(result.blob),
-        thumbnailBlob,
-        thumbnailUrl: URL.createObjectURL(thumbnailBlob),
-        width: result.width,
-        height: result.height,
-        createdAt,
-        metadata: result.metadata,
-      });
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Generation failed";
-      updateItem(itemId, { status: "failed", error: message, canRetry: true });
-    }
-  }, [apiKeys, models, getItem, updateItem, executeWithRetry, incrementRequestedOutputCount]);
+        updateItem(itemId, {
+          status: "completed",
+          originalBlob: result.blob,
+          originalUrl: URL.createObjectURL(result.blob),
+          thumbnailBlob,
+          thumbnailUrl: URL.createObjectURL(thumbnailBlob),
+          width: result.width,
+          height: result.height,
+          createdAt,
+          metadata: result.metadata,
+        });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Generation failed";
+        updateItem(itemId, { status: "failed", error: message, canRetry: true });
+      }
+    },
+    [apiKeys, models, getItem, updateItem, executeWithRetry, incrementRequestedOutputCount]
+  );
 
   const generate = useCallback(async () => {
     const signature = buildGenerationSignature({

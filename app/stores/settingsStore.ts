@@ -1,7 +1,14 @@
-import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
-import { BUILT_IN_MODELS, isBuiltInModel, mergeWithBuiltInModels } from '~/lib/builtInModels';
-import type { ApiKeys, ModelCapabilities, Provider, SchemaMapping, StoredModel, TextModelConfig } from '~/types';
+import { create } from "zustand";
+import { persist } from "zustand/middleware";
+import { BUILT_IN_MODELS, isBuiltInModel, mergeWithBuiltInModels } from "~/lib/builtInModels";
+import type {
+  ApiKeys,
+  ModelCapabilities,
+  Provider,
+  SchemaMapping,
+  StoredModel,
+  TextModelConfig,
+} from "~/types";
 
 interface SettingsState {
   apiKeys: ApiKeys;
@@ -17,9 +24,19 @@ interface SettingsState {
 
   // Model actions
   setModelEnabled: (id: string, enabled: boolean) => void;
-  addCustomModel: (id: string, name: string, capabilities: ModelCapabilities, schemaMapping?: SchemaMapping, icon?: string) => void;
+  addCustomModel: (
+    id: string,
+    name: string,
+    capabilities: ModelCapabilities,
+    schemaMapping?: SchemaMapping,
+    icon?: string
+  ) => void;
   removeCustomModel: (id: string) => void;
-  updateModelCapabilities: (id: string, capabilities: ModelCapabilities, schemaFetched?: boolean) => void;
+  updateModelCapabilities: (
+    id: string,
+    capabilities: ModelCapabilities,
+    schemaFetched?: boolean
+  ) => void;
 
   // Text model actions
   setTextModel: (config: TextModelConfig) => void;
@@ -38,7 +55,7 @@ export const useSettingsStore = create<SettingsState>()(
         replicate: null,
       },
       models: BUILT_IN_MODELS,
-      textModel: { provider: 'google', modelId: 'gemini-3-flash-preview' },
+      textModel: { provider: "google", modelId: "gemini-3-flash-preview" },
       desktopNotificationsEnabled: false,
       notificationPromptDismissed: false,
       requestedOutputCount: 0,
@@ -55,9 +72,7 @@ export const useSettingsStore = create<SettingsState>()(
 
       setModelEnabled: (id, enabled) =>
         set((state) => ({
-          models: state.models.map((m) =>
-            m.id === id ? { ...m, enabled } : m
-          ),
+          models: state.models.map((m) => (m.id === id ? { ...m, enabled } : m)),
         })),
 
       addCustomModel: (id, name, capabilities, schemaMapping, icon) =>
@@ -67,7 +82,7 @@ export const useSettingsStore = create<SettingsState>()(
             {
               id: `replicate/${id}`,
               name,
-              provider: 'replicate' as const,
+              provider: "replicate" as const,
               enabled: true,
               isCustom: true,
               schemaFetched: true,
@@ -88,18 +103,17 @@ export const useSettingsStore = create<SettingsState>()(
       updateModelCapabilities: (id, capabilities, schemaFetched) =>
         set((state) => ({
           models: state.models.map((m) =>
-            m.id === id ? { ...m, capabilities, ...(schemaFetched !== undefined && { schemaFetched }) } : m
+            m.id === id
+              ? { ...m, capabilities, ...(schemaFetched !== undefined && { schemaFetched }) }
+              : m
           ),
         })),
 
-      setTextModel: (config) =>
-        set({ textModel: config }),
+      setTextModel: (config) => set({ textModel: config }),
 
-      setDesktopNotificationsEnabled: (enabled) =>
-        set({ desktopNotificationsEnabled: enabled }),
+      setDesktopNotificationsEnabled: (enabled) => set({ desktopNotificationsEnabled: enabled }),
 
-      dismissNotificationPrompt: () =>
-        set({ notificationPromptDismissed: true }),
+      dismissNotificationPrompt: () => set({ notificationPromptDismissed: true }),
 
       incrementRequestedOutputCount: (count = 1) =>
         set((state) => ({
@@ -107,7 +121,7 @@ export const useSettingsStore = create<SettingsState>()(
         })),
     }),
     {
-      name: 'studio-settings',
+      name: "studio-settings",
       version: 6,
       partialize: (state) => ({
         apiKeys: state.apiKeys,
@@ -141,19 +155,19 @@ export const useSettingsStore = create<SettingsState>()(
         if (version < 3) {
           // Migration from v2: add icons to built-in models
           const iconMap: Record<string, string> = {
-            'gemini-2.5-flash-image': '/icons/google.svg',
-            'gemini-3-pro-image-preview': '/icons/google.svg',
-            'gemini-3.1-flash-image-preview': '/icons/google.svg',
-            'replicate/google/nano-banana': '/icons/google.svg',
-            'replicate/google/nano-banana-pro': '/icons/google.svg',
-            'replicate/openai/gpt-image-1.5': '/icons/openai.svg',
-            'replicate/black-forest-labs/flux-2-flex': '/icons/bfl.svg',
-            'replicate/bytedance/seedream-4.5': '/icons/bytedance.svg',
+            "gemini-2.5-flash-image": "/icons/google.svg",
+            "gemini-3-pro-image-preview": "/icons/google.svg",
+            "gemini-3.1-flash-image-preview": "/icons/google.svg",
+            "replicate/google/nano-banana": "/icons/google.svg",
+            "replicate/google/nano-banana-pro": "/icons/google.svg",
+            "replicate/openai/gpt-image-1.5": "/icons/openai.svg",
+            "replicate/black-forest-labs/flux-2-flex": "/icons/bfl.svg",
+            "replicate/bytedance/seedream-4.5": "/icons/bytedance.svg",
           };
 
           state = {
             ...state,
-            models: state.models?.map(m => ({
+            models: state.models?.map((m) => ({
               ...m,
               icon: m.icon ?? iconMap[m.id],
             })),
@@ -186,7 +200,7 @@ export const useSettingsStore = create<SettingsState>()(
         if (version < 6) {
           state = {
             ...state,
-            textModel: { provider: 'google', modelId: 'gemini-3-flash-preview' },
+            textModel: { provider: "google", modelId: "gemini-3-flash-preview" },
           };
         }
 
@@ -208,7 +222,5 @@ export const useSettingsStore = create<SettingsState>()(
 
 // Helper to get enabled models that have API keys
 export function getEnabledModels(state: SettingsState): StoredModel[] {
-  return state.models.filter(
-    (m) => m.enabled && state.apiKeys[m.provider]
-  );
+  return state.models.filter((m) => m.enabled && state.apiKeys[m.provider]);
 }

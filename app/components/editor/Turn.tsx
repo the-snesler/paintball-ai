@@ -12,9 +12,7 @@ interface TurnProps {
 
 export function Turn({ turn, turnIndex, isFirst = false }: TurnProps) {
   const items = useGalleryStore((s) =>
-    turn.itemIds
-      .map((id) => s.items.find((item) => item.id === id))
-      .filter(Boolean)
+    turn.itemIds.map((id) => s.items.find((item) => item.id === id)).filter(Boolean)
   ) as ReturnType<typeof useGalleryStore.getState>["items"];
 
   const selectedItemId = useEditorStore((s) => s.selectedItemId);
@@ -28,9 +26,7 @@ export function Turn({ turn, turnIndex, isFirst = false }: TurnProps) {
   useEffect(() => {
     if (turn.sourceItemId) {
       // Get from gallery store directly
-      const item = useGalleryStore
-        .getState()
-        .items.find((i) => i.id === turn.sourceItemId);
+      const item = useGalleryStore.getState().items.find((i) => i.id === turn.sourceItemId);
       if (item && item.status === "completed") {
         setSourceThumbUrl(item.thumbnailUrl);
       }
@@ -57,28 +53,24 @@ export function Turn({ turn, turnIndex, isFirst = false }: TurnProps) {
   return (
     <div className="animate-fade-in">
       {/* Turn header */}
-      <div className="flex items-start gap-3 mb-3">
-        <div className="flex items-center gap-2 min-w-0 flex-1">
+      <div className="mb-3 flex items-start gap-3">
+        <div className="flex min-w-0 flex-1 items-center gap-2">
           {!isFirst && (
-            <span className="shrink-0 w-5 h-5 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center text-[10px] font-medium text-zinc-500">
+            <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-zinc-700 bg-zinc-800 text-[10px] font-medium text-zinc-500">
               {turnIndex + 1}
             </span>
           )}
-          <p className="text-sm font-medium text-zinc-200 leading-snug truncate">
+          <p className="truncate text-sm leading-snug font-medium text-zinc-200">
             {turn.instruction}
           </p>
         </div>
 
         {/* Source thumbnail */}
         {sourceThumbUrl && (
-          <div className="shrink-0 flex items-center gap-1.5">
-            <Link2 className="w-3 h-3 text-zinc-600" />
-            <div className="w-8 h-8 rounded-md overflow-hidden border border-zinc-700 bg-zinc-800">
-              <img
-                src={sourceThumbUrl}
-                alt="source"
-                className="w-full h-full object-cover"
-              />
+          <div className="flex shrink-0 items-center gap-1.5">
+            <Link2 className="h-3 w-3 text-zinc-600" />
+            <div className="h-8 w-8 overflow-hidden rounded-md border border-zinc-700 bg-zinc-800">
+              <img src={sourceThumbUrl} alt="source" className="h-full w-full object-cover" />
             </div>
           </div>
         )}
@@ -131,7 +123,7 @@ function EditorImageCard({
     <button
       type="button"
       onClick={onClick}
-      className={`relative rounded-lg overflow-hidden bg-zinc-800 cursor-pointer transition-all duration-150 group ${
+      className={`group relative cursor-pointer overflow-hidden rounded-lg bg-zinc-800 transition-all duration-150 ${
         isSelected
           ? "ring-2 ring-purple-500 ring-offset-2 ring-offset-zinc-950"
           : "ring-1 ring-zinc-700/50 hover:ring-zinc-600"
@@ -140,26 +132,31 @@ function EditorImageCard({
       <img
         src={thumbnailUrl}
         alt={modelName}
-        className={`w-full h-auto transition-opacity duration-300 ${isLoaded ? "opacity-100" : "opacity-0"}`}
+        className={`h-auto w-full transition-opacity duration-300 ${isLoaded ? "opacity-100" : "opacity-0"}`}
         onLoad={() => setIsLoaded(true)}
       />
-      {!isLoaded && <div className="absolute inset-0 bg-zinc-800 animate-pulse" style={{ aspectRatio: "1/1" }} />}
+      {!isLoaded && (
+        <div
+          className="absolute inset-0 animate-pulse bg-zinc-800"
+          style={{ aspectRatio: "1/1" }}
+        />
+      )}
 
       {/* Model badge */}
-      <div className="absolute bottom-2 left-2 px-2 py-0.5 bg-black/60 backdrop-blur-sm rounded text-xs text-white/80">
+      <div className="absolute bottom-2 left-2 rounded bg-black/60 px-2 py-0.5 text-xs text-white/80 backdrop-blur-sm">
         {modelName}
       </div>
 
       {/* Selection checkmark */}
       {isSelected && (
-        <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-purple-500 flex items-center justify-center">
-          <Check className="w-3 h-3 text-white" />
+        <div className="absolute top-2 right-2 flex h-5 w-5 items-center justify-center rounded-full bg-purple-500">
+          <Check className="h-3 w-3 text-white" />
         </div>
       )}
 
       {/* Hover overlay hint when not selected */}
       {!isSelected && (
-        <div className="absolute inset-0 bg-white/0 group-hover:bg-white/5 transition-colors" />
+        <div className="absolute inset-0 bg-white/0 transition-colors group-hover:bg-white/5" />
       )}
     </button>
   );
@@ -175,18 +172,18 @@ function EditorLoadingCard({
 
   return (
     <div
-      className="relative rounded-lg overflow-hidden bg-zinc-900 ring-1 ring-zinc-800"
+      className="relative overflow-hidden rounded-lg bg-zinc-900 ring-1 ring-zinc-800"
       style={{ aspectRatio: "1/1" }}
     >
       {!isFailed && (
         <div className="absolute inset-0 flex items-center justify-center">
-          <div className="w-full h-full bg-zinc-800 animate-pulse" />
+          <div className="h-full w-full animate-pulse bg-zinc-800" />
           <div className="absolute inset-0 flex items-center justify-center">
             <div className="flex gap-1">
               {[0, 1, 2].map((i) => (
                 <div
                   key={i}
-                  className="w-1.5 h-1.5 rounded-full bg-purple-500/60 animate-bounce"
+                  className="h-1.5 w-1.5 animate-bounce rounded-full bg-purple-500/60"
                   style={{ animationDelay: `${i * 0.15}s` }}
                 />
               ))}
@@ -196,14 +193,14 @@ function EditorLoadingCard({
       )}
 
       {isFailed && (
-        <div className="absolute inset-0 bg-red-950/30 flex items-center justify-center p-3">
-          <p className="text-xs text-red-300 text-center leading-snug line-clamp-3">
+        <div className="absolute inset-0 flex items-center justify-center bg-red-950/30 p-3">
+          <p className="line-clamp-3 text-center text-xs leading-snug text-red-300">
             {item.error || "Generation failed"}
           </p>
         </div>
       )}
 
-      <div className="absolute bottom-2 left-2 px-2 py-0.5 bg-black/60 backdrop-blur-sm rounded text-xs text-white/70">
+      <div className="absolute bottom-2 left-2 rounded bg-black/60 px-2 py-0.5 text-xs text-white/70 backdrop-blur-sm">
         {modelName}
       </div>
     </div>

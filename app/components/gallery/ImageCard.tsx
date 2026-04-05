@@ -48,7 +48,7 @@ export function ImageCard({ image }: ImageCardProps) {
 
   return (
     <div
-      className={`group relative rounded-lg overflow-hidden bg-zinc-900 outline-[1.5px] cursor-pointer animate-fade-in h-fit ${
+      className={`group animate-fade-in relative h-fit cursor-pointer overflow-hidden rounded-lg bg-zinc-900 outline-[1.5px] ${
         isSelected ? "outline-purple-500" : "outline-zinc-500/50"
       }`}
       onClick={handleClick}
@@ -59,7 +59,7 @@ export function ImageCard({ image }: ImageCardProps) {
         className={`absolute top-2 left-2 z-20 transition-opacity duration-150 ${
           isSelected
             ? "opacity-100"
-            : "opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 pointer-events-none group-hover:pointer-events-auto group-focus-within:pointer-events-auto"
+            : "pointer-events-none opacity-0 group-focus-within:pointer-events-auto group-focus-within:opacity-100 group-hover:pointer-events-auto group-hover:opacity-100"
         }`}
       >
         <div className="gallery-select-control" onClick={(event) => event.stopPropagation()}>
@@ -72,7 +72,9 @@ export function ImageCard({ image }: ImageCardProps) {
             aria-label="Select image"
           />
           <label htmlFor={checkboxId} className="gallery-select-checkbox-label">
-            <span className="gallery-select-checkbox-mark" aria-hidden="true"><Check className="w-4 h-4 animate-in" /></span>
+            <span className="gallery-select-checkbox-mark" aria-hidden="true">
+              <Check className="animate-in h-4 w-4" />
+            </span>
           </label>
         </div>
       </div>
@@ -81,7 +83,7 @@ export function ImageCard({ image }: ImageCardProps) {
       <img
         src={image.thumbnailUrl}
         alt={image.prompt}
-        className={`w-full h-auto transition-opacity duration-300 ${
+        className={`h-auto w-full transition-opacity duration-300 ${
           isLoaded ? "opacity-100" : "opacity-0"
         }`}
         onLoad={() => setIsLoaded(true)}
@@ -91,7 +93,7 @@ export function ImageCard({ image }: ImageCardProps) {
       {/* Loading placeholder */}
       {!isLoaded && (
         <div
-          className="absolute inset-0 bg-zinc-800 animate-pulse"
+          className="absolute inset-0 animate-pulse bg-zinc-800"
           style={{
             aspectRatio: image.width && image.height ? `${image.width}/${image.height}` : "1/1",
           }}
@@ -99,7 +101,7 @@ export function ImageCard({ image }: ImageCardProps) {
       )}
 
       {/* Persistent model badge */}
-      <div className="absolute bottom-2 left-2 px-2 py-1 bg-black/60 backdrop-blur-sm rounded text-xs text-white/90">
+      <div className="absolute bottom-2 left-2 rounded bg-black/60 px-2 py-1 text-xs text-white/90 backdrop-blur-sm">
         {image.modelName}
       </div>
     </div>

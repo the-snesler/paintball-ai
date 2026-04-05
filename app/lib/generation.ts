@@ -183,8 +183,8 @@ export async function generateWithReplicate(
     typeof output === "object" && output !== null && "url" in output
       ? (output as { url: () => string }).url()
       : Array.isArray(output)
-      ? output[0]
-      : String(output);
+        ? output[0]
+        : String(output);
 
   if (!imageUrl) throw new Error("No image in Replicate response");
 

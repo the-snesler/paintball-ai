@@ -1,10 +1,4 @@
-import {
-  ArrowUp,
-  Loader2,
-  ScanSearch,
-  Sparkles,
-  X,
-} from "lucide-react";
+import { ArrowUp, Loader2, ScanSearch, Sparkles, X } from "lucide-react";
 import { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useEditorStore } from "~/stores/editorStore";
 import { useEditorGeneration } from "~/hooks/useEditorGeneration";
@@ -74,15 +68,12 @@ export function EditorInputBar({ onSourceFile }: EditorInputBarProps) {
   }, [activeModelNames]);
 
   const hasSource = sourceBlob !== null;
-  const canSubmit =
-    hasSource && instruction.trim().length > 0 && !isGenerating && !isAnalyzing;
+  const canSubmit = hasSource && instruction.trim().length > 0 && !isGenerating && !isAnalyzing;
 
   // Resolve current canvas blob
   const getCanvasBlob = useCallback((): Blob | null => {
     if (selectedItemId) {
-      const item = useGalleryStore
-        .getState()
-        .items.find((i) => i.id === selectedItemId);
+      const item = useGalleryStore.getState().items.find((i) => i.id === selectedItemId);
       if (item && item.status === "completed") return item.originalBlob;
     }
     return sourceBlob;
@@ -198,28 +189,28 @@ export function EditorInputBar({ onSourceFile }: EditorInputBarProps) {
     <div className="shrink-0">
       {/* Analysis result panel */}
       {analysisResult && (
-        <div className="mx-6 mb-0 border border-purple-800/40 bg-purple-950/20 rounded-xl px-4 py-3 animate-slide-up">
+        <div className="animate-slide-up mx-6 mb-0 rounded-xl border border-purple-800/40 bg-purple-950/20 px-4 py-3">
           <div className="flex items-start justify-between gap-3">
-            <div className="flex-1 min-w-0">
-              <p className="text-xs font-medium text-purple-400 mb-1 uppercase tracking-wider">
+            <div className="min-w-0 flex-1">
+              <p className="mb-1 text-xs font-medium tracking-wider text-purple-400 uppercase">
                 Image Analysis
               </p>
-              <p className="text-sm text-zinc-300 leading-relaxed">{analysisResult}</p>
+              <p className="text-sm leading-relaxed text-zinc-300">{analysisResult}</p>
             </div>
-            <div className="flex items-center gap-1 shrink-0">
+            <div className="flex shrink-0 items-center gap-1">
               <button
                 onClick={() => {
                   navigator.clipboard.writeText(analysisResult);
                 }}
-                className="text-xs text-purple-400 hover:text-purple-300 transition-colors px-2 py-1 rounded hover:bg-purple-500/10"
+                className="rounded px-2 py-1 text-xs text-purple-400 transition-colors hover:bg-purple-500/10 hover:text-purple-300"
               >
                 Copy
               </button>
               <button
                 onClick={() => setAnalysisResult(null)}
-                className="p-1 text-zinc-600 hover:text-zinc-400 transition-colors rounded"
+                className="rounded p-1 text-zinc-600 transition-colors hover:text-zinc-400"
               >
-                <X className="w-3.5 h-3.5" />
+                <X className="h-3.5 w-3.5" />
               </button>
             </div>
           </div>
@@ -228,10 +219,10 @@ export function EditorInputBar({ onSourceFile }: EditorInputBarProps) {
 
       {/* Main input bar */}
       <div className={`px-6 py-4 ${analysisResult ? "" : ""}`}>
-        <div className="max-w-3xl mx-auto">
+        <div className="mx-auto max-w-3xl">
           {/* Textarea */}
           <div
-            className={`bg-zinc-800/80 border rounded-xl transition-all duration-200 ${
+            className={`rounded-xl border bg-zinc-800/80 transition-all duration-200 ${
               !hasSource
                 ? "border-zinc-700/50 opacity-60"
                 : "border-zinc-700 focus-within:border-zinc-600 focus-within:ring-1 focus-within:ring-zinc-600/50"
@@ -247,21 +238,21 @@ export function EditorInputBar({ onSourceFile }: EditorInputBarProps) {
                 !hasSource
                   ? "Paste or drop an image to begin editing…"
                   : selectedItemId || turnCount === 0
-                  ? "Describe your edit… (Ctrl+Enter to send)"
-                  : "Select an image above, then describe your edit…"
+                    ? "Describe your edit… (Ctrl+Enter to send)"
+                    : "Select an image above, then describe your edit…"
               }
               disabled={!hasSource || isGenerating}
               rows={1}
-              className="w-full field-sizing-content max-h-48 min-h-[44px] px-4 pt-3 pb-2 bg-transparent rounded-t-xl text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none resize-none disabled:cursor-not-allowed"
+              className="field-sizing-content max-h-48 min-h-[44px] w-full resize-none rounded-t-xl bg-transparent px-4 pt-3 pb-2 text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none disabled:cursor-not-allowed"
             />
 
             {/* Bottom row of input */}
-            <div className="flex items-center justify-between px-3 pb-3 gap-2">
+            <div className="flex items-center justify-between gap-2 px-3 pb-3">
               {/* Left: model chip + analyze */}
-              <div className="flex items-center gap-2 min-w-0">
+              <div className="flex min-w-0 items-center gap-2">
                 {/* Model chip */}
-                <div className="flex items-center gap-1.5 px-2.5 py-1 bg-zinc-700/60 rounded-full text-xs text-zinc-400 truncate max-w-40">
-                  <Sparkles className="w-3 h-3 shrink-0 text-purple-400" />
+                <div className="flex max-w-40 items-center gap-1.5 truncate rounded-full bg-zinc-700/60 px-2.5 py-1 text-xs text-zinc-400">
+                  <Sparkles className="h-3 w-3 shrink-0 text-purple-400" />
                   <span className="truncate">{modelChipLabel}</span>
                 </div>
 
@@ -270,13 +261,13 @@ export function EditorInputBar({ onSourceFile }: EditorInputBarProps) {
                   type="button"
                   onClick={() => void handleAnalyze()}
                   disabled={!hasSource || isAnalyzing || isGenerating}
-                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs transition-colors disabled:opacity-40 disabled:cursor-not-allowed text-zinc-500 hover:text-zinc-300 hover:bg-zinc-700/60"
+                  className="flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs text-zinc-500 transition-colors hover:bg-zinc-700/60 hover:text-zinc-300 disabled:cursor-not-allowed disabled:opacity-40"
                   title="Analyze image and generate a prompt"
                 >
                   {isAnalyzing ? (
-                    <Loader2 className="w-3 h-3 animate-spin" />
+                    <Loader2 className="h-3 w-3 animate-spin" />
                   ) : (
-                    <ScanSearch className="w-3 h-3" />
+                    <ScanSearch className="h-3 w-3" />
                   )}
                   {isAnalyzing ? "Analyzing…" : "Analyze"}
                 </button>
@@ -287,17 +278,17 @@ export function EditorInputBar({ onSourceFile }: EditorInputBarProps) {
                 type="button"
                 onClick={() => void handleSubmit()}
                 disabled={!canSubmit}
-                className={`flex items-center justify-center w-8 h-8 rounded-lg transition-all duration-150 shrink-0 ${
+                className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-all duration-150 ${
                   canSubmit
-                    ? "bg-purple-600 hover:bg-purple-500 text-white shadow-lg shadow-purple-900/40 -translate-y-0.5 active:translate-y-0"
-                    : "bg-zinc-700/50 text-zinc-600 cursor-not-allowed"
+                    ? "-translate-y-0.5 bg-purple-600 text-white shadow-lg shadow-purple-900/40 hover:bg-purple-500 active:translate-y-0"
+                    : "cursor-not-allowed bg-zinc-700/50 text-zinc-600"
                 }`}
                 title="Send edit (Ctrl+Enter)"
               >
                 {isGenerating ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
-                  <ArrowUp className="w-4 h-4" />
+                  <ArrowUp className="h-4 w-4" />
                 )}
               </button>
             </div>

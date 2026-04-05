@@ -25,8 +25,8 @@ export function GalleryHeader({ count = 0, title }: GalleryHeaderProps) {
   const openEditor = () => navigate("/editor");
 
   return (
-    <header className="flex items-center gap-2 px-6 py-4 border-b border-zinc-800 h-18">
-      <h2 className="text-sm font-medium text-zinc-400 uppercase tracking-wide truncate">
+    <header className="flex h-18 items-center gap-2 border-b border-zinc-800 px-6 py-4">
+      <h2 className="truncate text-sm font-medium tracking-wide text-zinc-400 uppercase">
         {title ? (
           title
         ) : (
@@ -34,11 +34,12 @@ export function GalleryHeader({ count = 0, title }: GalleryHeaderProps) {
             <NumberFlow
               value={count}
               format={{ useGrouping: false }}
-              transformTiming={{ duration: 300, easing: 'ease-out' }}
-              spinTiming={{ duration: 300, easing: 'ease-out' }}
-              opacityTiming={{ duration: 150, easing: 'ease-out' }}
+              transformTiming={{ duration: 300, easing: "ease-out" }}
+              spinTiming={{ duration: 300, easing: "ease-out" }}
+              opacityTiming={{ duration: 150, easing: "ease-out" }}
               willChange
-            /> Generation{count !== 1 ? "s" : ""}
+            />{" "}
+            Generation{count !== 1 ? "s" : ""}
           </>
         )}
       </h2>
@@ -46,17 +47,17 @@ export function GalleryHeader({ count = 0, title }: GalleryHeaderProps) {
       <div className="flex-1" />
 
       <div className="flex items-center gap-1">
-        <div className="flex gap-1 items-center bg-zinc-900 rounded-lg p-1">
+        <div className="flex items-center gap-1 rounded-lg bg-zinc-900 p-1">
           <ViewModeButton
             onClick={() => handleViewModeSelect("grid")}
             isActive={isRoot && viewMode === "grid"}
-            icon={<LayoutDashboard className="w-4 h-4" />}
+            icon={<LayoutDashboard className="h-4 w-4" />}
             label=""
           />
           <ViewModeButton
             onClick={() => handleViewModeSelect("timeline")}
             isActive={isRoot && viewMode === "timeline"}
-            icon={<GalleryVertical className="w-4 h-4" />}
+            icon={<GalleryVertical className="h-4 w-4" />}
             label=""
           />
         </div>
@@ -70,7 +71,7 @@ export function GalleryHeader({ count = 0, title }: GalleryHeaderProps) {
               : "text-zinc-400 hover:bg-zinc-800 hover:text-zinc-300"
           }`}
         >
-          <FilePenLine className="w-4 h-4" />
+          <FilePenLine className="h-4 w-4" />
         </button>
         <button
           onClick={openSettings}
@@ -81,7 +82,7 @@ export function GalleryHeader({ count = 0, title }: GalleryHeaderProps) {
               : "text-zinc-400 hover:bg-zinc-800 hover:text-zinc-300"
           }`}
         >
-          <Settings className="w-4 h-4" />
+          <Settings className="h-4 w-4" />
         </button>
       </div>
     </header>
@@ -102,7 +103,7 @@ function ViewModeButton({
   return (
     <button
       onClick={onClick}
-      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+      className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
         isActive
           ? "bg-zinc-800 text-zinc-100"
           : "text-zinc-400 hover:bg-zinc-800 hover:text-zinc-300"

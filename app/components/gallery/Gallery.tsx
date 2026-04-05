@@ -20,14 +20,14 @@ export function Gallery() {
 
   if (isLoading) {
     return (
-      <main className="flex-1 flex items-center justify-center">
+      <main className="flex flex-1 items-center justify-center">
         <div className="text-zinc-500">Loading images...</div>
       </main>
     );
   }
 
   return (
-    <main className="relative flex-1 flex flex-col h-full overflow-hidden bg-zinc-950">
+    <main className="relative flex h-full flex-1 flex-col overflow-hidden bg-zinc-950">
       <GalleryHeader count={totalCount} />
 
       <div className={`flex-1 overflow-y-auto p-6 ${selectedCount > 0 ? "pb-28" : ""}`}>
@@ -36,9 +36,7 @@ export function Gallery() {
         ) : viewMode === "grid" ? (
           <GridView items={items} />
         ) : (
-          <TimelineView
-            itemsByPrompt={itemsByPrompt}
-          />
+          <TimelineView itemsByPrompt={itemsByPrompt} />
         )}
       </div>
 
@@ -82,29 +80,27 @@ function SelectionActionPopup() {
 
   return (
     <div className="pointer-events-none absolute inset-x-0 bottom-5 z-20 flex justify-center px-6">
-      <div className="pointer-events-auto flex items-center gap-2 rounded-xl border border-zinc-700 bg-zinc-900/95 backdrop-blur-sm px-3 py-2 shadow-lg animate-slide-up">
-        <span className="text-xs font-medium text-zinc-300 mr-1">
-          {selectedCount} selected
-        </span>
+      <div className="animate-slide-up pointer-events-auto flex items-center gap-2 rounded-xl border border-zinc-700 bg-zinc-900/95 px-3 py-2 shadow-lg backdrop-blur-sm">
+        <span className="mr-1 text-xs font-medium text-zinc-300">{selectedCount} selected</span>
 
         <PopupActionButton
-          icon={<X className="w-3.5 h-3.5" />}
+          icon={<X className="h-3.5 w-3.5" />}
           label="Deselect all"
           onClick={clearSelection}
         />
 
         <PopupActionButton
-          icon={<Paperclip className="w-3.5 h-3.5" />}
+          icon={<Paperclip className="h-3.5 w-3.5" />}
           label="Attach"
           onClick={handleAttachSelected}
         />
         <PopupActionButton
-          icon={<Download className="w-3.5 h-3.5" />}
+          icon={<Download className="h-3.5 w-3.5" />}
           label="Download"
           onClick={downloadSelectedItems}
         />
         <PopupActionButton
-          icon={<Trash2 className="w-3.5 h-3.5" />}
+          icon={<Trash2 className="h-3.5 w-3.5" />}
           label={isDeleting ? "Deleting..." : "Delete"}
           onClick={() => {
             void handleDeleteSelected();
@@ -130,7 +126,7 @@ function PopupActionButton({
   return (
     <button
       onClick={onClick}
-      className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-medium transition-colors ${
+      className={`inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors ${
         variant === "danger"
           ? "text-red-300 hover:bg-red-500/10"
           : "text-zinc-200 hover:bg-zinc-800"
@@ -144,28 +140,24 @@ function PopupActionButton({
 
 function EmptyState() {
   return (
-    <div className="h-full flex flex-col items-center justify-center text-center">
-      <div className="w-16 h-16 rounded-full bg-zinc-900 flex items-center justify-center mb-4">
-        <ImageOff className="w-8 h-8 text-zinc-600" />
+    <div className="flex h-full flex-col items-center justify-center text-center">
+      <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-zinc-900">
+        <ImageOff className="h-8 w-8 text-zinc-600" />
       </div>
-      <h3 className="text-lg font-medium text-zinc-300 mb-2">No images yet</h3>
-      <p className="text-sm text-zinc-500 max-w-xs">
+      <h3 className="mb-2 text-lg font-medium text-zinc-300">No images yet</h3>
+      <p className="max-w-xs text-sm text-zinc-500">
         Enter a prompt, select a model, and click Generate to create your first image.
       </p>
     </div>
   );
 }
 
-function GridView({
-  items,
-}: {
-  items: ReturnType<typeof useGalleryStore.getState>["items"];
-}) {
+function GridView({ items }: { items: ReturnType<typeof useGalleryStore.getState>["items"] }) {
   return (
     <MasonryGrid>
       {items.map((item) => {
         // Render appropriate card type based on status
-        if (item.status === 'completed') {
+        if (item.status === "completed") {
           return <ImageCard key={item.id} image={item} />;
         } else {
           // pending, generating, or failed
@@ -176,11 +168,7 @@ function GridView({
   );
 }
 
-function TimelineView({
-  itemsByPrompt,
-}: {
-  itemsByPrompt: Map<string, GalleryItem[]>;
-}) {
+function TimelineView({ itemsByPrompt }: { itemsByPrompt: Map<string, GalleryItem[]> }) {
   const entries = Array.from(itemsByPrompt.entries());
 
   return (
@@ -193,13 +181,13 @@ function TimelineView({
             prompt={promptLabel}
           />
           <MasonryGrid>
-            {promptItems.map((item) => (
-              item.status === 'completed' ? (
+            {promptItems.map((item) =>
+              item.status === "completed" ? (
                 <ImageCard key={item.id} image={item} />
               ) : (
                 <LoadingCard key={item.id} item={item} />
               )
-            ))}
+            )}
           </MasonryGrid>
         </div>
       ))}
@@ -220,7 +208,7 @@ function groupItemsByPrompt(items: GalleryItem[]): Map<string, GalleryItem[]> {
 }
 
 function getFirstCreatedAt(items: GalleryItem[]): number {
-  const firstCompleted = items.find((item) => item.status === 'completed');
+  const firstCompleted = items.find((item) => item.status === "completed");
   return firstCompleted?.createdAt ?? Date.now();
 }
 
@@ -232,20 +220,20 @@ function formatRelativeDate(createdAt: number): string {
   const hour = 60 * minute;
 
   if (delta < 30) {
-    return 'Just now';
+    return "Just now";
   } else if (delta < minute) {
-    return Math.floor(delta / 1000) + ' seconds ago';
+    return Math.floor(delta / 1000) + " seconds ago";
   } else if (delta < 2 * minute) {
     return "1 minute ago";
   } else if (delta < hour) {
-    return Math.floor(delta / minute) + ' minutes ago';
+    return Math.floor(delta / minute) + " minutes ago";
   } else if (Math.floor(delta / hour) == 1) {
     return "1 hour ago";
   } else if (delta < day) {
-    return Math.floor(delta / hour) + ' hours ago';
+    return Math.floor(delta / hour) + " hours ago";
   } else if (delta < day * 2) {
     return "Yesterday";
   }
 
-  return new Date(createdAt).toLocaleDateString('en-US');
+  return new Date(createdAt).toLocaleDateString("en-US");
 }

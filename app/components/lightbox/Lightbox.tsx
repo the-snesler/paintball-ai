@@ -103,17 +103,14 @@ export function Lightbox() {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-black/90 backdrop-blur-sm"
-        onClick={closeLightbox}
-      />
+      <div className="absolute inset-0 bg-black/90 backdrop-blur-sm" onClick={closeLightbox} />
 
       {/* Close button */}
       <button
         onClick={closeLightbox}
-        className="absolute top-4 right-4 z-10 p-2 rounded-lg bg-zinc-900/80 hover:bg-zinc-800 transition-colors"
+        className="absolute top-4 right-4 z-10 rounded-lg bg-zinc-900/80 p-2 transition-colors hover:bg-zinc-800"
       >
-        <X className="w-6 h-6 text-zinc-300" />
+        <X className="h-6 w-6 text-zinc-300" />
       </button>
 
       {/* Navigation arrows */}
@@ -121,36 +118,36 @@ export function Lightbox() {
         <>
           <button
             onClick={() => navigateLightbox("prev")}
-            className="absolute left-4 z-10 p-3 rounded-full bg-zinc-900/80 hover:bg-zinc-800 transition-colors"
+            className="absolute left-4 z-10 rounded-full bg-zinc-900/80 p-3 transition-colors hover:bg-zinc-800"
           >
-            <ChevronLeft className="w-6 h-6 text-zinc-300" />
+            <ChevronLeft className="h-6 w-6 text-zinc-300" />
           </button>
           <button
             onClick={() => navigateLightbox("next")}
-            className="absolute right-4 z-10 p-3 rounded-full bg-zinc-900/80 hover:bg-zinc-800 transition-colors"
+            className="absolute right-4 z-10 rounded-full bg-zinc-900/80 p-3 transition-colors hover:bg-zinc-800"
           >
-            <ChevronRight className="w-6 h-6 text-zinc-300" />
+            <ChevronRight className="h-6 w-6 text-zinc-300" />
           </button>
         </>
       )}
 
       {/* Image container */}
-      <div className="relative max-w-[90vw] max-h-[85vh] animate-fade-in">
+      <div className="animate-fade-in relative max-h-[85vh] max-w-[90vw]">
         <img
           src={imageSrc}
           alt={imageAlt}
-          className="max-w-full max-h-[85vh] object-contain rounded-lg"
+          className="max-h-[85vh] max-w-full rounded-lg object-contain"
         />
       </div>
 
       {/* Bottom controls */}
       {galleryImage && (
-        <div className="absolute bottom-0 left-0 right-0 p-6 pointer-events-none">
-          <div className="max-w-3xl mx-auto pointer-events-auto">
+        <div className="pointer-events-none absolute right-0 bottom-0 left-0 p-6">
+          <div className="pointer-events-auto mx-auto max-w-3xl">
             {/* Prompt */}
-            <div className="bg-zinc-900/90 backdrop-blur-sm rounded-t-lg p-4 border-b border-zinc-800">
+            <div className="rounded-t-lg border-b border-zinc-800 bg-zinc-900/90 p-4 backdrop-blur-sm">
               <p className="text-sm text-zinc-300">{galleryImage.prompt}</p>
-              <div className="flex items-center gap-2 mt-2 text-xs text-zinc-500">
+              <div className="mt-2 flex items-center gap-2 text-xs text-zinc-500">
                 <span>{galleryImage.modelName}</span>
                 {galleryImage.aspectRatio && (
                   <>
@@ -167,33 +164,31 @@ export function Lightbox() {
                 {galleryImage.createdAt && (
                   <>
                     <span>·</span>
-                    <span>
-                      {new Date(galleryImage.createdAt).toLocaleString()}
-                    </span>
+                    <span>{new Date(galleryImage.createdAt).toLocaleString()}</span>
                   </>
                 )}
               </div>
             </div>
 
             {/* Actions */}
-            <div className="bg-zinc-900/90 backdrop-blur-sm rounded-b-lg p-2 flex items-center justify-center gap-2">
+            <div className="flex items-center justify-center gap-2 rounded-b-lg bg-zinc-900/90 p-2 backdrop-blur-sm">
               <ActionButton
-                icon={<Download className="w-4 h-4" />}
+                icon={<Download className="h-4 w-4" />}
                 label="Download"
                 onClick={handleDownload}
               />
               <ActionButton
-                icon={<Copy className="w-4 h-4" />}
+                icon={<Copy className="h-4 w-4" />}
                 label="Copy Prompt"
                 onClick={handleCopyPrompt}
               />
               <ActionButton
-                icon={<Wand2 className="w-4 h-4" />}
+                icon={<Wand2 className="h-4 w-4" />}
                 label="Re-use Prompt"
                 onClick={handleReusePrompt}
               />
               <ActionButton
-                icon={<FilePenLine className="w-4 h-4" />}
+                icon={<FilePenLine className="h-4 w-4" />}
                 label="Open in Editor"
                 onClick={() => {
                   closeLightbox();
@@ -201,7 +196,7 @@ export function Lightbox() {
                 }}
               />
               <ActionButton
-                icon={<Trash2 className="w-4 h-4" />}
+                icon={<Trash2 className="h-4 w-4" />}
                 label="Delete"
                 onClick={handleDelete}
                 variant="danger"
@@ -236,7 +231,7 @@ function ActionButton({
   return (
     <button
       onClick={onClick}
-      className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+      className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
         variant === "danger"
           ? "text-red-400 hover:bg-red-500/10"
           : "text-zinc-300 hover:bg-zinc-800"

@@ -1,12 +1,12 @@
-import type { CompletedGalleryItem, ReferenceImage, StoredImageRecord } from '~/types';
-import { createThumbnailBlob } from './imageProcessing';
+import type { CompletedGalleryItem, ReferenceImage, StoredImageRecord } from "~/types";
+import { createThumbnailBlob } from "./imageProcessing";
 
-const DB_NAME = 'studio-image-gallery';
+const DB_NAME = "studio-image-gallery";
 const DB_VERSION = 2;
 
 const STORES = {
-  images: 'images',
-  references: 'references',
+  images: "images",
+  references: "references",
 } as const;
 
 let dbInstance: IDBDatabase | null = null;
@@ -17,8 +17,8 @@ interface LegacyStoredImageRecord {
   prompt: string;
   modelId: string;
   modelName: string;
-  aspectRatio: StoredImageRecord['aspectRatio'];
-  resolution: StoredImageRecord['resolution'];
+  aspectRatio: StoredImageRecord["aspectRatio"];
+  resolution: StoredImageRecord["resolution"];
   width: number;
   height: number;
   createdAt: number;
@@ -43,29 +43,27 @@ export async function initDB(): Promise<IDBDatabase> {
 
       // Images store
       if (!db.objectStoreNames.contains(STORES.images)) {
-        const imageStore = db.createObjectStore(STORES.images, { keyPath: 'id' });
-        imageStore.createIndex('byCreatedAt', 'createdAt', { unique: false });
-        imageStore.createIndex('byModel', 'modelId', { unique: false });
+        const imageStore = db.createObjectStore(STORES.images, { keyPath: "id" });
+        imageStore.createIndex("byCreatedAt", "createdAt", { unique: false });
+        imageStore.createIndex("byModel", "modelId", { unique: false });
       }
 
       // Reference images store
       if (!db.objectStoreNames.contains(STORES.references)) {
-        db.createObjectStore(STORES.references, { keyPath: 'id' });
+        db.createObjectStore(STORES.references, { keyPath: "id" });
       }
     };
   });
 }
 
 // Image operations
-export async function saveImage(
-  image: Omit<StoredImageRecord, 'id'>
-): Promise<StoredImageRecord> {
+export async function saveImage(image: Omit<StoredImageRecord, "id">): Promise<StoredImageRecord> {
   const db = await initDB();
   const id = crypto.randomUUID();
   const record: StoredImageRecord = { ...image, id };
 
   return new Promise((resolve, reject) => {
-    const transaction = db.transaction(STORES.images, 'readwrite');
+    const transaction = db.transaction(STORES.images, "readwrite");
     const store = transaction.objectStore(STORES.images);
     const request = store.add(record);
 
@@ -86,14 +84,16 @@ export async function getAllImages(): Promise<StoredImageRecord[]> {
   const db = await initDB();
 
   return new Promise((resolve, reject) => {
-    const transaction = db.transaction(STORES.images, 'readonly');
+    const transaction = db.transaction(STORES.images, "readonly");
     const store = transaction.objectStore(STORES.images);
-    const index = store.index('byCreatedAt');
+    const index = store.index("byCreatedAt");
     const request = index.getAll();
 
     request.onerror = () => reject(request.error);
     request.onsuccess = () => {
-      const records = request.result.reverse() as Array<StoredImageRecord | LegacyStoredImageRecord>;
+      const records = request.result.reverse() as Array<
+        StoredImageRecord | LegacyStoredImageRecord
+      >;
 
       void (async () => {
         try {
@@ -113,7 +113,7 @@ export async function getImageById(id: string): Promise<StoredImageRecord | null
   const db = await initDB();
 
   return new Promise((resolve, reject) => {
-    const transaction = db.transaction(STORES.images, 'readonly');
+    const transaction = db.transaction(STORES.images, "readonly");
     const store = transaction.objectStore(STORES.images);
     const request = store.get(id);
 
@@ -141,7 +141,7 @@ export async function deleteImage(id: string): Promise<void> {
   const db = await initDB();
 
   return new Promise((resolve, reject) => {
-    const transaction = db.transaction(STORES.images, 'readwrite');
+    const transaction = db.transaction(STORES.images, "readwrite");
     const store = transaction.objectStore(STORES.images);
     const request = store.delete(id);
 
@@ -154,7 +154,7 @@ export async function getImageCount(): Promise<number> {
   const db = await initDB();
 
   return new Promise((resolve, reject) => {
-    const transaction = db.transaction(STORES.images, 'readonly');
+    const transaction = db.transaction(STORES.images, "readonly");
     const store = transaction.objectStore(STORES.images);
     const request = store.count();
 
@@ -165,12 +165,12 @@ export async function getImageCount(): Promise<number> {
 
 // Reference image operations
 export async function saveReferenceImage(
-  image: Omit<ReferenceImage, 'url'>
+  image: Omit<ReferenceImage, "url">
 ): Promise<ReferenceImage> {
   const db = await initDB();
 
   return new Promise((resolve, reject) => {
-    const transaction = db.transaction(STORES.references, 'readwrite');
+    const transaction = db.transaction(STORES.references, "readwrite");
     const store = transaction.objectStore(STORES.references);
     const request = store.put({ id: image.id, blob: image.blob, name: image.name });
 
@@ -190,31 +190,30 @@ export async function getReferenceImagesByIds(ids: string[]): Promise<ReferenceI
   const db = await initDB();
 
   return new Promise((resolve, reject) => {
-    const transaction = db.transaction(STORES.references, 'readonly');
+    const transaction = db.transaction(STORES.references, "readonly");
     const store = transaction.objectStore(STORES.references);
-    const requests = ids.map((id) =>
-      new Promise<ReferenceImage | null>((requestResolve, requestReject) => {
-        const request = store.get(id);
+    const requests = ids.map(
+      (id) =>
+        new Promise<ReferenceImage | null>((requestResolve, requestReject) => {
+          const request = store.get(id);
 
-        request.onerror = () => requestReject(request.error);
-        request.onsuccess = () => {
-          const record = request.result as
-            | { id: string; blob: Blob; name: string }
-            | undefined;
+          request.onerror = () => requestReject(request.error);
+          request.onsuccess = () => {
+            const record = request.result as { id: string; blob: Blob; name: string } | undefined;
 
-          if (!record) {
-            requestResolve(null);
-            return;
-          }
+            if (!record) {
+              requestResolve(null);
+              return;
+            }
 
-          requestResolve({
-            id: record.id,
-            blob: record.blob,
-            name: record.name,
-            url: URL.createObjectURL(record.blob),
-          });
-        };
-      })
+            requestResolve({
+              id: record.id,
+              blob: record.blob,
+              name: record.name,
+              url: URL.createObjectURL(record.blob),
+            });
+          };
+        })
     );
 
     Promise.all(requests)
@@ -227,7 +226,7 @@ export async function deleteReferenceImage(id: string): Promise<void> {
   const db = await initDB();
 
   return new Promise((resolve, reject) => {
-    const transaction = db.transaction(STORES.references, 'readwrite');
+    const transaction = db.transaction(STORES.references, "readwrite");
     const store = transaction.objectStore(STORES.references);
     const request = store.delete(id);
 
@@ -240,7 +239,7 @@ export async function deleteReferenceImage(id: string): Promise<void> {
 export function toDisplayImage(stored: StoredImageRecord): CompletedGalleryItem {
   return {
     ...stored,
-    status: 'completed',
+    status: "completed",
     originalUrl: URL.createObjectURL(stored.originalBlob),
     thumbnailUrl: URL.createObjectURL(stored.thumbnailBlob),
   };
@@ -248,7 +247,7 @@ export function toDisplayImage(stored: StoredImageRecord): CompletedGalleryItem 
 
 // Helper to revoke Object URL when no longer needed
 export function revokeImageUrl(image: CompletedGalleryItem | ReferenceImage): void {
-  if ('thumbnailUrl' in image) {
+  if ("thumbnailUrl" in image) {
     URL.revokeObjectURL(image.originalUrl);
     URL.revokeObjectURL(image.thumbnailUrl);
     return;
@@ -261,7 +260,7 @@ async function normalizeStoredImageRecord(
   db: IDBDatabase,
   record: StoredImageRecord | LegacyStoredImageRecord
 ): Promise<StoredImageRecord> {
-  if ('originalBlob' in record && 'thumbnailBlob' in record) {
+  if ("originalBlob" in record && "thumbnailBlob" in record) {
     return record;
   }
 
@@ -293,7 +292,7 @@ async function persistMigratedImageRecord(
   record: StoredImageRecord
 ): Promise<void> {
   return new Promise((resolve, reject) => {
-    const transaction = db.transaction(STORES.images, 'readwrite');
+    const transaction = db.transaction(STORES.images, "readwrite");
     const store = transaction.objectStore(STORES.images);
     const request = store.put(record);
 

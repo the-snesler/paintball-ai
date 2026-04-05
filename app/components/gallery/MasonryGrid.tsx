@@ -1,4 +1,4 @@
-import { registerMasonry } from 'masonry-pf';
+import { registerMasonry } from "masonry-pf";
 
 interface MasonryGridProps {
   children: React.ReactNode;
@@ -8,7 +8,7 @@ export function MasonryGrid({ children }: MasonryGridProps) {
   return (
     <div
       ref={registerMasonry}
-      className="grid grid-rows-[masonry] grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-4 mt-1"
+      className="mt-1 grid grid-cols-[repeat(auto-fill,minmax(200px,1fr))] grid-rows-[masonry] gap-4"
     >
       {children}
     </div>

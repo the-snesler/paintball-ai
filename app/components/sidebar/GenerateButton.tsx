@@ -40,15 +40,15 @@ export function GenerateButton() {
   });
 
   const isLastSubmittedActive =
-    lastSubmittedSignature !== null && (activeGenerationSignatures[lastSubmittedSignature] ?? 0) > 0;
+    lastSubmittedSignature !== null &&
+    (activeGenerationSignatures[lastSubmittedSignature] ?? 0) > 0;
 
   const isLockedForCurrentParams =
     isLastSubmittedActive && lastSubmittedSignature === currentSignature;
 
-  const canGenerate =
-    prompt.trim().length > 0 && totalImages > 0 && !isLockedForCurrentParams;
+  const canGenerate = prompt.trim().length > 0 && totalImages > 0 && !isLockedForCurrentParams;
 
-  const canClear = prompt.trim().length !== 0 || totalImages > 0
+  const canClear = prompt.trim().length !== 0 || totalImages > 0;
 
   const handleGenerate = () => {
     if (missingKeys) {
@@ -62,54 +62,55 @@ export function GenerateButton() {
 
   const handleClear = () => {
     useGalleryStore.setState(DEFAULT_GENERATION_STATE);
-  }
+  };
 
   return (
     <div className="flex flex-col gap-2">
-      <div className="relative group flex-1">
-        <div className="bg-purple-800 rounded-lg absolute inset-0 pointer-events-none group-hover:bg-purple-600 transition"></div>
+      <div className="group relative flex-1">
+        <div className="pointer-events-none absolute inset-0 rounded-lg bg-purple-800 transition group-hover:bg-purple-600"></div>
         <button
           onClick={handleGenerate}
           disabled={!canGenerate}
-          className={`w-full flex items-center justify-center gap-2 py-3 px-4 rounded-lg font-medium transition-all border-2 ${
+          className={`flex w-full items-center justify-center gap-2 rounded-lg border-2 px-4 py-3 font-medium transition-all ${
             canGenerate
-              ? "bg-purple-600 hover:bg-purple-500 text-white border-purple-500 hover:border-purple-400 -translate-y-1 active:translate-y-0 hover:-translate-y-2 shadow-lg cursor-pointer "
-              : "bg-zinc-800 text-zinc-500 cursor-not-allowed border-zinc-700 translate-y-0"
+              ? "-translate-y-1 cursor-pointer border-purple-500 bg-purple-600 text-white shadow-lg hover:-translate-y-2 hover:border-purple-400 hover:bg-purple-500 active:translate-y-0"
+              : "translate-y-0 cursor-not-allowed border-zinc-700 bg-zinc-800 text-zinc-500"
           }`}
         >
           {isLockedForCurrentParams ? (
             <>
-              <Loader2 className="w-4 h-4 animate-spin" />
+              <Loader2 className="h-4 w-4 animate-spin" />
               Generating...
             </>
           ) : missingKeys ? (
             <>
-              <KeyRound className="w-4 h-4" />
+              <KeyRound className="h-4 w-4" />
               Missing keys
             </>
           ) : (
             <>
-              <Sparkles className="w-4 h-4" />
+              <Sparkles className="h-4 w-4" />
               Generate
             </>
           )}
         </button>
       </div>
-      <div className="w-full flex justify-center">
+      <div className="flex w-full justify-center">
         <span className="text-xs text-zinc-400">
           <NumberFlow
-              value={totalImages}
-              format={{ useGrouping: false }}
-              transformTiming={{ duration: 300, easing: 'ease-out' }}
-              spinTiming={{ duration: 300, easing: 'ease-out' }}
-              opacityTiming={{ duration: 150, easing: 'ease-out' }}
-              willChange
-            />{" pending"}
+            value={totalImages}
+            format={{ useGrouping: false }}
+            transformTiming={{ duration: 300, easing: "ease-out" }}
+            spinTiming={{ duration: 300, easing: "ease-out" }}
+            opacityTiming={{ duration: 150, easing: "ease-out" }}
+            willChange
+          />
+          {" pending"}
           {" • "}
           <button
             onClick={handleClear}
             disabled={!canClear}
-            className="disabled:text-zinc-400 text-center disabled:hover:no-underline hover:underline text-red-400 hover:cursor-pointer disabled:hover:cursor-not-allowed"
+            className="text-center text-red-400 hover:cursor-pointer hover:underline disabled:text-zinc-400 disabled:hover:cursor-not-allowed disabled:hover:no-underline"
           >
             Clear
           </button>

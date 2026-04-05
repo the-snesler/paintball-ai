@@ -17,10 +17,7 @@ export function AspectRatioSection() {
   const pickerEnabled = anyModelSupportsAspectRatio(models, selectedModels);
 
   return (
-    <CollapsibleSection
-      icon={<Square className="w-4 h-4" />}
-      title="Aspect Ratio"
-    >
+    <CollapsibleSection icon={<Square className="h-4 w-4" />} title="Aspect Ratio">
       <div className="grid grid-cols-6 gap-1.5">
         {ASPECT_RATIOS.map((ar) => {
           const isSelected = aspectRatio === ar.value;
@@ -31,12 +28,12 @@ export function AspectRatioSection() {
               key={ar.value}
               onClick={() => pickerEnabled && setAspectRatio(isSelected ? null : ar.value)}
               disabled={!pickerEnabled}
-              className={`flex flex-col items-center gap-1 p-1.5 rounded-lg transition-colors ${
+              className={`flex flex-col items-center gap-1 rounded-lg p-1.5 transition-colors ${
                 showSelectedStyle
-                  ? "bg-purple-500/20 border border-purple-500"
+                  ? "border border-purple-500 bg-purple-500/20"
                   : pickerEnabled
-                  ? "bg-zinc-800 border border-zinc-700 hover:border-zinc-600"
-                  : "bg-zinc-800/50 border border-zinc-800 opacity-40 cursor-not-allowed"
+                    ? "border border-zinc-700 bg-zinc-800 hover:border-zinc-600"
+                    : "cursor-not-allowed border border-zinc-800 bg-zinc-800/50 opacity-40"
               }`}
               title={ar.label}
             >
@@ -73,7 +70,7 @@ function AspectRatioPreview({
 
   return (
     <div
-      className={`border-2 rounded-sm ${
+      className={`rounded-sm border-2 ${
         isSelected ? "border-purple-500 bg-purple-500/20" : "border-zinc-600"
       }`}
       style={{ width: `${w}px`, height: `${h}px` }}

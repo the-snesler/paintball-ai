@@ -31,11 +31,11 @@ export async function createThumbnailBlob(
   const targetWidth = Math.max(1, Math.round(dimensions.width * scale));
   const targetHeight = Math.max(1, Math.round(dimensions.height * scale));
 
-  const canvas = document.createElement('canvas');
+  const canvas = document.createElement("canvas");
   canvas.width = targetWidth;
   canvas.height = targetHeight;
 
-  const context = canvas.getContext('2d');
+  const context = canvas.getContext("2d");
   if (!context) {
     return originalBlob;
   }
@@ -43,11 +43,15 @@ export async function createThumbnailBlob(
   const image = await loadImageFromBlob(originalBlob);
   context.drawImage(image, 0, 0, targetWidth, targetHeight);
 
-  const thumbnail = await canvasToBlob(canvas, 'image/webp', 0.88);
+  const thumbnail = await canvasToBlob(canvas, "image/webp", 0.88);
   return thumbnail ?? originalBlob;
 }
 
-function canvasToBlob(canvas: HTMLCanvasElement, type: string, quality: number): Promise<Blob | null> {
+function canvasToBlob(
+  canvas: HTMLCanvasElement,
+  type: string,
+  quality: number
+): Promise<Blob | null> {
   return new Promise((resolve) => {
     canvas.toBlob((blob) => resolve(blob), type, quality);
   });

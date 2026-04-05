@@ -12,9 +12,7 @@ export function useEditorGeneration() {
   const apiKeys = useSettingsStore((s) => s.apiKeys);
   const addItems = useGalleryStore((s) => s.addItems);
   const updateItem = useGalleryStore((s) => s.updateItem);
-  const incrementRequestedOutputCount = useSettingsStore(
-    (s) => s.incrementRequestedOutputCount
-  );
+  const incrementRequestedOutputCount = useSettingsStore((s) => s.incrementRequestedOutputCount);
 
   /**
    * Prepare and execute an edit turn.

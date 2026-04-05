@@ -173,9 +173,7 @@ export function PromptInput() {
     if (!prompt.trim() || isImproving) return;
     setIsImproving(true);
     try {
-      const images = referenceImages.length > 0
-        ? referenceImages.map((r) => r.blob)
-        : undefined;
+      const images = referenceImages.length > 0 ? referenceImages.map((r) => r.blob) : undefined;
       const improved = await callTextModel(IMPROVE_PROMPT_SYSTEM, prompt, images);
       setPrompt(improved.trim());
     } catch {
@@ -197,11 +195,9 @@ export function PromptInput() {
 
   return (
     <section>
-      <div className="flex items-center gap-2 mb-2">
-        <Wand2 className="w-4 h-4 text-zinc-500" />
-        <h2 className="text-xs font-medium text-zinc-400 uppercase tracking-wide">
-          Prompt
-        </h2>
+      <div className="mb-2 flex items-center gap-2">
+        <Wand2 className="h-4 w-4 text-zinc-500" />
+        <h2 className="text-xs font-medium tracking-wide text-zinc-400 uppercase">Prompt</h2>
       </div>
 
       <div
@@ -209,7 +205,7 @@ export function PromptInput() {
         onDragEnter={handleDragEnter}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
-        className={`bg-zinc-800 border rounded-lg transition-colors ${
+        className={`rounded-lg border bg-zinc-800 transition-colors ${
           isDragOver && referenceEnabled
             ? "border-purple-500 ring-1 ring-purple-500"
             : "border-zinc-700"
@@ -221,14 +217,14 @@ export function PromptInput() {
           onChange={(e) => setPrompt(e.target.value)}
           onPaste={handlePaste}
           placeholder="Describe your image..."
-          className="w-full field-sizing-content max-h-1/2 min-h-24 px-3 pt-2 pb-2 bg-transparent rounded-t-lg text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none resize-none"
+          className="field-sizing-content max-h-1/2 min-h-24 w-full resize-none rounded-t-lg bg-transparent px-3 pt-2 pb-2 text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none"
         />
 
         {isExpanded && (
           <div className="px-3 py-2">
-            <div className="max-w-full grid grid-cols-3 gap-2">
+            <div className="grid max-w-full grid-cols-3 gap-2">
               {referenceImages.map((img) => (
-                <div key={img.id} className="relative group aspect-square">
+                <div key={img.id} className="group relative aspect-square">
                   <button
                     type="button"
                     onClick={() =>
@@ -237,12 +233,12 @@ export function PromptInput() {
                         image: { id: img.id, url: img.url, name: img.name },
                       })
                     }
-                    className="block w-full h-full cursor-zoom-in"
+                    className="block h-full w-full cursor-zoom-in"
                   >
                     <img
                       src={img.url}
                       alt={img.name}
-                      className="w-full h-full object-cover rounded"
+                      className="h-full w-full rounded object-cover"
                     />
                   </button>
                   <button
@@ -252,15 +248,15 @@ export function PromptInput() {
                       removeReferenceImage(img.id);
                     }}
                     disabled={!referenceEnabled}
-                    className="absolute -top-1 -right-1 w-5 h-5 bg-zinc-900 border border-zinc-700 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                    className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full border border-zinc-700 bg-zinc-900 opacity-0 transition-opacity group-hover:opacity-100"
                   >
-                    <X className="w-3 h-3 text-zinc-400" />
+                    <X className="h-3 w-3 text-zinc-400" />
                   </button>
                 </div>
               ))}
 
               {isDragOver && referenceImages.length === 0 && (
-                <div className="col-span-3 border-2 border-dashed border-zinc-600 rounded-lg py-4 text-xs text-zinc-400 text-center">
+                <div className="col-span-3 rounded-lg border-2 border-dashed border-zinc-600 py-4 text-center text-xs text-zinc-400">
                   Drop images here
                 </div>
               )}
@@ -268,7 +264,7 @@ export function PromptInput() {
           </div>
         )}
 
-        <div className="flex items-center justify-between mx-3 mb-3">
+        <div className="mx-3 mb-3 flex items-center justify-between">
           <label
             className={`inline-flex items-center gap-1 text-xs transition-colors ${
               referenceEnabled
@@ -276,7 +272,7 @@ export function PromptInput() {
                 : "cursor-not-allowed text-zinc-600"
             }`}
           >
-            <ImagePlus className="w-4 h-4" />
+            <ImagePlus className="h-4 w-4" />
             {referenceImages.length > 0 ? "Attach more" : "Attach references"}
             <input
               type="file"
@@ -292,12 +288,12 @@ export function PromptInput() {
             type="button"
             onClick={handleImprovePrompt}
             disabled={!isTextModelAvailable() || !prompt.trim() || isImproving}
-            className="inline-flex items-center gap-1 text-xs transition-colors text-zinc-400 hover:text-zinc-300 disabled:cursor-not-allowed disabled:text-zinc-600"
+            className="inline-flex items-center gap-1 text-xs text-zinc-400 transition-colors hover:text-zinc-300 disabled:cursor-not-allowed disabled:text-zinc-600"
           >
             {isImproving ? (
-              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
             ) : (
-              <Sparkles className="w-3.5 h-3.5" />
+              <Sparkles className="h-3.5 w-3.5" />
             )}
             {isImproving ? "Improving..." : "Improve"}
           </button>

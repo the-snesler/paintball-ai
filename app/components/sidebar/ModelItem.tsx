@@ -31,28 +31,26 @@ export function ModelItem({ model, count }: ModelItemProps) {
 
   return (
     <div
-      className={`flex items-center gap-3 p-2 rounded-lg transition-colors ${
+      className={`flex items-center gap-3 rounded-lg p-2 transition-colors ${
         isActive
-          ? "bg-purple-500/10 border border-purple-500/30"
-          : "bg-zinc-800/50 border border-transparent hover:bg-zinc-800"
+          ? "border border-purple-500/30 bg-purple-500/10"
+          : "border border-transparent bg-zinc-800/50 hover:bg-zinc-800"
       }`}
     >
       {/* Icon */}
       <div
-        className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+        className={`flex h-8 w-8 items-center justify-center rounded-lg ${
           isActive ? "bg-purple-500/20 text-purple-400" : "bg-zinc-700 text-zinc-400"
         }`}
       >
-        {model.icon ? (
-          <SVG src={model.icon} className="w-5 h-5" />
-        ) : (
-          <Box className="w-4 h-4" />
-        )}
+        {model.icon ? <SVG src={model.icon} className="h-5 w-5" /> : <Box className="h-4 w-4" />}
       </div>
 
       {/* Info */}
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-zinc-100 truncate" title={model.name}>{model.name}</p>
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm font-medium text-zinc-100" title={model.name}>
+          {model.name}
+        </p>
         <p className="text-xs text-zinc-500">{providerNames[model.provider]}</p>
       </div>
 
@@ -61,27 +59,27 @@ export function ModelItem({ model, count }: ModelItemProps) {
         <button
           onClick={handleDecrement}
           disabled={count === 0}
-          className="w-6 h-6 rounded flex items-center justify-center text-zinc-400 hover:text-zinc-100 hover:bg-zinc-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+          className="flex h-6 w-6 items-center justify-center rounded text-zinc-400 transition-colors hover:bg-zinc-700 hover:text-zinc-100 disabled:cursor-not-allowed disabled:opacity-30"
           aria-label="Decrease count"
         >
-          <Minus className="w-3 h-3" />
+          <Minus className="h-3 w-3" />
         </button>
         <div className="w-6 text-center text-sm font-medium text-zinc-300">
           <NumberFlow
             value={count}
             format={{ useGrouping: false }}
-            transformTiming={{ duration: 300, easing: 'ease-out' }}
-            spinTiming={{ duration: 300, easing: 'ease-out' }}
-            opacityTiming={{ duration: 150, easing: 'ease-out' }}
+            transformTiming={{ duration: 300, easing: "ease-out" }}
+            spinTiming={{ duration: 300, easing: "ease-out" }}
+            opacityTiming={{ duration: 150, easing: "ease-out" }}
             willChange
           />
         </div>
         <button
           onClick={handleIncrement}
-          className="w-6 h-6 rounded flex items-center justify-center text-zinc-400 hover:text-zinc-100 hover:bg-zinc-700 transition-colors"
+          className="flex h-6 w-6 items-center justify-center rounded text-zinc-400 transition-colors hover:bg-zinc-700 hover:text-zinc-100"
           aria-label="Increase count"
         >
-          <Plus className="w-3 h-3" />
+          <Plus className="h-3 w-3" />
         </button>
       </div>
     </div>

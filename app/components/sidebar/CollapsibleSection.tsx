@@ -22,18 +22,16 @@ export function CollapsibleSection({
     <section>
       <button
         onClick={() => setExpanded(!expanded)}
-        className="flex items-center justify-between w-full mb-2 group"
+        className="group mb-2 flex w-full items-center justify-between"
       >
         <div className="flex items-center gap-2">
           <span className="text-zinc-500">{icon}</span>
-          <h2 className="text-xs font-medium text-zinc-400 uppercase tracking-wide">
-            {title}
-          </h2>
+          <h2 className="text-xs font-medium tracking-wide text-zinc-400 uppercase">{title}</h2>
         </div>
         <div className="flex items-center gap-2">
           {badge}
-          <ChevronDown 
-            className={`w-4 h-4 text-zinc-500 group-hover:text-zinc-400 transition-transform duration-200 ${
+          <ChevronDown
+            className={`h-4 w-4 text-zinc-500 transition-transform duration-200 group-hover:text-zinc-400 ${
               !expanded ? "-rotate-90" : ""
             }`}
           />

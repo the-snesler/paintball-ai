@@ -11,47 +11,38 @@ import { OtherSites } from "./OtherSites";
 
 export const SIDEBAR_POPOVER_ID = "sidebar-popover";
 
-function SidebarContent({
-  onClose,
-}: {
-  onClose?: () => void;
-}) {
+function SidebarContent({ onClose }: { onClose?: () => void }) {
   const location = useLocation();
   const isEditorRoute = location.pathname === "/editor";
 
   return (
     <>
       {/* Header */}
-      <div
-        className="px-6 py-4 flex items-center justify-between border-b border-zinc-800 bg-linear-to-br from-purple-950 to-zinc-900 h-18"
-      >
-        <button
-          popoverTarget="other-sites-popover"
-          className="flex items-center gap-3"
-        >
-          <div className="w-8 h-8 rounded-lg bg-purple-900 border border-purple-700 flex items-center justify-center">
-            <SVG src={drop} className="w-4 h-4 text-purple-400" />
+      <div className="flex h-18 items-center justify-between border-b border-zinc-800 bg-linear-to-br from-purple-950 to-zinc-900 px-6 py-4">
+        <button popoverTarget="other-sites-popover" className="flex items-center gap-3">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-purple-700 bg-purple-900">
+            <SVG src={drop} className="h-4 w-4 text-purple-400" />
           </div>
           <div className="text-left">
-            <h1 className="font-semibold text-sm">Paintball</h1>
+            <h1 className="text-sm font-semibold">Paintball</h1>
             <p className="text-xs text-zinc-500">AI Image Generator</p>
           </div>
         </button>
         <div className="flex items-center gap-1">
           <button
             popoverTarget="other-sites-popover"
-            className="p-2 rounded-lg hover:bg-zinc-800 transition-colors cursor-pointer"
+            className="cursor-pointer rounded-lg p-2 transition-colors hover:bg-zinc-800"
             aria-label="Other sites"
           >
-            <ChevronDown className="w-4 h-4 text-zinc-400" />
+            <ChevronDown className="h-4 w-4 text-zinc-400" />
           </button>
           {onClose && (
             <button
               onClick={onClose}
-              className="p-2 rounded-lg hover:bg-zinc-800 transition-colors md:hidden"
+              className="rounded-lg p-2 transition-colors hover:bg-zinc-800 md:hidden"
               aria-label="Close sidebar"
             >
-              <X className="w-4 h-4 text-zinc-400" />
+              <X className="h-4 w-4 text-zinc-400" />
             </button>
           )}
         </div>
@@ -59,7 +50,7 @@ function SidebarContent({
       <OtherSites />
 
       {/* Scrollable Content */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-6">
+      <div className="flex-1 space-y-6 overflow-y-auto p-4">
         {!isEditorRoute && <PromptInput />}
         <ModelList />
         <AspectRatioSection />
@@ -68,7 +59,7 @@ function SidebarContent({
 
       {/* Generate Button — hidden in editor mode */}
       {!isEditorRoute && (
-        <div className="p-4 border-t border-zinc-800">
+        <div className="border-t border-zinc-800 p-4">
           <GenerateButton />
         </div>
       )}
@@ -78,7 +69,7 @@ function SidebarContent({
 
 export function Sidebar() {
   return (
-    <aside className="hidden md:flex w-80 shrink-0 border-r border-zinc-800 bg-zinc-900 flex-col h-full">
+    <aside className="hidden h-full w-80 shrink-0 flex-col border-r border-zinc-800 bg-zinc-900 md:flex">
       <SidebarContent />
     </aside>
   );
@@ -94,7 +85,7 @@ export function MobileSidebar() {
     <aside
       id={SIDEBAR_POPOVER_ID}
       popover="auto"
-      className="sidebar-popover m-0 p-0 w-80 max-w-[85vw] h-full max-h-full border-0 border-r border-zinc-800 bg-zinc-900 flex flex-col"
+      className="sidebar-popover m-0 flex h-full max-h-full w-80 max-w-[85vw] flex-col border-0 border-r border-zinc-800 bg-zinc-900 p-0"
     >
       <SidebarContent onClose={handleClose} />
     </aside>

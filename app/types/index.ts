@@ -1,9 +1,9 @@
 // Model types
-export type Provider = 'google' | 'replicate';
+export type Provider = "google" | "replicate";
 
-export type AspectRatio = '1:1' | '16:9' | '9:16' | '4:3' | '3:4' | '21:9';
+export type AspectRatio = "1:1" | "16:9" | "9:16" | "4:3" | "3:4" | "21:9";
 
-export type Resolution = '1K' | '2K' | '4K';
+export type Resolution = "1K" | "2K" | "4K";
 
 export interface ModelCapabilities {
   supportsAspectRatios: boolean;
@@ -46,13 +46,13 @@ export interface ReferenceImage {
 }
 
 export interface LightboxGalleryTarget {
-  kind: 'gallery';
+  kind: "gallery";
   imageId: string;
 }
 
 export interface LightboxReferenceTarget {
-  kind: 'reference';
-  image: Pick<ReferenceImage, 'id' | 'url' | 'name'>;
+  kind: "reference";
+  image: Pick<ReferenceImage, "id" | "url" | "name">;
 }
 
 export type LightboxTarget = LightboxGalleryTarget | LightboxReferenceTarget;
@@ -77,7 +77,7 @@ export interface BaseGalleryItem {
 }
 
 export interface PendingGalleryItemFields {
-  status: 'pending' | 'generating' | 'waiting';
+  status: "pending" | "generating" | "waiting";
   retryCount?: number;
   waitingUntil?: number; // Timestamp when rate limit expires
   retryAfter?: number; // Seconds to wait (for display)
@@ -86,7 +86,7 @@ export interface PendingGalleryItemFields {
 export type PendingGalleryItem = BaseGalleryItem & PendingGalleryItemFields;
 
 export interface CompletedGalleryItemFields {
-  status: 'completed';
+  status: "completed";
   originalBlob: Blob;
   originalUrl: string; // Object URL for full-quality display/download
   thumbnailBlob: Blob;
@@ -100,7 +100,7 @@ export interface CompletedGalleryItemFields {
 export type CompletedGalleryItem = BaseGalleryItem & CompletedGalleryItemFields;
 
 export interface FailedGalleryItemFields {
-  status: 'failed';
+  status: "failed";
   error: string;
   canRetry?: boolean; // Whether this failure can be retried
 }
@@ -126,7 +126,7 @@ export interface StoredImageRecord {
   metadata: Record<string, unknown>;
 }
 
-export type ViewMode = 'grid' | 'timeline';
+export type ViewMode = "grid" | "timeline";
 
 export interface AttachSelectedItemsResult {
   success: boolean;

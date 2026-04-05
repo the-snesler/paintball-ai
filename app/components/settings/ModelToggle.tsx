@@ -3,15 +3,22 @@ import { useSettingsStore } from "~/stores/settingsStore";
 import SVG from "react-inlinesvg";
 import type { StoredModel } from "~/types";
 
-
-function CapabilityBadge({ icon: Icon, label, enabled }: { icon: React.ElementType; label: string; enabled: boolean }) {
+function CapabilityBadge({
+  icon: Icon,
+  label,
+  enabled,
+}: {
+  icon: React.ElementType;
+  label: string;
+  enabled: boolean;
+}) {
   if (!enabled) return null;
   return (
     <span
-      className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] bg-zinc-700/50 text-zinc-400"
+      className="inline-flex items-center gap-1 rounded bg-zinc-700/50 px-1.5 py-0.5 text-[10px] text-zinc-400"
       title={label}
     >
-      <Icon className="w-2.5 h-2.5" />
+      <Icon className="h-2.5 w-2.5" />
     </span>
   );
 }
@@ -30,21 +37,17 @@ export default function ModelToggleItem({
 
   return (
     <div
-      className={`flex items-center gap-3 p-2.5 rounded-lg bg-zinc-800/50 border border-zinc-700/50 ${
+      className={`flex items-center gap-3 rounded-lg border border-zinc-700/50 bg-zinc-800/50 p-2.5 ${
         !hasApiKey ? "opacity-50" : ""
       }`}
     >
-      <div className="w-7 h-7 rounded-lg bg-zinc-700 flex items-center justify-center text-zinc-400 shrink-0">
-        {model.icon ? (
-          <SVG src={model.icon} className="w-5 h-5" />
-        ) : (
-          <Box className="w-4 h-4" />
-        )}
+      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-zinc-700 text-zinc-400">
+        {model.icon ? <SVG src={model.icon} className="h-5 w-5" /> : <Box className="h-4 w-4" />}
       </div>
 
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-zinc-100 truncate">{model.name}</p>
-        <div className="flex items-center gap-1.5 mt-0.5">
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm font-medium text-zinc-100">{model.name}</p>
+        <div className="mt-0.5 flex items-center gap-1.5">
           <span className="text-xs text-zinc-500 capitalize">{model.provider}</span>
           <div className="flex items-center gap-1">
             <CapabilityBadge
@@ -69,22 +72,22 @@ export default function ModelToggleItem({
       {model.isCustom && (
         <button
           onClick={() => removeCustomModel(model.id)}
-          className="p-1.5 text-zinc-500 hover:text-red-400 transition-colors shrink-0"
+          className="shrink-0 p-1.5 text-zinc-500 transition-colors hover:text-red-400"
           title="Remove model"
         >
-          <Trash2 className="w-4 h-4" />
+          <Trash2 className="h-4 w-4" />
         </button>
       )}
 
-      <label className="relative inline-flex items-center cursor-pointer shrink-0">
+      <label className="relative inline-flex shrink-0 cursor-pointer items-center">
         <input
           type="checkbox"
           checked={model.enabled}
           onChange={(e) => setModelEnabled(model.id, e.target.checked)}
-          className="sr-only peer"
+          className="peer sr-only"
           disabled={!hasApiKey}
         />
-        <div className="w-9 h-5 bg-zinc-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:start-0.5 after:bg-zinc-400 after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-purple-600 peer-checked:after:bg-white"></div>
+        <div className="peer h-5 w-9 rounded-full bg-zinc-700 peer-checked:bg-purple-600 peer-focus:outline-none after:absolute after:start-0.5 after:top-0.5 after:h-4 after:w-4 after:rounded-full after:bg-zinc-400 after:transition-all after:content-[''] peer-checked:after:translate-x-full peer-checked:after:border-white peer-checked:after:bg-white rtl:peer-checked:after:-translate-x-full"></div>
       </label>
     </div>
   );

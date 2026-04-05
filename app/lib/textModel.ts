@@ -46,7 +46,7 @@ export function isTextModelAvailable(): boolean {
 export async function callTextModel(
   systemPrompt: string,
   userPrompt: string,
-  images?: Blob[],
+  images?: Blob[]
 ): Promise<string> {
   const { provider, apiKey, modelId } = resolveProvider();
 
@@ -62,7 +62,7 @@ async function callGoogleTextModel(
   modelId: string,
   systemPrompt: string,
   userPrompt: string,
-  images?: Blob[],
+  images?: Blob[]
 ): Promise<string> {
   const ai = new GoogleGenAI({ apiKey });
 
@@ -110,10 +110,9 @@ async function callReplicateTextModel(
   const baseUrl = new URL("/proxy/replicate/v1", window.location.origin).toString();
   const replicate = new Replicate({ auth: apiKey, baseUrl });
 
-  const output = await replicate.run(
-    modelId as `${string}/${string}`,
-    { input: { prompt: userPrompt, system_prompt: systemPrompt } }
-  );
+  const output = await replicate.run(modelId as `${string}/${string}`, {
+    input: { prompt: userPrompt, system_prompt: systemPrompt },
+  });
 
   if (typeof output === "string") {
     return output;

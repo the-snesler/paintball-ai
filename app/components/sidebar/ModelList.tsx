@@ -11,41 +11,36 @@ export function ModelList() {
   const apiKeys = useSettingsStore((s) => s.apiKeys);
 
   // Filter to only show enabled models that have API keys
-  const visibleModels = models.filter(
-    (m) => m.enabled && apiKeys[m.provider]
-  );
+  const visibleModels = models.filter((m) => m.enabled && apiKeys[m.provider]);
 
   const activeCount = Object.values(modelSelections).filter((c) => c > 0).length;
 
   return (
     <CollapsibleSection
-      icon={<Layers className="w-4 h-4" />}
+      icon={<Layers className="h-4 w-4" />}
       title="Models"
       badge={
-        <span className="text-xs px-2 bg-zinc-800 rounded-full text-zinc-400">
+        <span className="rounded-full bg-zinc-800 px-2 text-xs text-zinc-400">
           <NumberFlow
             value={activeCount}
             format={{ useGrouping: false }}
-            transformTiming={{ duration: 300, easing: 'ease-out' }}
-            spinTiming={{ duration: 300, easing: 'ease-out' }}
-            opacityTiming={{ duration: 150, easing: 'ease-out' }}
+            transformTiming={{ duration: 300, easing: "ease-out" }}
+            spinTiming={{ duration: 300, easing: "ease-out" }}
+            opacityTiming={{ duration: 150, easing: "ease-out" }}
             willChange
-          /> active
+          />{" "}
+          active
         </span>
       }
     >
       <div className="space-y-1">
         {visibleModels.length === 0 ? (
-          <p className="text-xs text-zinc-500 text-center py-4">
+          <p className="py-4 text-center text-xs text-zinc-500">
             No models available. Add API keys and enable models in Settings.
           </p>
         ) : (
           visibleModels.map((model) => (
-            <ModelItem
-              key={model.id}
-              model={model}
-              count={modelSelections[model.id] || 0}
-            />
+            <ModelItem key={model.id} model={model} count={modelSelections[model.id] || 0} />
           ))
         )}
       </div>

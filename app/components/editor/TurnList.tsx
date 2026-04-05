@@ -27,7 +27,7 @@ export function TurnList() {
 
   return (
     <div ref={scrollRef} className="flex-1 overflow-y-auto">
-      <div className="max-w-3xl mx-auto px-6 py-6 space-y-8">
+      <div className="mx-auto max-w-3xl space-y-8 px-6 py-6">
         {/* Source image "turn zero" */}
         {sourceUrl && (
           <SourceTurn
@@ -40,7 +40,7 @@ export function TurnList() {
 
         {/* Edit turns */}
         {turns.map((turn, index) => (
-          <div key={turn.id} className="relative pl-4 border-l border-zinc-800">
+          <div key={turn.id} className="relative border-l border-zinc-800 pl-4">
             <Turn turn={turn} turnIndex={index} />
           </div>
         ))}
@@ -69,29 +69,25 @@ function SourceTurn({
     sourceGalleryItemId ? s.items.find((i) => i.id === sourceGalleryItemId) : null
   );
   const displayUrl =
-    galleryItem && galleryItem.status === "completed"
-      ? galleryItem.thumbnailUrl
-      : url;
+    galleryItem && galleryItem.status === "completed" ? galleryItem.thumbnailUrl : url;
 
   return (
     <div className="animate-fade-in">
-      <div className="flex items-center gap-2 mb-3">
-        <span className="text-xs font-medium text-zinc-600 uppercase tracking-wider">
-          Source
-        </span>
+      <div className="mb-3 flex items-center gap-2">
+        <span className="text-xs font-medium tracking-wider text-zinc-600 uppercase">Source</span>
         <button
           onClick={reset}
-          className="p-1 rounded text-zinc-700 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+          className="rounded p-1 text-zinc-700 transition-colors hover:bg-red-500/10 hover:text-red-400"
           title="Clear editor"
         >
-          <Trash2 className="w-3 h-3" />
+          <Trash2 className="h-3 w-3" />
         </button>
       </div>
 
       <button
         type="button"
         onClick={onSelect}
-        className={`relative rounded-lg overflow-hidden cursor-pointer transition-all duration-150 max-w-xs group ${
+        className={`group relative max-w-xs cursor-pointer overflow-hidden rounded-lg transition-all duration-150 ${
           isSelected
             ? "ring-2 ring-purple-500 ring-offset-2 ring-offset-zinc-950"
             : "ring-1 ring-zinc-700/50 hover:ring-zinc-600"
@@ -100,28 +96,37 @@ function SourceTurn({
         <img
           src={displayUrl}
           alt={prompt || "Source image"}
-          className={`w-full h-auto transition-opacity duration-300 ${isLoaded ? "opacity-100" : "opacity-0"}`}
+          className={`h-auto w-full transition-opacity duration-300 ${isLoaded ? "opacity-100" : "opacity-0"}`}
           onLoad={() => setIsLoaded(true)}
         />
         {!isLoaded && (
-          <div className="absolute inset-0 bg-zinc-800 animate-pulse" style={{ minHeight: "200px" }} />
+          <div
+            className="absolute inset-0 animate-pulse bg-zinc-800"
+            style={{ minHeight: "200px" }}
+          />
         )}
 
         {isSelected && (
-          <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-purple-500 flex items-center justify-center">
-            <svg className="w-3 h-3 text-white" viewBox="0 0 12 12" fill="none">
-              <path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+          <div className="absolute top-2 right-2 flex h-5 w-5 items-center justify-center rounded-full bg-purple-500">
+            <svg className="h-3 w-3 text-white" viewBox="0 0 12 12" fill="none">
+              <path
+                d="M2 6l3 3 5-5"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
             </svg>
           </div>
         )}
 
         {!isSelected && (
-          <div className="absolute inset-0 bg-white/0 group-hover:bg-white/5 transition-colors" />
+          <div className="absolute inset-0 bg-white/0 transition-colors group-hover:bg-white/5" />
         )}
 
         {prompt && (
-          <div className="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/70 to-transparent">
-            <p className="text-xs text-white/80 line-clamp-2 leading-snug">{prompt}</p>
+          <div className="absolute right-0 bottom-0 left-0 bg-gradient-to-t from-black/70 to-transparent p-2">
+            <p className="line-clamp-2 text-xs leading-snug text-white/80">{prompt}</p>
           </div>
         )}
       </button>

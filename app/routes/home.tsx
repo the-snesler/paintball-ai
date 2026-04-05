@@ -31,7 +31,8 @@ export default function Home() {
 
   useEffect(() => {
     const inFlightCount = items.filter(
-      (item) => item.status === "pending" || item.status === "generating" || item.status === "waiting"
+      (item) =>
+        item.status === "pending" || item.status === "generating" || item.status === "waiting"
     ).length;
     const hadInFlight = previousInFlightCountRef.current > 0;
 
@@ -64,7 +65,7 @@ export default function Home() {
   }, [items, desktopNotificationsEnabled]);
 
   return (
-    <div className="flex flex-col md:flex-row h-screen">
+    <div className="flex h-screen flex-col md:flex-row">
       <MobileHeader />
       <MobileSidebar />
       <Sidebar />

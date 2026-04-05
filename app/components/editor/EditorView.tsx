@@ -10,9 +10,7 @@ export function EditorView() {
   const sourcePrompt = useEditorStore((s) => s.sourcePrompt);
   const setSource = useEditorStore((s) => s.setSource);
 
-  const editorTitle = hasSource && sourcePrompt
-    ? `Editor · ${sourcePrompt}`
-    : "Editor";
+  const editorTitle = hasSource && sourcePrompt ? `Editor · ${sourcePrompt}` : "Editor";
 
   const handleSourceFile = async (file: File) => {
     const refId = crypto.randomUUID();
@@ -25,14 +23,10 @@ export function EditorView() {
   };
 
   return (
-    <main className="relative flex-1 flex flex-col h-full overflow-hidden bg-zinc-950">
+    <main className="relative flex h-full flex-1 flex-col overflow-hidden bg-zinc-950">
       <GalleryHeader title={editorTitle} />
 
-      {hasSource ? (
-        <TurnList />
-      ) : (
-        <DropZone onFile={(file) => void handleSourceFile(file)} />
-      )}
+      {hasSource ? <TurnList /> : <DropZone onFile={(file) => void handleSourceFile(file)} />}
 
       <EditorInputBar onSourceFile={(file) => void handleSourceFile(file)} />
     </main>

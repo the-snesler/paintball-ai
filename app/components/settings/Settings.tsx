@@ -1,4 +1,14 @@
-import { KeyRound, Eye, EyeOff, Check, Sparkles, ChevronDown, Loader2, Bell, MessageSquareText } from "lucide-react";
+import {
+  KeyRound,
+  Eye,
+  EyeOff,
+  Check,
+  Sparkles,
+  ChevronDown,
+  Loader2,
+  Bell,
+  MessageSquareText,
+} from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { GalleryHeader } from "~/components/gallery/GalleryHeader";
 import { useSettingsStore } from "~/stores/settingsStore";
@@ -35,15 +45,15 @@ export function SettingsModal() {
   const didSetInitialDetailsOpen = useRef(false);
   const [fetchingSchemas, setFetchingSchemas] = useState(false);
   const [requestingPermission, setRequestingPermission] = useState(false);
-  const [notificationPermission, setNotificationPermission] = useState<NotificationPermission | "unsupported">(
-    () => {
-      if (typeof window === "undefined" || !("Notification" in window)) {
-        return "unsupported";
-      }
-
-      return Notification.permission;
+  const [notificationPermission, setNotificationPermission] = useState<
+    NotificationPermission | "unsupported"
+  >(() => {
+    if (typeof window === "undefined" || !("Notification" in window)) {
+      return "unsupported";
     }
-  );
+
+    return Notification.permission;
+  });
 
   // Fetch schemas for Replicate models that haven't been fetched yet
   useEffect(() => {
@@ -132,31 +142,24 @@ export function SettingsModal() {
   };
 
   return (
-    <main className="flex-1 flex flex-col h-full overflow-hidden bg-zinc-950">
+    <main className="flex h-full flex-1 flex-col overflow-hidden bg-zinc-950">
       <GalleryHeader title="Settings" />
 
       {/* Content */}
-      <div className="p-4 space-y-6 overflow-y-auto flex-1">
+      <div className="flex-1 space-y-6 overflow-y-auto p-4">
         {/* API Keys Section */}
-        <details
-          ref={apiKeysDetailsRef}
-          className="group space-y-3"
-        >
-          <summary className="flex items-center justify-between w-full text-left cursor-pointer list-none [&::-webkit-details-marker]:hidden">
+        <details ref={apiKeysDetailsRef} className="group space-y-3">
+          <summary className="flex w-full cursor-pointer list-none items-center justify-between text-left [&::-webkit-details-marker]:hidden">
             <div className="flex items-center gap-2">
-              <KeyRound className="w-4 h-4 text-purple-400" />
+              <KeyRound className="h-4 w-4 text-purple-400" />
               <span className="text-sm font-medium">API Keys</span>
-              {apiKeys.google && apiKeys.replicate && (
-                <Check className="w-4 h-4 text-green-500" />
-              )}
+              {apiKeys.google && apiKeys.replicate && <Check className="h-4 w-4 text-green-500" />}
             </div>
-            <ChevronDown className="w-4 h-4 text-zinc-400 -rotate-90 transition-transform duration-200 group-open:rotate-0" />
+            <ChevronDown className="h-4 w-4 -rotate-90 text-zinc-400 transition-transform duration-200 group-open:rotate-0" />
           </summary>
 
           <div className="space-y-3 pl-6">
-            <p className="text-xs text-zinc-500">
-              Keys are stored locally in your browser.
-            </p>
+            <p className="text-xs text-zinc-500">Keys are stored locally in your browser.</p>
             {providers.map((provider) => (
               <ApiKeyInput
                 key={provider.id}
@@ -171,30 +174,29 @@ export function SettingsModal() {
         </details>
 
         {/* Desktop Notifications Section */}
-        <details
-          ref={desktopNotificationsDetailsRef}
-          className="group space-y-3"
-        >
-          <summary className="flex items-center justify-between w-full text-left cursor-pointer list-none [&::-webkit-details-marker]:hidden">
+        <details ref={desktopNotificationsDetailsRef} className="group space-y-3">
+          <summary className="flex w-full cursor-pointer list-none items-center justify-between text-left [&::-webkit-details-marker]:hidden">
             <div className="flex items-center gap-2">
-              <Bell className="w-4 h-4 text-purple-400" />
+              <Bell className="h-4 w-4 text-purple-400" />
               <span className="text-sm font-medium">Desktop notifications</span>
               {desktopNotificationsEnabled && notificationPermission === "granted" && (
-                <Check className="w-4 h-4 text-green-500" />
+                <Check className="h-4 w-4 text-green-500" />
               )}
             </div>
-            <ChevronDown className="w-4 h-4 text-zinc-400 -rotate-90 transition-transform duration-200 group-open:rotate-0" />
+            <ChevronDown className="h-4 w-4 -rotate-90 text-zinc-400 transition-transform duration-200 group-open:rotate-0" />
           </summary>
 
-          <div className="space-y-3 rounded-lg border border-zinc-800 bg-zinc-900/60 p-3 ml-6">
+          <div className="ml-6 space-y-3 rounded-lg border border-zinc-800 bg-zinc-900/60 p-3">
             <label className="flex items-center justify-between gap-3">
-              <span className="text-sm text-zinc-200">Notify when generations complete in background</span>
+              <span className="text-sm text-zinc-200">
+                Notify when generations complete in background
+              </span>
               <input
                 type="checkbox"
                 checked={desktopNotificationsEnabled && notificationPermission === "granted"}
                 disabled={notificationPermission !== "granted"}
                 onChange={(e) => setDesktopNotificationsEnabled(e.target.checked)}
-                className="h-4 w-4 rounded border-zinc-700 bg-zinc-800 text-purple-500 focus:ring-purple-500 disabled:cursor-not-allowed disabled:opacity-50 accent-accent"
+                className="accent-accent h-4 w-4 rounded border-zinc-700 bg-zinc-800 text-purple-500 focus:ring-purple-500 disabled:cursor-not-allowed disabled:opacity-50"
               />
             </label>
 
@@ -223,18 +225,18 @@ export function SettingsModal() {
 
         {/* Text Model Section */}
         <details className="group space-y-3">
-          <summary className="flex items-center justify-between w-full text-left cursor-pointer list-none [&::-webkit-details-marker]:hidden">
+          <summary className="flex w-full cursor-pointer list-none items-center justify-between text-left [&::-webkit-details-marker]:hidden">
             <div className="flex items-center gap-2">
-              <MessageSquareText className="w-4 h-4 text-purple-400" />
+              <MessageSquareText className="h-4 w-4 text-purple-400" />
               <span className="text-sm font-medium">Text model</span>
               {(apiKeys.google || apiKeys.replicate) && (
-                <Check className="w-4 h-4 text-green-500" />
+                <Check className="h-4 w-4 text-green-500" />
               )}
             </div>
-            <ChevronDown className="w-4 h-4 text-zinc-400 -rotate-90 transition-transform duration-200 group-open:rotate-0" />
+            <ChevronDown className="h-4 w-4 -rotate-90 text-zinc-400 transition-transform duration-200 group-open:rotate-0" />
           </summary>
 
-          <div className="space-y-3 rounded-lg border border-zinc-800 bg-zinc-900/60 p-3 ml-6">
+          <div className="ml-6 space-y-3 rounded-lg border border-zinc-800 bg-zinc-900/60 p-3">
             <p className="text-xs text-zinc-500">
               Used for prompt improvement and smart model configuration.
             </p>
@@ -253,7 +255,7 @@ export function SettingsModal() {
                         : "google/gemini-3-flash",
                   })
                 }
-                className="w-full py-2 px-3 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-zinc-100 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-colors"
+                className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-100 transition-colors focus:border-purple-500 focus:ring-1 focus:ring-purple-500 focus:outline-none"
               >
                 <option value="google">Google AI</option>
                 <option value="replicate">Replicate</option>
@@ -265,10 +267,8 @@ export function SettingsModal() {
               <input
                 type="text"
                 value={textModel.modelId}
-                onChange={(e) =>
-                  setTextModel({ ...textModel, modelId: e.target.value })
-                }
-                className="w-full py-2 px-3 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-colors"
+                onChange={(e) => setTextModel({ ...textModel, modelId: e.target.value })}
+                className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-100 placeholder-zinc-500 transition-colors focus:border-purple-500 focus:ring-1 focus:ring-purple-500 focus:outline-none"
               />
             </div>
 
@@ -285,27 +285,20 @@ export function SettingsModal() {
         {/* Models Section */}
         <div className="space-y-3">
           <div className="flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-purple-400" />
+            <Sparkles className="h-4 w-4 text-purple-400" />
             <span className="text-sm font-medium">Models</span>
-            {fetchingSchemas && (
-              <Loader2 className="w-3 h-3 animate-spin text-zinc-500" />
-            )}
+            {fetchingSchemas && <Loader2 className="h-3 w-3 animate-spin text-zinc-500" />}
           </div>
 
           <div className="space-y-2">
             {models.map((model) => (
-              <ModelToggleItem
-                key={model.id}
-                model={model}
-                hasApiKey={!!apiKeys[model.provider]}
-              />
+              <ModelToggleItem key={model.id} model={model} hasApiKey={!!apiKeys[model.provider]} />
             ))}
           </div>
 
           <AddCustomModelButton disabled={!apiKeys.replicate} apiKey={apiKeys.replicate} />
         </div>
       </div>
-
     </main>
   );
 }
@@ -333,7 +326,7 @@ function ApiKeyInput({
           <label className="text-sm font-medium text-zinc-200">{name}</label>
           <p className="text-xs text-zinc-500">{description}</p>
         </div>
-        {hasKey && <Check className="w-4 h-4 text-green-500" />}
+        {hasKey && <Check className="h-4 w-4 text-green-500" />}
       </div>
       <div className="relative">
         <input
@@ -341,14 +334,14 @@ function ApiKeyInput({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={`Enter ${name} API key`}
-          className="w-full py-2 px-3 pr-10 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-colors"
+          className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 pr-10 text-sm text-zinc-100 placeholder-zinc-500 transition-colors focus:border-purple-500 focus:ring-1 focus:ring-purple-500 focus:outline-none"
         />
         <button
           type="button"
           onClick={() => setShowKey(!showKey)}
-          className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-zinc-400 hover:text-zinc-300 transition-colors"
+          className="absolute top-1/2 right-2 -translate-y-1/2 p-1 text-zinc-400 transition-colors hover:text-zinc-300"
         >
-          {showKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+          {showKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
         </button>
       </div>
     </div>

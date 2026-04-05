@@ -1,8 +1,20 @@
-import { create } from 'zustand';
-import type { GalleryItem, ViewMode, AspectRatio, Resolution, ReferenceImage, CompletedGalleryItem, CompletedGalleryItemFields, FailedGalleryItemFields, PendingGalleryItemFields, AttachSelectedItemsResult, LightboxTarget } from '~/types';
-import { getAllImages, deleteImage as dbDeleteImage, toDisplayImage } from '~/lib/db';
-import { canAttachReferenceCount } from '~/lib/models';
-import { useSettingsStore } from './settingsStore';
+import { create } from "zustand";
+import type {
+  GalleryItem,
+  ViewMode,
+  AspectRatio,
+  Resolution,
+  ReferenceImage,
+  CompletedGalleryItem,
+  CompletedGalleryItemFields,
+  FailedGalleryItemFields,
+  PendingGalleryItemFields,
+  AttachSelectedItemsResult,
+  LightboxTarget,
+} from "~/types";
+import { getAllImages, deleteImage as dbDeleteImage, toDisplayImage } from "~/lib/db";
+import { canAttachReferenceCount } from "~/lib/models";
+import { useSettingsStore } from "./settingsStore";
 
 interface GalleryState {
   // Gallery items (unified pending + completed)
@@ -29,14 +41,17 @@ interface GalleryState {
   loadImages: () => Promise<void>;
   addItem: (item: GalleryItem) => void;
   addItems: (items: GalleryItem[]) => void;
-  updateItem: (id: string, updates: PendingGalleryItemFields | CompletedGalleryItemFields | FailedGalleryItemFields) => void;
+  updateItem: (
+    id: string,
+    updates: PendingGalleryItemFields | CompletedGalleryItemFields | FailedGalleryItemFields
+  ) => void;
   deleteItem: (id: string) => Promise<void>;
   dismissItem: (id: string) => void;
   getItem: (id: string) => GalleryItem | undefined;
   setViewMode: (mode: ViewMode) => void;
   openLightbox: (target: LightboxTarget) => void;
   closeLightbox: () => void;
-  navigateLightbox: (direction: 'prev' | 'next') => void;
+  navigateLightbox: (direction: "prev" | "next") => void;
   getSelectedItem: () => CompletedGalleryItem | null;
   getCompletedItems: () => CompletedGalleryItem[];
   getItemsByDate: () => Map<string, CompletedGalleryItem[]>;
@@ -67,30 +82,30 @@ function formatDateKey(timestamp: number): string {
   yesterday.setDate(yesterday.getDate() - 1);
 
   if (date.toDateString() === today.toDateString()) {
-    return 'Today';
+    return "Today";
   }
   if (date.toDateString() === yesterday.toDateString()) {
-    return 'Yesterday';
+    return "Yesterday";
   }
-  return date.toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: date.getFullYear() !== today.getFullYear() ? 'numeric' : undefined,
+  return date.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: date.getFullYear() !== today.getFullYear() ? "numeric" : undefined,
   });
 }
 
 export const DEFAULT_GENERATION_STATE = {
-  currentPrompt: '',
+  currentPrompt: "",
   currentModelSelections: {},
   currentAspectRatio: null,
-  currentResolution: '1K' as Resolution,
+  currentResolution: "1K" as Resolution,
   currentReferenceImages: [],
-}
+};
 
 export const useGalleryStore = create<GalleryState>()((set, get) => ({
   // Gallery state
   items: [],
-  viewMode: 'grid',
+  viewMode: "grid",
   lightboxTarget: null,
   selectedItemIds: [],
   isLightboxOpen: false,
@@ -99,7 +114,7 @@ export const useGalleryStore = create<GalleryState>()((set, get) => ({
 
   // Input settings state
   ...DEFAULT_GENERATION_STATE,
-  
+
   // Generation tracking
   activeGenerationCount: 0,
   activeGenerationSignatures: {},
@@ -114,7 +129,7 @@ export const useGalleryStore = create<GalleryState>()((set, get) => ({
       const items = storedImages.map((img) => toDisplayImage(img));
       set({ items, hasLoaded: true });
     } catch (error) {
-      console.error('Failed to load images:', error);
+      console.error("Failed to load images:", error);
     } finally {
       set({ isLoading: false });
     }
@@ -132,9 +147,7 @@ export const useGalleryStore = create<GalleryState>()((set, get) => ({
 
   updateItem: (id, updates) =>
     set((state) => ({
-      items: state.items.map((item) =>
-        item.id === id ? { ...item, ...updates } : item
-      ),
+      items: state.items.map((item) => (item.id === id ? { ...item, ...updates } : item)),
     })),
 
   deleteItem: async (id) => {
@@ -143,24 +156,24 @@ export const useGalleryStore = create<GalleryState>()((set, get) => ({
 
     try {
       await dbDeleteImage(id);
-      if (item?.status === 'completed') {
+      if (item?.status === "completed") {
         URL.revokeObjectURL(item.originalUrl);
         URL.revokeObjectURL(item.thumbnailUrl);
       }
       set((state) => ({
         items: state.items.filter((i) => i.id !== id),
         isLightboxOpen:
-          state.lightboxTarget?.kind === 'gallery' && state.lightboxTarget.imageId === id
+          state.lightboxTarget?.kind === "gallery" && state.lightboxTarget.imageId === id
             ? false
             : state.isLightboxOpen,
         lightboxTarget:
-          state.lightboxTarget?.kind === 'gallery' && state.lightboxTarget.imageId === id
+          state.lightboxTarget?.kind === "gallery" && state.lightboxTarget.imageId === id
             ? null
             : state.lightboxTarget,
         selectedItemIds: state.selectedItemIds.filter((selectedId) => selectedId !== id),
       }));
     } catch (error) {
-      console.error('Failed to delete image:', error);
+      console.error("Failed to delete image:", error);
       throw error;
     }
   },
@@ -188,30 +201,30 @@ export const useGalleryStore = create<GalleryState>()((set, get) => ({
 
   navigateLightbox: (direction) => {
     const state = get();
-    if (state.lightboxTarget?.kind !== 'gallery') return;
+    if (state.lightboxTarget?.kind !== "gallery") return;
 
-    const completedItems = state.items.filter((i) => i.status === 'completed');
+    const completedItems = state.items.filter((i) => i.status === "completed");
     const currentIndex = completedItems.findIndex((i) => i.id === state.lightboxTarget.imageId);
     if (currentIndex === -1) return;
 
     let newIndex: number;
-    if (direction === 'prev') {
+    if (direction === "prev") {
       newIndex = currentIndex > 0 ? currentIndex - 1 : completedItems.length - 1;
     } else {
       newIndex = currentIndex < completedItems.length - 1 ? currentIndex + 1 : 0;
     }
 
-    set({ lightboxTarget: { kind: 'gallery', imageId: completedItems[newIndex].id } });
+    set({ lightboxTarget: { kind: "gallery", imageId: completedItems[newIndex].id } });
   },
 
   getSelectedItem: () => {
     const state = get();
-    if (state.lightboxTarget?.kind !== 'gallery') {
+    if (state.lightboxTarget?.kind !== "gallery") {
       return null;
     }
 
     const item = state.items.find((i) => i.id === state.lightboxTarget.imageId);
-    if (item && item.status === 'completed') {
+    if (item && item.status === "completed") {
       return item;
     }
     return null;
@@ -219,13 +232,13 @@ export const useGalleryStore = create<GalleryState>()((set, get) => ({
 
   getCompletedItems: () => {
     const state = get();
-    return state.items.filter((i) => i.status === 'completed');
+    return state.items.filter((i) => i.status === "completed");
   },
 
   getItemsByDate: () => {
     const state = get();
     const grouped = new Map<string, CompletedGalleryItem[]>();
-    const completedItems = state.items.filter((i) => i.status === 'completed');
+    const completedItems = state.items.filter((i) => i.status === "completed");
 
     for (const item of completedItems) {
       if (!item.createdAt) continue;
@@ -240,7 +253,7 @@ export const useGalleryStore = create<GalleryState>()((set, get) => ({
   toggleItemSelection: (id) =>
     set((state) => {
       const item = state.items.find((entry) => entry.id === id);
-      if (!item || item.status !== 'completed') {
+      if (!item || item.status !== "completed") {
         return state;
       }
 
@@ -258,7 +271,8 @@ export const useGalleryStore = create<GalleryState>()((set, get) => ({
     const state = get();
     const selectedSet = new Set(state.selectedItemIds);
     const selectedItems = state.items.filter(
-      (item): item is CompletedGalleryItem => item.status === 'completed' && selectedSet.has(item.id)
+      (item): item is CompletedGalleryItem =>
+        item.status === "completed" && selectedSet.has(item.id)
     );
 
     if (selectedItems.length === 0) {
@@ -277,11 +291,11 @@ export const useGalleryStore = create<GalleryState>()((set, get) => ({
       items: currentState.items.filter((item) => !selectedSet.has(item.id)),
       selectedItemIds: [],
       isLightboxOpen:
-        lightboxTarget?.kind === 'gallery' && selectedSet.has(lightboxTarget.imageId)
+        lightboxTarget?.kind === "gallery" && selectedSet.has(lightboxTarget.imageId)
           ? false
           : currentState.isLightboxOpen,
       lightboxTarget:
-        lightboxTarget?.kind === 'gallery' && selectedSet.has(lightboxTarget.imageId)
+        lightboxTarget?.kind === "gallery" && selectedSet.has(lightboxTarget.imageId)
           ? null
           : currentState.lightboxTarget,
     }));
@@ -293,12 +307,13 @@ export const useGalleryStore = create<GalleryState>()((set, get) => ({
     const state = get();
     const selectedSet = new Set(state.selectedItemIds);
     const selectedItems = state.items.filter(
-      (item): item is CompletedGalleryItem => item.status === 'completed' && selectedSet.has(item.id)
+      (item): item is CompletedGalleryItem =>
+        item.status === "completed" && selectedSet.has(item.id)
     );
 
     selectedItems.forEach((item, index) => {
       const extension = getBlobExtension(item.originalBlob);
-      const link = document.createElement('a');
+      const link = document.createElement("a");
       link.href = item.originalUrl;
       link.download = `${sanitizeFilename(item.modelName)}-${item.createdAt}-${index + 1}.${extension}`;
       document.body.appendChild(link);
@@ -313,7 +328,8 @@ export const useGalleryStore = create<GalleryState>()((set, get) => ({
     const state = get();
     const selectedSet = new Set(state.selectedItemIds);
     const selectedItems = state.items.filter(
-      (item): item is CompletedGalleryItem => item.status === 'completed' && selectedSet.has(item.id)
+      (item): item is CompletedGalleryItem =>
+        item.status === "completed" && selectedSet.has(item.id)
     );
 
     if (selectedItems.length === 0) {
@@ -321,7 +337,7 @@ export const useGalleryStore = create<GalleryState>()((set, get) => ({
         success: false,
         attachedCount: 0,
         maxAllowed: null,
-        reason: 'No images selected.',
+        reason: "No images selected.",
       } satisfies AttachSelectedItemsResult;
     }
 
@@ -340,7 +356,7 @@ export const useGalleryStore = create<GalleryState>()((set, get) => ({
         maxAllowed: fit.maxAllowed,
         reason:
           fit.maxAllowed === null
-            ? 'One or more selected models do not support reference images.'
+            ? "One or more selected models do not support reference images."
             : `Selected images exceed the current model limit (${fit.maxAllowed} max).`,
       } satisfies AttachSelectedItemsResult;
     }
@@ -349,7 +365,7 @@ export const useGalleryStore = create<GalleryState>()((set, get) => ({
       id: crypto.randomUUID(),
       blob: item.originalBlob,
       url: URL.createObjectURL(item.originalBlob),
-      name: `${item.modelName} - ${item.prompt.slice(0, 40).trim() || 'Image'}`,
+      name: `${item.modelName} - ${item.prompt.slice(0, 40).trim() || "Image"}`,
     }));
 
     set((currentState) => ({
@@ -449,14 +465,19 @@ export const useGalleryStore = create<GalleryState>()((set, get) => ({
 }));
 
 function sanitizeFilename(value: string): string {
-  return value.replace(/[^a-zA-Z0-9-_]+/g, '-').replace(/^-+|-+$/g, '').toLowerCase() || 'image';
+  return (
+    value
+      .replace(/[^a-zA-Z0-9-_]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .toLowerCase() || "image"
+  );
 }
 
 function getBlobExtension(blob: Blob): string {
   const type = blob.type.toLowerCase();
 
-  if (type.includes('png')) return 'png';
-  if (type.includes('webp')) return 'webp';
-  if (type.includes('jpeg') || type.includes('jpg')) return 'jpg';
-  return 'png';
+  if (type.includes("png")) return "png";
+  if (type.includes("webp")) return "webp";
+  if (type.includes("jpeg") || type.includes("jpg")) return "jpg";
+  return "png";
 }

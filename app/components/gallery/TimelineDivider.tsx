@@ -14,7 +14,7 @@ export function TimelineDivider({ dateLabel, outputCount, prompt }: TimelineDivi
           {outputCount} {outputCount === 1 ? "output" : "outputs"}
         </span>
       </div>
-      <p className="mt-1 text text-zinc-200">{prompt}</p>
+      <p className="text mt-1 text-zinc-200">{prompt}</p>
     </div>
   );
 }

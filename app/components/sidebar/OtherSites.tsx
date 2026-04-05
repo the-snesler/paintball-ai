@@ -32,13 +32,13 @@ const otherSites: Site[] = [
 const InnerLinkButton = ({ site }: { site: Site }) => (
   <div className="flex items-center gap-3">
     <div
-      className={`w-8 h-8 rounded-lg bg-zinc-800 flex items-center justify-center group-hover:bg-zinc-700 group-hover:border transition`}
+      className={`flex h-8 w-8 items-center justify-center rounded-lg bg-zinc-800 transition group-hover:border group-hover:bg-zinc-700`}
       style={{ color: site.color, borderColor: site.color }}
     >
-      <SVG src={site.icon} className="w-4 h-4" />
+      <SVG src={site.icon} className="h-4 w-4" />
     </div>
     <div>
-      <h1 className="font-semibold text-sm">{site.name}</h1>
+      <h1 className="text-sm font-semibold">{site.name}</h1>
       <p className="text-xs text-zinc-500">{site.description}</p>
     </div>
   </div>
@@ -48,13 +48,13 @@ export const OtherSites = () => (
   <div
     popover="auto"
     id="other-sites-popover"
-    className="flex-col flex m-2 w-76 rounded-xl bg-zinc-900 border border-zinc-800 shadow-lg open:animate-in fade-in zoom-in-90 not-open:animate-out fade-out zoom-out-90 fill-mode-forwards not-open:pointer-events-none z-50"
+    className="open:animate-in fade-in zoom-in-90 not-open:animate-out fade-out zoom-out-90 fill-mode-forwards z-50 m-2 flex w-76 flex-col rounded-xl border border-zinc-800 bg-zinc-900 shadow-lg not-open:pointer-events-none"
   >
     {otherSites.map((site) =>
       site.internalLink ? (
         <button
           key={site.name}
-          className="px-4 py-2 flex items-center justify-between border-b border-zinc-800 h-16 text-left hover:bg-zinc-800 transition-colors w-full hover:cursor-pointer group"
+          className="group flex h-16 w-full items-center justify-between border-b border-zinc-800 px-4 py-2 text-left transition-colors hover:cursor-pointer hover:bg-zinc-800"
           popoverTarget="other-sites-popover"
           popoverTargetAction="hide"
         >
@@ -66,11 +66,11 @@ export const OtherSites = () => (
           href={site.url}
           target="_blank"
           rel="noopener noreferrer"
-          className="px-4 py-2 flex items-center justify-between border-b border-zinc-800 h-16 hover:bg-zinc-800 transition-colors w-full group"
+          className="group flex h-16 w-full items-center justify-between border-b border-zinc-800 px-4 py-2 transition-colors hover:bg-zinc-800"
         >
           <InnerLinkButton site={site} />
         </a>
-      ),
+      )
     )}
   </div>
 );

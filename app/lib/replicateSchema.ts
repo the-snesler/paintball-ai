@@ -1,6 +1,6 @@
-import { SCHEMA_MAPPING_SYSTEM } from '~/lib/prompts';
-import { callTextModel } from '~/lib/textModel';
-import type { ModelCapabilities, SchemaMapping } from '~/types';
+import { SCHEMA_MAPPING_SYSTEM } from "~/lib/prompts";
+import { callTextModel } from "~/lib/textModel";
+import type { ModelCapabilities, SchemaMapping } from "~/types";
 
 interface SchemaProperty {
   type: string;
@@ -30,7 +30,10 @@ interface ReplicateModelResponse {
  * Fetch model info and parse capabilities from Replicate API schema.
  * Used internally and by Settings.tsx for fetching built-in model schemas.
  */
-export async function fetchModelInfo(modelId: string, apiKey: string): Promise<{
+export async function fetchModelInfo(
+  modelId: string,
+  apiKey: string
+): Promise<{
   name: string;
   capabilities: ModelCapabilities;
 }> {
@@ -45,7 +48,7 @@ export async function fetchModelInfo(modelId: string, apiKey: string): Promise<{
 export async function resolveModelCapabilities(
   modelId: string,
   apiKey: string,
-  onProgress?: (status: string) => void,
+  onProgress?: (status: string) => void
 ): Promise<{
   name: string;
   capabilities: ModelCapabilities;
@@ -57,14 +60,15 @@ export async function resolveModelCapabilities(
   const icon = inferIcon(modelId);
 
   onProgress?.("Analyzing parameters...");
-  const schemaMapping = await generateSchemaMapping(rawProperties) ?? undefined;
+  const schemaMapping = (await generateSchemaMapping(rawProperties)) ?? undefined;
 
   // Reconcile: LLM findings are authoritative over heuristic parseCapabilities
   if (schemaMapping) {
     if (schemaMapping.imageInputKey && !capabilities.supportsReferenceImages) {
       capabilities.supportsReferenceImages = true;
-      capabilities.maxReferenceImages = schemaMapping.maxReferenceImages
-        ?? (rawProperties[schemaMapping.imageInputKey]?.type === 'array' ? 10 : 1);
+      capabilities.maxReferenceImages =
+        schemaMapping.maxReferenceImages ??
+        (rawProperties[schemaMapping.imageInputKey]?.type === "array" ? 10 : 1);
     } else if (schemaMapping.maxReferenceImages) {
       capabilities.maxReferenceImages = schemaMapping.maxReferenceImages;
     }
@@ -76,7 +80,10 @@ export async function resolveModelCapabilities(
   return { name, capabilities, schemaMapping, icon };
 }
 
-async function fetchModelRaw(modelId: string, apiKey: string): Promise<{
+async function fetchModelRaw(
+  modelId: string,
+  apiKey: string
+): Promise<{
   name: string;
   capabilities: ModelCapabilities;
   rawProperties: Record<string, SchemaProperty>;
@@ -96,7 +103,7 @@ async function fetchModelRaw(modelId: string, apiKey: string): Promise<{
   const properties = schema?.properties || {};
 
   const capabilities = parseCapabilities(properties);
-  const name = data.name || modelId.split('/').pop() || modelId;
+  const name = data.name || modelId.split("/").pop() || modelId;
 
   return { name, capabilities, rawProperties: properties };
 }
@@ -121,16 +128,16 @@ function parseCapabilities(properties: Record<string, SchemaProperty>): ModelCap
 
   // Check for reference image support - various property names used
   const imageProps = [
-    'image',
-    'image_input',
-    'input_image',
-    'input_images',
-    'reference_image',
-    'init_image',
-    'control_image',
+    "image",
+    "image_input",
+    "input_image",
+    "input_images",
+    "reference_image",
+    "init_image",
+    "control_image",
   ];
 
-  const imageProperty = imageProps.find(prop => properties[prop]);
+  const imageProperty = imageProps.find((prop) => properties[prop]);
   const supportsReferenceImages = !!imageProperty;
 
   // Infer max reference images
@@ -138,7 +145,7 @@ function parseCapabilities(properties: Record<string, SchemaProperty>): ModelCap
   if (imageProperty) {
     const prop = properties[imageProperty];
     // If it's an array type, allow multiple
-    if (prop.type === 'array') {
+    if (prop.type === "array") {
       maxReferenceImages = 10; // Default max for array inputs
     }
   }
@@ -159,10 +166,7 @@ async function generateSchemaMapping(
   rawProperties: Record<string, SchemaProperty>
 ): Promise<SchemaMapping | null> {
   try {
-    const response = await callTextModel(
-      SCHEMA_MAPPING_SYSTEM,
-      JSON.stringify(rawProperties)
-    );
+    const response = await callTextModel(SCHEMA_MAPPING_SYSTEM, JSON.stringify(rawProperties));
 
     // Extract JSON from response (handle markdown code blocks)
     const jsonMatch = response.match(/```(?:json)?\s*([\s\S]*?)```/) || [null, response];
@@ -193,7 +197,12 @@ async function generateSchemaMapping(
     }
 
     // Return null if no mapping is needed
-    if (!mapping.resolution && !mapping.imageInputKey && !mapping.maxReferenceImages && !mapping.extraDefaults) {
+    if (
+      !mapping.resolution &&
+      !mapping.imageInputKey &&
+      !mapping.maxReferenceImages &&
+      !mapping.extraDefaults
+    ) {
       return null;
     }
 
@@ -204,10 +213,10 @@ async function generateSchemaMapping(
 }
 
 const ICON_PATTERNS: [RegExp, string][] = [
-  [/^openai\/|gpt/i, '/icons/openai.svg'],
-  [/^black-forest-labs\/|flux/i, '/icons/bfl.svg'],
-  [/^google\/|gemini/i, '/icons/google.svg'],
-  [/^bytedance\/|seedream/i, '/icons/bytedance.svg'],
+  [/^openai\/|gpt/i, "/icons/openai.svg"],
+  [/^black-forest-labs\/|flux/i, "/icons/bfl.svg"],
+  [/^google\/|gemini/i, "/icons/google.svg"],
+  [/^bytedance\/|seedream/i, "/icons/bytedance.svg"],
 ];
 
 export function inferIcon(modelId: string): string | undefined {

@@ -44,7 +44,7 @@ function SineWaveGrid({ frozen = false }: { frozen?: boolean }) {
     if (!ctx) return;
 
     const gridSize = 8;
-    const baseColor = frozen 
+    const baseColor = frozen
       ? { r: 120, g: 120, b: 120 } // grey
       : { r: 138, g: 75, b: 207 }; // purple-500
     const { rand1, rand2, rand3, rand4 } = randsRef.current;
@@ -84,7 +84,9 @@ function SineWaveGrid({ frozen = false }: { frozen?: boolean }) {
           const wave1 = Math.sin(col * 0.5 + timeRef.current * 2.0);
           const wave2 = Math.sin(row * rand1 + timeRef.current * 1.5);
           const wave3 = Math.sin((col * rand2 + row * rand3) * 0.4 + timeRef.current * 2.5);
-          const wave4 = Math.sin(Math.sqrt(col * col + row * row) * 0.4 - timeRef.current * 1.8 + rand4 * 10);
+          const wave4 = Math.sin(
+            Math.sqrt(col * col + row * row) * 0.4 - timeRef.current * 1.8 + rand4 * 10
+          );
 
           const combinedWave = (wave1 + wave2 + wave3 + wave4) / 4;
           const normalizedWave = (combinedWave + 1) / 2; // 0 to 1
@@ -125,7 +127,7 @@ function SineWaveGrid({ frozen = false }: { frozen?: boolean }) {
   return (
     <canvas
       ref={canvasRef}
-      className="absolute inset-0 w-full h-full blur-sm"
+      className="absolute inset-0 h-full w-full blur-sm"
       style={{ imageRendering: "pixelated" }}
     />
   );
@@ -136,7 +138,7 @@ export function LoadingCard({ item }: LoadingCardProps) {
   const { retryItem } = useImageGeneration();
   const [countdown, setCountdown] = useState<number | null>(null);
   const [isRetrying, setIsRetrying] = useState(false);
-  
+
   const isFailed = item.status === "failed";
   const isWaiting = item.status === "waiting";
   const isGenerating = item.status === "generating" || item.status === "pending";
@@ -182,11 +184,12 @@ export function LoadingCard({ item }: LoadingCardProps) {
   };
 
   // Get retry info for display
-  const retryCount = item.status !== "completed" && item.status !== "failed" ? item.retryCount : undefined;
+  const retryCount =
+    item.status !== "completed" && item.status !== "failed" ? item.retryCount : undefined;
 
   return (
     <div
-      className="relative rounded-lg overflow-hidden bg-zinc-900 animate-fade-in"
+      className="animate-fade-in relative overflow-hidden rounded-lg bg-zinc-900"
       style={{ aspectRatio }}
     >
       {/* Animated background for generating/pending */}
@@ -202,37 +205,34 @@ export function LoadingCard({ item }: LoadingCardProps) {
       {isFailed && (
         <button
           onClick={handleDismiss}
-          className="absolute top-2 right-2 p-1.5 rounded-full bg-black/60 hover:bg-black/80 transition-colors z-10"
+          className="absolute top-2 right-2 z-10 rounded-full bg-black/60 p-1.5 transition-colors hover:bg-black/80"
           aria-label="Dismiss error"
         >
-          <X className="w-4 h-4 text-zinc-400" />
+          <X className="h-4 w-4 text-zinc-400" />
         </button>
       )}
 
       {/* Content overlay for waiting state */}
       {isWaiting && (
         <div className="absolute inset-0 flex flex-col items-center justify-center p-4">
-          <Clock className="w-8 h-8 mb-2" />
-          <p className="text-sm text-center font-medium">
-            Rate limited
-          </p>
+          <Clock className="mb-2 h-8 w-8" />
+          <p className="text-center text-sm font-medium">Rate limited</p>
           {countdown !== null && countdown > 0 && (
-            <p className="text-xs mt-1">
-              Retrying in {" "}
+            <p className="mt-1 text-xs">
+              Retrying in{" "}
               <NumberFlow
                 value={countdown}
                 format={{ useGrouping: false }}
-                transformTiming={{ duration: 300, easing: 'ease-out' }}
-                spinTiming={{ duration: 300, easing: 'ease-out' }}
-                opacityTiming={{ duration: 150, easing: 'ease-out' }}
+                transformTiming={{ duration: 300, easing: "ease-out" }}
+                spinTiming={{ duration: 300, easing: "ease-out" }}
+                opacityTiming={{ duration: 150, easing: "ease-out" }}
                 willChange
-              />s
+              />
+              s
             </p>
           )}
           {retryCount !== undefined && retryCount > 0 && (
-            <p className="text-xs mt-1">
-              Attempt {retryCount + 1}
-            </p>
+            <p className="mt-1 text-xs">Attempt {retryCount + 1}</p>
           )}
         </div>
       )}
@@ -240,9 +240,9 @@ export function LoadingCard({ item }: LoadingCardProps) {
       {/* Content overlay for failed state */}
       {isFailed && (
         <div className="absolute inset-0 flex flex-col items-center justify-center p-4">
-          <AlertCircle className="w-8 h-8 text-red-400 mb-2" />
-          <div className="w-full max-w-full max-h-28 overflow-y-auto rounded-md bg-black/20 px-2 py-1">
-            <p className="text-xs text-red-300 wrap-break-word whitespace-pre-wrap">
+          <AlertCircle className="mb-2 h-8 w-8 text-red-400" />
+          <div className="max-h-28 w-full max-w-full overflow-y-auto rounded-md bg-black/20 px-2 py-1">
+            <p className="text-xs wrap-break-word whitespace-pre-wrap text-red-300">
               {item.error || "Generation failed"}
             </p>
           </div>
@@ -250,10 +250,10 @@ export function LoadingCard({ item }: LoadingCardProps) {
             <button
               onClick={handleRetry}
               disabled={isRetrying}
-              className="mt-3 flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-red-500/20 hover:bg-red-500/30 text-red-400 text-sm transition-colors disabled:opacity-50"
+              className="mt-3 flex items-center gap-1.5 rounded-md bg-red-500/20 px-3 py-1.5 text-sm text-red-400 transition-colors hover:bg-red-500/30 disabled:opacity-50"
             >
-              <RotateCcw className={`w-3.5 h-3.5 ${isRetrying ? 'animate-spin' : ''}`} />
-              {isRetrying ? 'Retrying...' : 'Retry'}
+              <RotateCcw className={`h-3.5 w-3.5 ${isRetrying ? "animate-spin" : ""}`} />
+              {isRetrying ? "Retrying..." : "Retry"}
             </button>
           )}
         </div>
@@ -261,20 +261,16 @@ export function LoadingCard({ item }: LoadingCardProps) {
 
       {/* Generating text overlay */}
       {isGenerating && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-          <p className="text-sm text-white/80 font-medium drop-shadow-lg">
-            Generating...
-          </p>
+        <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
+          <p className="text-sm font-medium text-white/80 drop-shadow-lg">Generating...</p>
           {retryCount !== undefined && retryCount > 0 && (
-            <p className="text-xs text-white/60 mt-1">
-              Attempt {retryCount + 1}
-            </p>
+            <p className="mt-1 text-xs text-white/60">Attempt {retryCount + 1}</p>
           )}
         </div>
       )}
 
       {/* Model badge */}
-      <div className="absolute bottom-2 left-2 px-2 py-1 bg-black/60 backdrop-blur-sm rounded text-xs text-white/90">
+      <div className="absolute bottom-2 left-2 rounded bg-black/60 px-2 py-1 text-xs text-white/90 backdrop-blur-sm">
         {item.modelName}
       </div>
     </div>
