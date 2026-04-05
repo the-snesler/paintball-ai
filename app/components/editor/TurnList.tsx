@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { Trash2 } from "lucide-react";
 import { useEditorStore } from "~/stores/editorStore";
 import { useGalleryStore } from "~/stores/galleryStore";
 import { Turn } from "./Turn";
@@ -60,6 +61,7 @@ function SourceTurn({
   onSelect: () => void;
 }) {
   const [isLoaded, setIsLoaded] = useState(false);
+  const reset = useEditorStore((s) => s.reset);
 
   // Get source item from gallery if available
   const sourceGalleryItemId = useEditorStore((s) => s.sourceGalleryItemId);
@@ -77,6 +79,13 @@ function SourceTurn({
         <span className="text-xs font-medium text-zinc-600 uppercase tracking-wider">
           Source
         </span>
+        <button
+          onClick={reset}
+          className="p-1 rounded text-zinc-700 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+          title="Clear editor"
+        >
+          <Trash2 className="w-3 h-3" />
+        </button>
       </div>
 
       <button
