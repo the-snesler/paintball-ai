@@ -1,4 +1,4 @@
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenAI, ThinkingLevel } from "@google/genai";
 import Replicate from "replicate";
 import { useSettingsStore } from "~/stores/settingsStore";
 import type { Provider } from "~/types";
@@ -86,6 +86,9 @@ async function callGoogleTextModel(
     model: modelId,
     config: {
       systemInstruction: systemPrompt,
+      thinkingConfig: {
+        thinkingLevel: ThinkingLevel.LOW,
+      },
     },
     contents: [{ role: "user", parts }],
   });
