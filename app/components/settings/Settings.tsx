@@ -1,4 +1,4 @@
-import { Key, Eye, EyeOff, Check, Sparkles, ChevronDown, Loader2, Bell, Brain } from "lucide-react";
+import { KeyRound, Eye, EyeOff, Check, Sparkles, ChevronDown, Loader2, Bell, MessageSquareText } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { GalleryHeader } from "~/components/gallery/GalleryHeader";
 import { useSettingsStore } from "~/stores/settingsStore";
@@ -144,7 +144,7 @@ export function SettingsModal() {
         >
           <summary className="flex items-center justify-between w-full text-left cursor-pointer list-none [&::-webkit-details-marker]:hidden">
             <div className="flex items-center gap-2">
-              <Key className="w-4 h-4 text-purple-400" />
+              <KeyRound className="w-4 h-4 text-purple-400" />
               <span className="text-sm font-medium">API Keys</span>
               {apiKeys.google && apiKeys.replicate && (
                 <Check className="w-4 h-4 text-green-500" />
@@ -225,7 +225,7 @@ export function SettingsModal() {
         <details className="group space-y-3">
           <summary className="flex items-center justify-between w-full text-left cursor-pointer list-none [&::-webkit-details-marker]:hidden">
             <div className="flex items-center gap-2">
-              <Brain className="w-4 h-4 text-purple-400" />
+              <MessageSquareText className="w-4 h-4 text-purple-400" />
               <span className="text-sm font-medium">Text model</span>
               {(apiKeys.google || apiKeys.replicate) && (
                 <Check className="w-4 h-4 text-green-500" />

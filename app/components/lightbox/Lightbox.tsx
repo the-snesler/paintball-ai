@@ -7,7 +7,7 @@ import {
   Trash2,
   Copy,
   Wand2,
-  PencilLine,
+  FilePenLine,
 } from "lucide-react";
 import { useNavigate } from "react-router";
 import { useGalleryStore } from "~/stores/galleryStore";
@@ -193,7 +193,7 @@ export function Lightbox() {
                 onClick={handleReusePrompt}
               />
               <ActionButton
-                icon={<PencilLine className="w-4 h-4" />}
+                icon={<FilePenLine className="w-4 h-4" />}
                 label="Open in Editor"
                 onClick={() => {
                   closeLightbox();
