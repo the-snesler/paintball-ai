@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Trash2 } from "lucide-react";
+import { Check, Trash2, X } from "lucide-react";
 import { useEditorStore } from "~/stores/editorStore";
 import { useGalleryStore } from "~/stores/galleryStore";
 import { Turn } from "./Turn";
@@ -11,9 +11,12 @@ export function TurnList() {
   const sourcePrompt = useEditorStore((s) => s.sourcePrompt);
   const selectedItemId = useEditorStore((s) => s.selectedItemId);
   const selectItem = useEditorStore((s) => s.selectItem);
+  const analysisResult = useEditorStore((s) => s.analysisResult);
+  const setAnalysisResult = useEditorStore((s) => s.setAnalysisResult);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const prevTurnCountRef = useRef(turns.length);
+  const prevAnalysisRef = useRef(analysisResult);
 
   // Auto-scroll to bottom when new turns are added
   useEffect(() => {
@@ -26,9 +29,20 @@ export function TurnList() {
     prevTurnCountRef.current = turns.length;
   }, [turns.length]);
 
+  // Auto-scroll when analysis result appears
+  useEffect(() => {
+    if (analysisResult && !prevAnalysisRef.current && scrollRef.current) {
+      scrollRef.current.scrollTo({
+        top: scrollRef.current.scrollHeight,
+        behavior: "smooth",
+      });
+    }
+    prevAnalysisRef.current = analysisResult;
+  }, [analysisResult]);
+
   return (
-    <div ref={scrollRef} className="flex-1 overflow-y-auto">
-      <div className="mx-auto max-w-3xl space-y-8 px-6 py-6">
+    <div ref={scrollRef} className="flex-1 overflow-y-auto overflow-x-hidden">
+      <div className="mx-auto flex flex-col gap-8 items-center px-6 py-6">
         {/* Source image "turn zero" */}
         {sourceUrl && (
           <SourceTurn
@@ -41,10 +55,13 @@ export function TurnList() {
 
         {/* Edit turns */}
         {turns.map((turn, index) => (
-          <div key={turn.id} className="relative border-l border-zinc-800 pl-4">
-            <Turn turn={turn} turnIndex={index} />
-          </div>
+          <Turn turn={turn} key={turn.id} turnIndex={index} />
         ))}
+
+        {/* Analysis result turn */}
+        {analysisResult && (
+          <AnalysisTurn result={analysisResult} onDismiss={() => setAnalysisResult(null)} />
+        )}
       </div>
     </div>
   );
@@ -79,7 +96,7 @@ function SourceTurn({
     galleryItem && galleryItem.status === "completed" ? galleryItem.thumbnailUrl : url;
 
   return (
-    <div className="animate-fade-in relative flex flex-col items-center">
+    <div className="animate-fade-in relative flex flex-col items-center max-w-3xl">
       <div className="mb-3 flex items-center gap-2">
         <span className="text-xs font-medium tracking-wider text-zinc-600 uppercase">Source</span>
         <button
@@ -103,7 +120,7 @@ function SourceTurn({
         <img
           src={displayUrl}
           alt={prompt || "Source image"}
-          className={`h-[calc(100vh-18rem)] w-full transition-opacity duration-300 ${isLoaded ? "opacity-100" : "opacity-0"}`}
+          className={`h-[calc(100vh-25rem)] w-full transition-opacity duration-300 ${isLoaded ? "opacity-100" : "opacity-0"}`}
           onLoad={() => setIsLoaded(true)}
         />
 
@@ -138,6 +155,46 @@ function SourceTurn({
           </div>
         )}
       </button>
+    </div>
+  );
+}
+
+function AnalysisTurn({ result, onDismiss }: { result: string; onDismiss: () => void }) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = () => {
+    void navigator.clipboard.writeText(result);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  };
+
+  return (
+    <div className="animate-fade-in">
+      <div className="mb-2 flex items-center justify-between gap-2">
+        <p className="text-xs font-medium tracking-wider text-purple-400 uppercase">
+          Image Analysis
+        </p>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={handleCopy}
+            className={`flex items-center gap-1 rounded px-2 py-1 text-xs transition-colors ${
+              copied
+                ? "text-purple-300"
+                : "text-purple-400 hover:bg-purple-500/10 hover:text-purple-300"
+            }`}
+          >
+            {copied && <Check className="h-3 w-3" />}
+            {copied ? "Copied!" : "Copy"}
+          </button>
+          <button
+            onClick={onDismiss}
+            className="rounded p-1 text-zinc-600 transition-colors hover:text-zinc-400"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      </div>
+      <p className="text-sm leading-relaxed text-zinc-300">{result}</p>
     </div>
   );
 }

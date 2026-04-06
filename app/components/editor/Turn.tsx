@@ -55,16 +55,11 @@ export function Turn({ turn, turnIndex, isFirst = false }: TurnProps) {
   }, [items, isLastTurn, selectedItemId, selectItem]);
 
   return (
-    <div className="animate-fade-in">
+    <div className="animate-fade-in w-full flex flex-col items-center">
       {/* Turn header */}
-      <div className="mb-3 flex items-start gap-3">
+      <div className="mb-1 flex items-start gap-3 w-full max-w-3xl">
         <div className="flex min-w-0 flex-1 items-center gap-2">
-          {!isFirst && (
-            <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-zinc-700 bg-zinc-800 text-[10px] font-medium text-zinc-500">
-              {turnIndex + 1}
-            </span>
-          )}
-          <p className="truncate text-sm leading-snug font-medium text-zinc-200">
+          <p className="text-sm leading-snug font-medium text-zinc-200">
             {turn.instruction}
           </p>
         </div>
@@ -82,10 +77,7 @@ export function Turn({ turn, turnIndex, isFirst = false }: TurnProps) {
 
       {/* Image grid */}
       <div
-        className="grid gap-3"
-        style={{
-          gridTemplateColumns: `repeat(${Math.min(items.length, 3)}, minmax(0, 1fr))`,
-        }}
+        className="grid gap-3 w-full overflow-y-auto grid-cols-[repeat(auto-fill,minmax(250px,1fr))] p-3"
       >
         {items.map((item) => {
           if (!item) return null;

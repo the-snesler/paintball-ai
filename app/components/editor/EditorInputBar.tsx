@@ -1,4 +1,4 @@
-import { ArrowUp, Loader2, ScanSearch, Sparkles, X } from "lucide-react";
+import { ArrowUp, Loader2, ScanSearch, Sparkles } from "lucide-react";
 import { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useEditorStore } from "~/stores/editorStore";
 import { useEditorGeneration } from "~/hooks/useEditorGeneration";
@@ -23,7 +23,6 @@ export function EditorInputBar({ onSourceFile }: EditorInputBarProps) {
   const isAnalyzing = useEditorStore((s) => s.isAnalyzing);
   const setAnalyzing = useEditorStore((s) => s.setAnalyzing);
   const setAnalysisResult = useEditorStore((s) => s.setAnalysisResult);
-  const analysisResult = useEditorStore((s) => s.analysisResult);
   const addTurn = useEditorStore((s) => s.addTurn);
   const addItemToTurn = useEditorStore((s) => s.addItemToTurn);
   const selectItem = useEditorStore((s) => s.selectItem);
@@ -187,38 +186,7 @@ export function EditorInputBar({ onSourceFile }: EditorInputBarProps) {
 
   return (
     <div className="shrink-0">
-      {/* Analysis result panel */}
-      {analysisResult && (
-        <div className="animate-slide-up mx-6 mb-0 rounded-xl border border-purple-800/40 bg-purple-950/20 px-4 py-3">
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0 flex-1">
-              <p className="mb-1 text-xs font-medium tracking-wider text-purple-400 uppercase">
-                Image Analysis
-              </p>
-              <p className="text-sm leading-relaxed text-zinc-300">{analysisResult}</p>
-            </div>
-            <div className="flex shrink-0 items-center gap-1">
-              <button
-                onClick={() => {
-                  navigator.clipboard.writeText(analysisResult);
-                }}
-                className="rounded px-2 py-1 text-xs text-purple-400 transition-colors hover:bg-purple-500/10 hover:text-purple-300"
-              >
-                Copy
-              </button>
-              <button
-                onClick={() => setAnalysisResult(null)}
-                className="rounded p-1 text-zinc-600 transition-colors hover:text-zinc-400"
-              >
-                <X className="h-3.5 w-3.5" />
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Main input bar */}
-      <div className={`px-6 py-4 ${analysisResult ? "" : ""}`}>
+      <div className="px-6 py-4">
         <div className="mx-auto max-w-3xl">
           {/* Textarea */}
           <div
@@ -243,7 +211,7 @@ export function EditorInputBar({ onSourceFile }: EditorInputBarProps) {
               }
               disabled={!hasSource || isGenerating}
               rows={1}
-              className="field-sizing-content max-h-48 min-h-[44px] w-full resize-none rounded-t-xl bg-transparent px-4 pt-3 pb-2 text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none disabled:cursor-not-allowed"
+              className="field-sizing-content max-h-48 min-h-11 w-full resize-none rounded-t-xl bg-transparent px-4 pt-3 pb-2 text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none disabled:cursor-not-allowed"
             />
 
             {/* Bottom row of input */}
