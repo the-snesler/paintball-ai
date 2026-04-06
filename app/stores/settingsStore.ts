@@ -122,7 +122,7 @@ export const useSettingsStore = create<SettingsState>()(
     }),
     {
       name: "studio-settings",
-      version: 6,
+      version: 7,
       partialize: (state) => ({
         apiKeys: state.apiKeys,
         models: state.models,
@@ -139,6 +139,12 @@ export const useSettingsStore = create<SettingsState>()(
           desktopNotificationsEnabled?: boolean;
           notificationPromptDismissed?: boolean;
           requestedOutputCount?: number;
+        };
+
+        // always update builtin models
+        state = {
+          ...state,
+          models: mergeWithBuiltInModels(state.models),
         };
 
         if (version < 2) {
@@ -171,20 +177,6 @@ export const useSettingsStore = create<SettingsState>()(
               ...m,
               icon: m.icon ?? iconMap[m.id],
             })),
-          };
-        }
-
-        if (version < 4) {
-          state = {
-            ...state,
-            models: mergeWithBuiltInModels(state.models),
-          };
-        }
-
-        if (version >= 4) {
-          state = {
-            ...state,
-            models: mergeWithBuiltInModels(state.models),
           };
         }
 

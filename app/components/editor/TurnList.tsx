@@ -3,6 +3,7 @@ import { Trash2 } from "lucide-react";
 import { useEditorStore } from "~/stores/editorStore";
 import { useGalleryStore } from "~/stores/galleryStore";
 import { Turn } from "./Turn";
+import { useNavigate } from "react-router";
 
 export function TurnList() {
   const turns = useEditorStore((s) => s.turns);
@@ -61,7 +62,13 @@ function SourceTurn({
   onSelect: () => void;
 }) {
   const [isLoaded, setIsLoaded] = useState(false);
+  const navigate = useNavigate();
   const reset = useEditorStore((s) => s.reset);
+
+  const handleReset = () => {
+    navigate("/editor");
+    reset();
+  };
 
   // Get source item from gallery if available
   const sourceGalleryItemId = useEditorStore((s) => s.sourceGalleryItemId);
@@ -72,11 +79,11 @@ function SourceTurn({
     galleryItem && galleryItem.status === "completed" ? galleryItem.thumbnailUrl : url;
 
   return (
-    <div className="animate-fade-in">
+    <div className="animate-fade-in relative flex flex-col items-center">
       <div className="mb-3 flex items-center gap-2">
         <span className="text-xs font-medium tracking-wider text-zinc-600 uppercase">Source</span>
         <button
-          onClick={reset}
+          onClick={handleReset}
           className="rounded p-1 text-zinc-700 transition-colors hover:bg-red-500/10 hover:text-red-400"
           title="Clear editor"
         >
@@ -87,7 +94,7 @@ function SourceTurn({
       <button
         type="button"
         onClick={onSelect}
-        className={`group relative max-w-xs cursor-pointer overflow-hidden rounded-lg transition-all duration-150 ${
+        className={`group relative cursor-pointer rounded-lg transition-all duration-150 ${
           isSelected
             ? "ring-2 ring-purple-500 ring-offset-2 ring-offset-zinc-950"
             : "ring-1 ring-zinc-700/50 hover:ring-zinc-600"
@@ -96,9 +103,10 @@ function SourceTurn({
         <img
           src={displayUrl}
           alt={prompt || "Source image"}
-          className={`h-auto w-full transition-opacity duration-300 ${isLoaded ? "opacity-100" : "opacity-0"}`}
+          className={`h-[calc(100vh-18rem)] w-full transition-opacity duration-300 ${isLoaded ? "opacity-100" : "opacity-0"}`}
           onLoad={() => setIsLoaded(true)}
         />
+
         {!isLoaded && (
           <div
             className="absolute inset-0 animate-pulse bg-zinc-800"

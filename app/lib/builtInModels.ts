@@ -76,7 +76,7 @@ export const BUILT_IN_MODELS: StoredModel[] = [
       supportsAspectRatios: true,
       supportsResolution: false,
       supportsReferenceImages: true,
-      maxReferenceImages: 1,
+      maxReferenceImages: 10,
     },
   },
   {
@@ -89,7 +89,7 @@ export const BUILT_IN_MODELS: StoredModel[] = [
       supportsAspectRatios: true,
       supportsResolution: false,
       supportsReferenceImages: true,
-      maxReferenceImages: 1,
+      maxReferenceImages: 10,
     },
   },
   {
@@ -102,7 +102,7 @@ export const BUILT_IN_MODELS: StoredModel[] = [
       supportsAspectRatios: true,
       supportsResolution: false,
       supportsReferenceImages: false,
-      maxReferenceImages: 0,
+      maxReferenceImages: 14,
     },
   },
 ];
@@ -128,11 +128,10 @@ export function mergeWithBuiltInModels(models?: StoredModel[]): StoredModel[] {
     }
 
     return {
-      ...builtInModel,
-      enabled: existing.enabled,
-      capabilities: existing.capabilities,
       icon: existing.icon ?? builtInModel.icon,
       schemaFetched: existing.schemaFetched,
+      ...builtInModel,
+      enabled: existing.enabled,
     };
   });
 
