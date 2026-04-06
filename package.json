@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@ai-sdk/react": "^3.0.23",
+    "@floating-ui/react": "^0.27.19",
     "@google/genai": "^1.35.0",
     "@number-flow/react": "^0.5.10",
     "@react-router/node": "7.12.0",

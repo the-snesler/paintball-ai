@@ -32,6 +32,8 @@ interface GalleryState {
   currentAspectRatio: AspectRatio | null;
   currentResolution: Resolution;
   currentReferenceImages: ReferenceImage[];
+  variationsEnabled: boolean;
+  isPreparingVariations: boolean;
   activeGenerationCount: number;
   activeGenerationSignatures: Record<string, number>;
   lastSubmittedSignature: string | null;
@@ -66,6 +68,7 @@ interface GalleryState {
   setModelCount: (modelId: string, count: number) => void;
   setAspectRatio: (ratio: AspectRatio | null) => void;
   setResolution: (resolution: Resolution) => void;
+  setVariationsEnabled: (enabled: boolean) => void;
   addReferenceImage: (image: ReferenceImage) => void;
   removeReferenceImage: (id: string) => void;
   clearReferenceImages: () => void;
@@ -100,6 +103,7 @@ export const DEFAULT_GENERATION_STATE = {
   currentAspectRatio: null,
   currentResolution: "1K" as Resolution,
   currentReferenceImages: [],
+  variationsEnabled: false,
 };
 
 export const useGalleryStore = create<GalleryState>()((set, get) => ({
@@ -116,6 +120,7 @@ export const useGalleryStore = create<GalleryState>()((set, get) => ({
   ...DEFAULT_GENERATION_STATE,
 
   // Generation tracking
+  isPreparingVariations: false,
   activeGenerationCount: 0,
   activeGenerationSignatures: {},
   lastSubmittedSignature: null,
@@ -394,6 +399,8 @@ export const useGalleryStore = create<GalleryState>()((set, get) => ({
   setAspectRatio: (aspectRatio) => set({ currentAspectRatio: aspectRatio }),
 
   setResolution: (resolution) => set({ currentResolution: resolution }),
+
+  setVariationsEnabled: (enabled) => set({ variationsEnabled: enabled }),
 
   addReferenceImage: (image) =>
     set((state) => ({

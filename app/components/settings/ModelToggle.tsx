@@ -2,6 +2,7 @@ import { Maximize, RectangleHorizontal, Trash2, Image, Box } from "lucide-react"
 import { useSettingsStore } from "~/stores/settingsStore";
 import SVG from "react-inlinesvg";
 import type { StoredModel } from "~/types";
+import { Tooltip } from "~/components/ui/Tooltip";
 
 function CapabilityBadge({
   icon: Icon,
@@ -14,12 +15,11 @@ function CapabilityBadge({
 }) {
   if (!enabled) return null;
   return (
-    <span
-      className="inline-flex items-center gap-1 rounded bg-zinc-700/50 px-1.5 py-0.5 text-[10px] text-zinc-400"
-      title={label}
-    >
-      <Icon className="h-2.5 w-2.5" />
-    </span>
+    <Tooltip content={label} placement="top" delay={200}>
+      <span className="inline-flex cursor-help items-center gap-1 rounded bg-zinc-700/50 px-1.5 py-0.5 text-[10px] text-zinc-400">
+        <Icon className="h-2.5 w-2.5" />
+      </span>
+    </Tooltip>
   );
 }
 

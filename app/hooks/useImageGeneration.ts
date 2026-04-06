@@ -8,6 +8,12 @@ import { createThumbnailBlob } from "~/lib/imageProcessing";
 import type { ApiKeys, AspectRatio, GalleryItem, Provider, Resolution } from "~/types";
 import { executeGeneration, RateLimitError } from "~/lib/generation";
 import { sleep } from "../lib/util";
+import {
+  parseVariationSections,
+  generateVariations,
+  buildVariedPrompts,
+  stripVariationSections,
+} from "~/lib/promptVariations";
 
 const MAX_RETRIES = 3;
 const BASE_BACKOFF_MS = 1000;
@@ -178,6 +184,8 @@ export function useImageGeneration() {
   );
 
   const generate = useCallback(async () => {
+    const variationsEnabled = useGalleryStore.getState().variationsEnabled;
+
     const signature = buildGenerationSignature({
       prompt,
       modelSelections,
@@ -186,9 +194,47 @@ export function useImageGeneration() {
       referenceImages,
     });
 
+    // Count total tasks to know how many variations we need
+    let totalTasks = 0;
+    for (const [modelId, count] of Object.entries(modelSelections)) {
+      if (count === 0) continue;
+      const model = getModel(models, modelId);
+      if (model) totalTasks += count;
+    }
+    if (totalTasks === 0) return;
+
+    // Generate prompt variations if enabled
+    let variedPrompts: string[] | null = null;
+    if (variationsEnabled) {
+      const sections = parseVariationSections(prompt);
+      if (sections.length > 0) {
+        try {
+          useGalleryStore.setState({ isPreparingVariations: true });
+          const imageBlobs = referenceImages.map((r) => r.blob);
+          const replacements = await generateVariations(
+            prompt,
+            sections,
+            totalTasks,
+            imageBlobs.length > 0 ? imageBlobs : undefined
+          );
+          variedPrompts = buildVariedPrompts(prompt, sections, replacements);
+        } catch {
+          // Fall back to stripping variation brackets and using the example text
+          variedPrompts = null;
+        } finally {
+          useGalleryStore.setState({ isPreparingVariations: false });
+        }
+      }
+    }
+
+    // If variations were requested but failed/no sections, strip brackets from prompt
+    const basePrompt =
+      variationsEnabled && !variedPrompts ? stripVariationSections(prompt) : prompt;
+
     // Build tasks for each model/count
     const tasks: GenerationTask[] = [];
     const pendingItems: GalleryItem[] = [];
+    let taskIndex = 0;
 
     for (const [modelId, count] of Object.entries(modelSelections)) {
       if (count === 0) continue;
@@ -200,13 +246,14 @@ export function useImageGeneration() {
         const taskId = crypto.randomUUID();
         const taskResolution = model.capabilities.supportsResolution ? resolution : null;
         const taskAspectRatio = model.capabilities.supportsAspectRatios ? aspectRatio : null;
+        const taskPrompt = variedPrompts ? variedPrompts[taskIndex] : basePrompt;
 
         tasks.push({
           id: taskId,
           modelId,
           modelName: model.name,
           provider: model.provider,
-          prompt,
+          prompt: taskPrompt,
           aspectRatio: taskAspectRatio,
           resolution: taskResolution,
           referenceImages: referenceImages.map((r) => ({ id: r.id, blob: r.blob })),
@@ -217,12 +264,14 @@ export function useImageGeneration() {
           status: "pending",
           modelId,
           modelName: model.name,
-          prompt,
+          prompt: taskPrompt,
           aspectRatio: taskAspectRatio,
           resolution: taskResolution,
           referenceImageIds: referenceImages.map((r) => r.id),
           retryCount: 0,
         });
+
+        taskIndex++;
       }
     }
 

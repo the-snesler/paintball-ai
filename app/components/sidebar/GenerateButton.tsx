@@ -5,6 +5,7 @@ import { useSettingsStore } from "~/stores/settingsStore";
 import { useImageGeneration } from "~/hooks/useImageGeneration";
 import { buildGenerationSignature } from "~/lib/generationSignature";
 import { getModel } from "~/lib/models";
+import { hasVariationSections } from "~/lib/promptVariations";
 import NumberFlow from "@number-flow/react";
 
 export function GenerateButton() {
@@ -46,7 +47,16 @@ export function GenerateButton() {
   const isLockedForCurrentParams =
     isLastSubmittedActive && lastSubmittedSignature === currentSignature;
 
-  const canGenerate = prompt.trim().length > 0 && totalImages > 0 && !isLockedForCurrentParams;
+  const variationsEnabled = useGalleryStore((s) => s.variationsEnabled);
+  const isPreparingVariations = useGalleryStore((s) => s.isPreparingVariations);
+  const variationsBlocking = variationsEnabled && !hasVariationSections(prompt);
+
+  const canGenerate =
+    prompt.trim().length > 0 &&
+    totalImages > 0 &&
+    !isLockedForCurrentParams &&
+    !variationsBlocking &&
+    !isPreparingVariations;
 
   const canClear = prompt.trim().length !== 0 || totalImages > 0;
 
@@ -77,7 +87,12 @@ export function GenerateButton() {
               : "translate-y-0 cursor-not-allowed border-zinc-700 bg-zinc-800 text-zinc-500"
           }`}
         >
-          {isLockedForCurrentParams ? (
+          {isPreparingVariations ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Creating variations...
+            </>
+          ) : isLockedForCurrentParams ? (
             <>
               <Loader2 className="h-4 w-4 animate-spin" />
               Generating...
@@ -86,6 +101,11 @@ export function GenerateButton() {
             <>
               <KeyRound className="h-4 w-4" />
               Missing keys
+            </>
+          ) : variationsBlocking ? (
+            <>
+              <Sparkles className="h-4 w-4" />
+              {"Add {{variations}}"}
             </>
           ) : (
             <>

@@ -2,6 +2,12 @@ export const IMPROVE_PROMPT_SYSTEM = `You are an expert at writing prompts for A
 
 e.g. if the user prompts for a character sheet with 4 poses, decide what those 4 poses should be.
 
+Best practices:
+- Provide context and intent: Explain the purpose of the image to help the model understand the context
+- Use step-by-step instructions: For complex scenes, split your request into steps
+- Describe what you want, not what you don't
+- Control the camera: Use photographic and cinematic terms to describe the composition
+
 Rules:
 - Return ONLY the improved prompt text, nothing else
 - Do not include any preamble, explanation, or commentary
@@ -15,6 +21,20 @@ Rules:
 - Return ONLY the prompt text, no preamble, labels, or explanation
 - Be specific and descriptive — concrete details over vague adjectives
 - Keep the result under 400 characters`;
+
+export const VARIATION_SYSTEM = `You generate creative text variations for AI image prompts.
+
+You will receive a bracketed section from a prompt. The text before the colon is an example value. The text after the colon is an instruction for what to vary. For instance, "sunset: vary time of day" means the example is "sunset" and you should vary the time of day.
+
+Generate exactly N unique variations. Each variation should be a short phrase (similar length to the example) that could directly replace the bracketed section in the prompt.
+
+Rules:
+- Return a JSON array of exactly N strings, e.g. ["dawn", "high noon", "twilight"]
+- Each string is ONLY the replacement text, not the full prompt
+- Make variations meaningfully different from each other
+- Keep each variation concise — roughly the same word count as the example
+- Do not include any preamble, explanation, or markdown formatting
+- Return ONLY the JSON array`;
 
 export const SCHEMA_MAPPING_SYSTEM = `You analyze Replicate model API schemas and produce parameter mappings.
 
