@@ -32,17 +32,14 @@ const providers: { id: Provider; name: string; description: string }[] = [
 
 export function SettingsModal() {
   const apiKeys = useSettingsStore((s) => s.apiKeys);
-  const models = useSettingsStore((s) => s.models);
   const textModel = useSettingsStore((s) => s.textModel);
   const desktopNotificationsEnabled = useSettingsStore((s) => s.desktopNotificationsEnabled);
   const setApiKey = useSettingsStore((s) => s.setApiKey);
   const setTextModel = useSettingsStore((s) => s.setTextModel);
   const setDesktopNotificationsEnabled = useSettingsStore((s) => s.setDesktopNotificationsEnabled);
-  const updateModelCapabilities = useSettingsStore((s) => s.updateModelCapabilities);
 
   const apiKeysDetailsRef = useRef<HTMLDetailsElement | null>(null);
   const desktopNotificationsDetailsRef = useRef<HTMLDetailsElement | null>(null);
-  const [fetchingSchemas, setFetchingSchemas] = useState(false);
   const [requestingPermission, setRequestingPermission] = useState(false);
   const [notificationPermission, setNotificationPermission] = useState<
     NotificationPermission | "unsupported"
@@ -53,32 +50,6 @@ export function SettingsModal() {
 
     return Notification.permission;
   });
-
-  // Fetch schemas for Replicate models that haven't been fetched yet
-  useEffect(() => {
-    const unfetchedModels = models.filter(
-      (m) => m.provider === "replicate" && !m.schemaFetched && !m.isCustom
-    );
-
-    if (unfetchedModels.length === 0 || !apiKeys.replicate) return;
-
-    setFetchingSchemas(true);
-
-    Promise.all(
-      unfetchedModels.map(async (model) => {
-        try {
-          const replicateId = model.id.replace("replicate/", "");
-          const { capabilities } = await fetchModelInfo(replicateId, apiKeys.replicate || "");
-          updateModelCapabilities(model.id, capabilities, true);
-        } catch (err) {
-          // Silently fail - keep default capabilities
-          console.warn(`Failed to fetch schema for ${model.id}:`, err);
-        }
-      })
-    ).finally(() => {
-      setFetchingSchemas(false);
-    });
-  }, [apiKeys.replicate, models, updateModelCapabilities]);
 
   useEffect(() => {
     if (notificationPermission === "unsupported") return;
@@ -264,23 +235,6 @@ export function SettingsModal() {
             )}
           </div>
         </details>
-
-        {/* Models Section */}
-        <div className="space-y-3">
-          <div className="flex items-center gap-2">
-            <Sparkles className="h-4 w-4 text-purple-400" />
-            <span className="text-sm font-medium">Models</span>
-            {fetchingSchemas && <Loader2 className="h-3 w-3 animate-spin text-zinc-500" />}
-          </div>
-
-          <div className="space-y-2">
-            {models.map((model) => (
-              <ModelToggleItem key={model.id} model={model} hasApiKey={!!apiKeys[model.provider]} />
-            ))}
-          </div>
-
-          <AddCustomModelButton disabled={!apiKeys.replicate} apiKey={apiKeys.replicate} />
-        </div>
       </div>
     </main>
   );

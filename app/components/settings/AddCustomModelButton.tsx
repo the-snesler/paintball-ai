@@ -73,23 +73,23 @@ export default function AddCustomModelButton({
 
   return (
     <div className="space-y-2 rounded-lg border border-zinc-700 bg-zinc-800/50 p-3">
-      <div className="flex gap-2">
-        <input
-          type="text"
-          value={modelId}
-          onChange={(e) => {
-            setModelId(e.target.value);
-            setError(null);
-          }}
-          placeholder="owner/model-name"
-          className="flex-1 rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 placeholder-zinc-500 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 focus:outline-none"
-          onKeyDown={(e) => e.key === "Enter" && handleAdd()}
-          autoFocus
-        />
+      <input
+        type="text"
+        value={modelId}
+        onChange={(e) => {
+          setModelId(e.target.value);
+          setError(null);
+        }}
+        placeholder="owner/model-name"
+        className="w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 placeholder-zinc-500 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 focus:outline-none"
+        onKeyDown={(e) => e.key === "Enter" && handleAdd()}
+        autoFocus
+      />
+      <div className="grid grid-cols-2 gap-2">
         <button
           onClick={handleAdd}
           disabled={loading || !modelId.trim()}
-          className="flex items-center gap-1.5 rounded-lg bg-purple-600 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-purple-500 disabled:bg-zinc-700 disabled:text-zinc-500"
+          className="flex items-center justify-center gap-1.5 rounded-lg bg-purple-600 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-purple-500 disabled:bg-zinc-700 disabled:text-zinc-500"
         >
           {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
           Add
