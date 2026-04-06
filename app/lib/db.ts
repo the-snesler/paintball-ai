@@ -235,6 +235,32 @@ export async function deleteReferenceImage(id: string): Promise<void> {
   });
 }
 
+export async function importImage(record: StoredImageRecord): Promise<void> {
+  const db = await initDB();
+
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(STORES.images, "readwrite");
+    const store = transaction.objectStore(STORES.images);
+    const request = store.put(record);
+
+    request.onerror = () => reject(request.error);
+    request.onsuccess = () => resolve();
+  });
+}
+
+export async function getExistingImageIds(): Promise<Set<string>> {
+  const db = await initDB();
+
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(STORES.images, "readonly");
+    const store = transaction.objectStore(STORES.images);
+    const request = store.getAllKeys();
+
+    request.onerror = () => reject(request.error);
+    request.onsuccess = () => resolve(new Set(request.result as string[]));
+  });
+}
+
 // Helper to convert stored record to display record with Object URL
 export function toDisplayImage(stored: StoredImageRecord): CompletedGalleryItem {
   return {

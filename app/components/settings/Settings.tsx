@@ -8,11 +8,17 @@ import {
   Loader2,
   Bell,
   MessageSquareText,
+  Archive,
+  Download,
+  Upload,
 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { GalleryHeader } from "~/components/gallery/GalleryHeader";
 import { useSettingsStore } from "~/stores/settingsStore";
+import { useGalleryStore } from "~/stores/galleryStore";
 import { fetchModelInfo } from "~/lib/replicateSchema";
+import { getImageCount } from "~/lib/db";
+import { exportAllImages, importFromZip } from "~/lib/exportImport";
 import type { Provider } from "~/types";
 import ModelToggleItem from "./ModelToggle";
 import AddCustomModelButton from "./AddCustomModelButton";
@@ -235,8 +241,125 @@ export function SettingsModal() {
             )}
           </div>
         </details>
+
+        {/* Data Section */}
+        <DataSection />
       </div>
     </main>
+  );
+}
+
+function DataSection() {
+  const loadImages = useGalleryStore((s) => s.loadImages);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [imageCount, setImageCount] = useState<number | null>(null);
+  const [exporting, setExporting] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const [status, setStatus] = useState<string | null>(null);
+
+  useEffect(() => {
+    getImageCount().then(setImageCount);
+  }, []);
+
+  const handleExport = async () => {
+    setExporting(true);
+    setStatus(null);
+    try {
+      await exportAllImages();
+      setStatus("Export complete.");
+    } catch (e) {
+      setStatus(`Export failed: ${e instanceof Error ? e.message : "Unknown error"}`);
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setImporting(true);
+    setStatus(null);
+    try {
+      const result = await importFromZip(file);
+      const parts = [`${result.imported} imported`];
+      if (result.skipped > 0) parts.push(`${result.skipped} skipped (already exist)`);
+      if (result.failed > 0) parts.push(`${result.failed} failed`);
+      setStatus(parts.join(", "));
+
+      if (result.imported > 0) {
+        await loadImages();
+        setImageCount(await getImageCount());
+      }
+    } catch (e) {
+      setStatus(`Import failed: ${e instanceof Error ? e.message : "Unknown error"}`);
+    } finally {
+      setImporting(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
+  return (
+    <details className="group space-y-3" open>
+      <summary className="flex w-full cursor-pointer list-none items-center justify-between text-left [&::-webkit-details-marker]:hidden">
+        <div className="flex items-center gap-2">
+          <Archive className="h-4 w-4 text-purple-400" />
+          <span className="text-sm font-medium">Data</span>
+        </div>
+        <ChevronDown className="h-4 w-4 -rotate-90 text-zinc-400 transition-transform duration-200 group-open:rotate-0" />
+      </summary>
+
+      <div className="ml-6 space-y-3 rounded-lg border border-zinc-800 bg-zinc-900/60 p-3">
+        <p className="text-xs text-zinc-500">
+          Export or import all images and their metadata as a ZIP file.
+          {imageCount !== null && (
+            <span className="ml-1 text-zinc-400">{imageCount} image{imageCount !== 1 ? "s" : ""} in gallery.</span>
+          )}
+        </p>
+
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={handleExport}
+            disabled={exporting || importing || imageCount === 0}
+            className="flex items-center gap-1.5 rounded-lg bg-zinc-800 px-3 py-1.5 text-xs font-medium text-zinc-200 transition-colors hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {exporting ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Download className="h-3.5 w-3.5" />
+            )}
+            {exporting ? "Exporting..." : "Export all images"}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={exporting || importing}
+            className="flex items-center gap-1.5 rounded-lg bg-zinc-800 px-3 py-1.5 text-xs font-medium text-zinc-200 transition-colors hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {importing ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Upload className="h-3.5 w-3.5" />
+            )}
+            {importing ? "Importing..." : "Import from ZIP"}
+          </button>
+
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".zip"
+            onChange={handleImport}
+            className="hidden"
+          />
+        </div>
+
+        {status && (
+          <p className="text-xs text-zinc-400">{status}</p>
+        )}
+      </div>
+    </details>
   );
 }
 
