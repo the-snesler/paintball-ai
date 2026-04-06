@@ -1,4 +1,4 @@
-import { Maximize, RectangleHorizontal, Trash2, Image, Box } from "lucide-react";
+import { GripVertical, Maximize, RectangleHorizontal, Trash2, Image, Box } from "lucide-react";
 import { useSettingsStore } from "~/stores/settingsStore";
 import SVG from "react-inlinesvg";
 import type { StoredModel } from "~/types";
@@ -26,9 +26,11 @@ function CapabilityBadge({
 export default function ModelToggleItem({
   model,
   hasApiKey,
+  dragHandleProps,
 }: {
   model: StoredModel;
   hasApiKey: boolean;
+  dragHandleProps?: React.HTMLAttributes<HTMLButtonElement>;
 }) {
   const setModelEnabled = useSettingsStore((s) => s.setModelEnabled);
   const removeCustomModel = useSettingsStore((s) => s.removeCustomModel);
@@ -41,6 +43,14 @@ export default function ModelToggleItem({
         !hasApiKey ? "opacity-50" : ""
       }`}
     >
+      {dragHandleProps && (
+        <button
+          {...dragHandleProps}
+          className="shrink-0 cursor-grab touch-none text-zinc-600 hover:text-zinc-400 active:cursor-grabbing"
+        >
+          <GripVertical className="h-4 w-4" />
+        </button>
+      )}
       <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-zinc-700 text-zinc-400">
         {model.icon ? <SVG src={model.icon} className="h-5 w-5" /> : <Box className="h-4 w-4" />}
       </div>

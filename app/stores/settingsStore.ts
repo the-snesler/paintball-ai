@@ -32,6 +32,7 @@ interface SettingsState {
     icon?: string
   ) => void;
   removeCustomModel: (id: string) => void;
+  reorderModels: (activeId: string, overId: string) => void;
   updateModelCapabilities: (
     id: string,
     capabilities: ModelCapabilities,
@@ -99,6 +100,17 @@ export const useSettingsStore = create<SettingsState>()(
             ? state.models.filter((m) => m.id !== id)
             : state.models,
         })),
+
+      reorderModels: (activeId, overId) =>
+        set((state) => {
+          const oldIndex = state.models.findIndex((m) => m.id === activeId);
+          const newIndex = state.models.findIndex((m) => m.id === overId);
+          if (oldIndex === -1 || newIndex === -1) return state;
+          const newModels = [...state.models];
+          const [moved] = newModels.splice(oldIndex, 1);
+          newModels.splice(newIndex, 0, moved);
+          return { models: newModels };
+        }),
 
       updateModelCapabilities: (id, capabilities, schemaFetched) =>
         set((state) => ({

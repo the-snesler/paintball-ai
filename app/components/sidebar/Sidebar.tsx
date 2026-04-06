@@ -9,10 +9,24 @@ import { PromptVariationsToggle } from "./PromptVariationsToggle";
 import SVG from "react-inlinesvg";
 import drop from "~/drop.svg";
 import AddCustomModelButton from "../settings/AddCustomModelButton";
-import ModelToggleItem from "../settings/ModelToggle";
+import SortableModelItem from "../settings/SortableModelItem";
 import { useSettingsStore } from "~/stores/settingsStore";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { fetchModelInfo } from "~/lib/replicateSchema";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+  sortableKeyboardCoordinates,
+} from "@dnd-kit/sortable";
 
 export const SIDEBAR_POPOVER_ID = "sidebar-popover";
 
@@ -59,7 +73,23 @@ function SettingsSidebarContent() {
   const models = useSettingsStore((s) => s.models);
   const apiKeys = useSettingsStore((s) => s.apiKeys);
   const updateModelCapabilities = useSettingsStore((s) => s.updateModelCapabilities);
+  const reorderModels = useSettingsStore((s) => s.reorderModels);
   const [fetchingSchemas, setFetchingSchemas] = useState(false);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+
+  const handleDragEnd = useCallback(
+    (event: DragEndEvent) => {
+      const { active, over } = event;
+      if (over && active.id !== over.id) {
+        reorderModels(active.id as string, over.id as string);
+      }
+    },
+    [reorderModels]
+  );
 
   // Fetch schemas for Replicate models that haven't been fetched yet
   useEffect(() => {
@@ -97,11 +127,19 @@ function SettingsSidebarContent() {
         {fetchingSchemas && <Loader2 className="h-3 w-3 animate-spin text-zinc-500" />}
       </div>
 
-      <div className="space-y-2">
-        {models.map((model) => (
-          <ModelToggleItem key={model.id} model={model} hasApiKey={!!apiKeys[model.provider]} />
-        ))}
-      </div>
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+        <SortableContext items={models.map((m) => m.id)} strategy={verticalListSortingStrategy}>
+          <div className="space-y-2">
+            {models.map((model) => (
+              <SortableModelItem
+                key={model.id}
+                model={model}
+                hasApiKey={!!apiKeys[model.provider]}
+              />
+            ))}
+          </div>
+        </SortableContext>
+      </DndContext>
 
       <AddCustomModelButton disabled={!apiKeys.replicate} apiKey={apiKeys.replicate} />
     </div>
