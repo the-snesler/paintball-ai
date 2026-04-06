@@ -24,8 +24,9 @@ export function Lightbox() {
   const lightboxTarget = useGalleryStore((s) => s.lightboxTarget);
 
   const galleryImage = useGalleryStore((s) => {
-    if (s.lightboxTarget?.kind !== "gallery") return null;
-    const item = s.items.find((i) => i.id === s.lightboxTarget.imageId);
+    const target = s.lightboxTarget;
+    if (!target || target.kind !== "gallery") return null;
+    const item = s.items.find((i) => i.id === target.imageId);
     return item && item.status === "completed" ? item : null;
   });
 

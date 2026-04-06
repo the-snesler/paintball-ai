@@ -12,11 +12,17 @@ export function ImageCard({ image }: ImageCardProps) {
   const openLightbox = useGalleryStore((s) => s.openLightbox);
   const selectedItemIds = useGalleryStore((s) => s.selectedItemIds);
   const toggleItemSelection = useGalleryStore((s) => s.toggleItemSelection);
+  const selectItemRange = useGalleryStore((s) => s.selectItemRange);
   const isSelected = selectedItemIds.includes(image.id);
   const checkboxId = `gallery-select-${image.id}`;
 
   const handleClick = (event: MouseEvent<HTMLDivElement>) => {
-    if (event.shiftKey || event.ctrlKey) {
+    if (event.shiftKey) {
+      event.preventDefault();
+      selectItemRange(image.id);
+      return;
+    }
+    if (event.ctrlKey || event.metaKey) {
       toggleItemSelection(image.id);
       return;
     }

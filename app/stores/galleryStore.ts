@@ -22,6 +22,7 @@ interface GalleryState {
   viewMode: ViewMode;
   lightboxTarget: LightboxTarget | null;
   selectedItemIds: string[];
+  lastSelectedId: string | null;
   isLightboxOpen: boolean;
   isLoading: boolean;
   hasLoaded: boolean;
@@ -58,6 +59,7 @@ interface GalleryState {
   getCompletedItems: () => CompletedGalleryItem[];
   getItemsByDate: () => Map<string, CompletedGalleryItem[]>;
   toggleItemSelection: (id: string) => void;
+  selectItemRange: (id: string) => void;
   clearSelection: () => void;
   deleteSelectedItems: () => Promise<number>;
   downloadSelectedItems: () => number;
@@ -112,6 +114,7 @@ export const useGalleryStore = create<GalleryState>()((set, get) => ({
   viewMode: "grid",
   lightboxTarget: null,
   selectedItemIds: [],
+  lastSelectedId: null,
   isLightboxOpen: false,
   isLoading: false,
   hasLoaded: false,
@@ -206,10 +209,11 @@ export const useGalleryStore = create<GalleryState>()((set, get) => ({
 
   navigateLightbox: (direction) => {
     const state = get();
-    if (state.lightboxTarget?.kind !== "gallery") return;
+    const target = state.lightboxTarget;
+    if (!target || target.kind !== "gallery") return;
 
     const completedItems = state.items.filter((i) => i.status === "completed");
-    const currentIndex = completedItems.findIndex((i) => i.id === state.lightboxTarget.imageId);
+    const currentIndex = completedItems.findIndex((i) => i.id === target.imageId);
     if (currentIndex === -1) return;
 
     let newIndex: number;
@@ -224,11 +228,12 @@ export const useGalleryStore = create<GalleryState>()((set, get) => ({
 
   getSelectedItem: () => {
     const state = get();
-    if (state.lightboxTarget?.kind !== "gallery") {
+    const target = state.lightboxTarget;
+    if (!target || target.kind !== "gallery") {
       return null;
     }
 
-    const item = state.items.find((i) => i.id === state.lightboxTarget.imageId);
+    const item = state.items.find((i) => i.id === target.imageId);
     if (item && item.status === "completed") {
       return item;
     }
@@ -267,10 +272,51 @@ export const useGalleryStore = create<GalleryState>()((set, get) => ({
         selectedItemIds: isSelected
           ? state.selectedItemIds.filter((selectedId) => selectedId !== id)
           : [...state.selectedItemIds, id],
+        lastSelectedId: id,
       };
     }),
 
-  clearSelection: () => set({ selectedItemIds: [] }),
+  selectItemRange: (id) =>
+    set((state) => {
+      const item = state.items.find((entry) => entry.id === id);
+      if (!item || item.status !== "completed") {
+        return state;
+      }
+
+      const completedItems = state.items.filter(
+        (i): i is CompletedGalleryItem => i.status === "completed"
+      );
+
+      const anchorIndex = state.lastSelectedId
+        ? completedItems.findIndex((i) => i.id === state.lastSelectedId)
+        : -1;
+
+      // No anchor — fall back to single select
+      if (anchorIndex === -1) {
+        const isSelected = state.selectedItemIds.includes(id);
+        return {
+          selectedItemIds: isSelected
+            ? state.selectedItemIds.filter((sid) => sid !== id)
+            : [...state.selectedItemIds, id],
+          lastSelectedId: id,
+        };
+      }
+
+      const targetIndex = completedItems.findIndex((i) => i.id === id);
+      if (targetIndex === -1) return state;
+
+      const start = Math.min(anchorIndex, targetIndex);
+      const end = Math.max(anchorIndex, targetIndex);
+      const rangeIds = completedItems.slice(start, end + 1).map((i) => i.id);
+
+      const merged = new Set([...state.selectedItemIds, ...rangeIds]);
+      return {
+        selectedItemIds: Array.from(merged),
+        lastSelectedId: id,
+      };
+    }),
+
+  clearSelection: () => set({ selectedItemIds: [], lastSelectedId: null }),
 
   deleteSelectedItems: async () => {
     const state = get();
