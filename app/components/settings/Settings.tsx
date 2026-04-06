@@ -42,7 +42,6 @@ export function SettingsModal() {
 
   const apiKeysDetailsRef = useRef<HTMLDetailsElement | null>(null);
   const desktopNotificationsDetailsRef = useRef<HTMLDetailsElement | null>(null);
-  const didSetInitialDetailsOpen = useRef(false);
   const [fetchingSchemas, setFetchingSchemas] = useState(false);
   const [requestingPermission, setRequestingPermission] = useState(false);
   const [notificationPermission, setNotificationPermission] = useState<
@@ -80,22 +79,6 @@ export function SettingsModal() {
       setFetchingSchemas(false);
     });
   }, [apiKeys.replicate, models, updateModelCapabilities]);
-
-  useEffect(() => {
-    if (didSetInitialDetailsOpen.current) {
-      return;
-    }
-
-    if (apiKeysDetailsRef.current) {
-      apiKeysDetailsRef.current.open = !apiKeys.google && !apiKeys.replicate;
-    }
-
-    if (desktopNotificationsDetailsRef.current) {
-      desktopNotificationsDetailsRef.current.open = notificationPermission !== "granted";
-    }
-
-    didSetInitialDetailsOpen.current = true;
-  }, [apiKeys.google, apiKeys.replicate]);
 
   useEffect(() => {
     if (notificationPermission === "unsupported") return;
@@ -148,7 +131,7 @@ export function SettingsModal() {
       {/* Content */}
       <div className="flex-1 space-y-6 overflow-y-auto p-4">
         {/* API Keys Section */}
-        <details ref={apiKeysDetailsRef} className="group space-y-3">
+        <details ref={apiKeysDetailsRef} className="group space-y-3" open>
           <summary className="flex w-full cursor-pointer list-none items-center justify-between text-left [&::-webkit-details-marker]:hidden">
             <div className="flex items-center gap-2">
               <KeyRound className="h-4 w-4 text-purple-400" />
@@ -174,7 +157,7 @@ export function SettingsModal() {
         </details>
 
         {/* Desktop Notifications Section */}
-        <details ref={desktopNotificationsDetailsRef} className="group space-y-3">
+        <details ref={desktopNotificationsDetailsRef} className="group space-y-3" open>
           <summary className="flex w-full cursor-pointer list-none items-center justify-between text-left [&::-webkit-details-marker]:hidden">
             <div className="flex items-center gap-2">
               <Bell className="h-4 w-4 text-purple-400" />
@@ -224,7 +207,7 @@ export function SettingsModal() {
         </details>
 
         {/* Text Model Section */}
-        <details className="group space-y-3">
+        <details className="group space-y-3" open>
           <summary className="flex w-full cursor-pointer list-none items-center justify-between text-left [&::-webkit-details-marker]:hidden">
             <div className="flex items-center gap-2">
               <MessageSquareText className="h-4 w-4 text-purple-400" />
