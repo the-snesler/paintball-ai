@@ -7,6 +7,7 @@ import { LoadingCard } from "./LoadingCard";
 import { TimelineDivider } from "./TimelineDivider";
 import { ImageOff, Paperclip, Download, Trash2, X } from "lucide-react";
 import type { GalleryItem } from "~/types";
+import { formatRelativeDate } from "~/lib/util";
 
 export function Gallery() {
   const items = useGalleryStore((s) => s.items);
@@ -210,30 +211,4 @@ function groupItemsByPrompt(items: GalleryItem[]): Map<string, GalleryItem[]> {
 function getFirstCreatedAt(items: GalleryItem[]): number {
   const firstCompleted = items.find((item) => item.status === "completed");
   return firstCompleted?.createdAt ?? Date.now();
-}
-
-function formatRelativeDate(createdAt: number): string {
-  const now = Date.now();
-  const delta = Math.max(0, now - createdAt);
-  const day = 24 * 60 * 60 * 1000;
-  const minute = 60 * 1000;
-  const hour = 60 * minute;
-
-  if (delta < 30) {
-    return "Just now";
-  } else if (delta < minute) {
-    return Math.floor(delta / 1000) + " seconds ago";
-  } else if (delta < 2 * minute) {
-    return "1 minute ago";
-  } else if (delta < hour) {
-    return Math.floor(delta / minute) + " minutes ago";
-  } else if (Math.floor(delta / hour) == 1) {
-    return "1 hour ago";
-  } else if (delta < day) {
-    return Math.floor(delta / hour) + " hours ago";
-  } else if (delta < day * 2) {
-    return "Yesterday";
-  }
-
-  return new Date(createdAt).toLocaleDateString("en-US");
 }

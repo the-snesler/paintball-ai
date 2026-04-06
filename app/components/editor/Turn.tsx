@@ -4,6 +4,7 @@ import { useShallow } from "zustand/react/shallow";
 import { useGalleryStore } from "~/stores/galleryStore";
 import { useEditorStore } from "~/stores/editorStore";
 import type { EditorTurn } from "~/types";
+import { SineWaveGrid } from "~/components/gallery/SineWaveGrid";
 
 interface TurnProps {
   turn: EditorTurn;
@@ -171,32 +172,32 @@ function EditorLoadingCard({
   item: ReturnType<typeof useGalleryStore.getState>["items"][number];
 }) {
   const isFailed = item.status === "failed";
-  const modelName = item.modelName;
+  const isWaiting = item.status === "waiting";
+  const isGenerating = item.status === "generating" || item.status === "pending";
 
   return (
     <div
       className="relative overflow-hidden rounded-lg bg-zinc-900 ring-1 ring-zinc-800"
       style={{ aspectRatio: "1/1" }}
     >
-      {!isFailed && (
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="h-full w-full animate-pulse bg-zinc-800" />
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="flex gap-1">
-              {[0, 1, 2].map((i) => (
-                <div
-                  key={i}
-                  className="h-1.5 w-1.5 animate-bounce rounded-full bg-purple-500/60"
-                  style={{ animationDelay: `${i * 0.15}s` }}
-                />
-              ))}
-            </div>
-          </div>
+      {isGenerating && <SineWaveGrid />}
+      {isWaiting && <SineWaveGrid frozen />}
+      {isFailed && <div className="absolute inset-0 bg-red-950/30" />}
+
+      {isGenerating && (
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+          <p className="text-xs font-medium text-white/80 drop-shadow-lg">Generating...</p>
+        </div>
+      )}
+
+      {isWaiting && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center p-3">
+          <p className="text-xs font-medium text-white/70">Rate limited</p>
         </div>
       )}
 
       {isFailed && (
-        <div className="absolute inset-0 flex items-center justify-center bg-red-950/30 p-3">
+        <div className="absolute inset-0 flex items-center justify-center p-3">
           <p className="line-clamp-3 text-center text-xs leading-snug text-red-300">
             {item.error || "Generation failed"}
           </p>
@@ -204,7 +205,7 @@ function EditorLoadingCard({
       )}
 
       <div className="absolute bottom-2 left-2 rounded bg-black/60 px-2 py-0.5 text-xs text-white/70 backdrop-blur-sm">
-        {modelName}
+        {item.modelName}
       </div>
     </div>
   );
