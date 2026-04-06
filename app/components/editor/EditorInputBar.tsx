@@ -1,11 +1,11 @@
-import { ArrowUp, Loader2, ScanSearch, Sparkles } from "lucide-react";
+import { ArrowUp, Loader2, ScanSearch, Sparkles, Wand2 } from "lucide-react";
 import { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useEditorStore } from "~/stores/editorStore";
 import { useEditorGeneration } from "~/hooks/useEditorGeneration";
 import { useGalleryStore } from "~/stores/galleryStore";
 import { useSettingsStore } from "~/stores/settingsStore";
 import { callTextModel, isTextModelAvailable } from "~/lib/textModel";
-import { REVERSE_PROMPT_SYSTEM } from "~/lib/prompts";
+import { IMPROVE_PROMPT_SYSTEM, REVERSE_PROMPT_SYSTEM } from "~/lib/prompts";
 import { saveReferenceImage } from "~/lib/db";
 
 interface EditorInputBarProps {
@@ -34,6 +34,8 @@ export function EditorInputBar({ onSourceFile }: EditorInputBarProps) {
   const models = useSettingsStore((s) => s.models);
 
   const { generateEdit } = useEditorGeneration();
+
+  const [isImproving, setIsImproving] = useState(false);
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -135,6 +137,21 @@ export function EditorInputBar({ onSourceFile }: EditorInputBarProps) {
     aspectRatio,
     resolution,
   ]);
+
+  const handleImprove = useCallback(async () => {
+    if (!instruction.trim() || isImproving) return;
+    const canvasBlob = getCanvasBlob();
+    setIsImproving(true);
+    try {
+      const images = canvasBlob ? [canvasBlob] : undefined;
+      const improved = await callTextModel(IMPROVE_PROMPT_SYSTEM, instruction, images);
+      setInstruction(improved.trim());
+    } catch {
+      // Leave instruction unchanged on failure
+    } finally {
+      setIsImproving(false);
+    }
+  }, [instruction, isImproving, getCanvasBlob, setInstruction]);
 
   const handleAnalyze = useCallback(async () => {
     const canvasBlob = getCanvasBlob();
@@ -238,6 +255,24 @@ export function EditorInputBar({ onSourceFile }: EditorInputBarProps) {
                     <ScanSearch className="h-3 w-3" />
                   )}
                   {isAnalyzing ? "Analyzing…" : "Analyze"}
+                </button>
+
+                {/* Improve button */}
+                <button
+                  type="button"
+                  onClick={() => void handleImprove()}
+                  disabled={
+                    !isTextModelAvailable() || !instruction.trim() || isImproving || isGenerating
+                  }
+                  className="flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs text-zinc-500 transition-colors hover:bg-zinc-700/60 hover:text-zinc-300 disabled:cursor-not-allowed disabled:opacity-40"
+                  title="Improve instruction with AI"
+                >
+                  {isImproving ? (
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                  ) : (
+                    <Wand2 className="h-3 w-3" />
+                  )}
+                  {isImproving ? "Improving…" : "Improve"}
                 </button>
               </div>
 

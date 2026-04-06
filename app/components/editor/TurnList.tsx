@@ -41,8 +41,8 @@ export function TurnList() {
   }, [analysisResult]);
 
   return (
-    <div ref={scrollRef} className="flex-1 overflow-y-auto overflow-x-hidden">
-      <div className="mx-auto flex flex-col gap-8 items-center px-6 py-6">
+    <div ref={scrollRef} className="flex-1 overflow-x-hidden overflow-y-auto">
+      <div className="mx-auto flex flex-col items-center gap-8 px-6 py-6">
         {/* Source image "turn zero" */}
         {sourceUrl && (
           <SourceTurn
@@ -96,7 +96,7 @@ function SourceTurn({
     galleryItem && galleryItem.status === "completed" ? galleryItem.thumbnailUrl : url;
 
   return (
-    <div className="animate-fade-in relative flex flex-col items-center max-w-3xl">
+    <div className="animate-fade-in relative flex max-w-3xl flex-col items-center">
       <div className="mb-3 flex items-center gap-2">
         <span className="text-xs font-medium tracking-wider text-zinc-600 uppercase">Source</span>
         <button
