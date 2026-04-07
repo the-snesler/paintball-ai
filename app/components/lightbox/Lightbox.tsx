@@ -12,9 +12,11 @@ import {
 import { useNavigate } from "react-router";
 import { useGalleryStore } from "~/stores/galleryStore";
 import { getReferenceImagesByIds } from "~/lib/db";
-import { Tooltip } from "~/components/ui/Tooltip";
 import { groupItemsByPrompt, getPromptKey } from "~/lib/galleryGrouping";
+import { hasVariationSections } from "~/lib/promptVariations";
 import { GalleryImageCard } from "~/components/gallery/GalleryImageCard";
+import { IconButton } from "./IconButton";
+import { WideIconButton } from "./WideIconButton";
 
 export function Lightbox() {
   const navigate = useNavigate();
@@ -149,7 +151,7 @@ export function Lightbox() {
       )}
 
       {/* Modal */}
-      <div className="animate-fade-in relative z-10 flex max-h-[90vh] max-w-[90vw] flex-col overflow-hidden rounded-xl bg-zinc-900 shadow-2xl lg:flex-row lg:items-stretch inset-shadow-sm inset-shadow-white/5">
+      <div className="animate-fade-in relative z-10 flex max-h-[90vh] max-w-[90vw] flex-col overflow-hidden rounded-xl bg-zinc-900 shadow-2xl inset-shadow-sm inset-shadow-white/5 lg:flex-row lg:items-stretch">
         {/* Image */}
         <img
           src={imageSrc}
@@ -159,7 +161,7 @@ export function Lightbox() {
 
         {/* Info panel */}
         {galleryImage && (
-          <div className="flex shrink-0 flex-col border-t border-zinc-800 lg:border-t-0 lg:border-l lg:w-96 xl:w-md">
+          <div className="flex shrink-0 flex-col border-t border-zinc-800 lg:w-96 lg:border-t-0 lg:border-l xl:w-md">
             {/* Header */}
             <div className="flex items-center justify-between gap-2 border-b border-zinc-800 p-4">
               <h2 className="truncate text-lg font-semibold text-zinc-100">
@@ -210,7 +212,7 @@ export function Lightbox() {
                     title="Copy Prompt"
                     onClick={handleCopyPrompt}
                   />
-                  <IconButton
+                  <WideIconButton
                     icon={<Wand2 className="h-4 w-4" />}
                     title="Re-use Prompt"
                     onClick={handleReusePrompt}
@@ -252,32 +254,4 @@ function getBlobExtension(blob: Blob): string {
   if (type.includes("webp")) return "webp";
   if (type.includes("jpeg") || type.includes("jpg")) return "jpg";
   return "png";
-}
-
-function IconButton({
-  icon,
-  title,
-  onClick,
-  variant = "default",
-}: {
-  icon: React.ReactNode;
-  title: string;
-  onClick: () => void;
-  variant?: "default" | "danger";
-}) {
-  return (
-    <Tooltip content={title} placement="top" delay={200}>
-      <button
-        onClick={onClick}
-        aria-label={title}
-        className={`rounded-lg p-2 transition-colors ${
-          variant === "danger"
-            ? "text-red-400 hover:bg-red-500/10"
-            : "text-zinc-300 hover:bg-zinc-800"
-        }`}
-      >
-        {icon}
-      </button>
-    </Tooltip>
-  );
 }
