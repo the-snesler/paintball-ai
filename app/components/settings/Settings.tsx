@@ -24,16 +24,18 @@ import ModelToggleItem from "./ModelToggle";
 import AddCustomModelButton from "./AddCustomModelButton";
 import { Switch } from "~/components/ui/Switch";
 
-const providers: { id: Provider; name: string; description: string }[] = [
+const providers: { id: Provider; name: string; description: string; link: string }[] = [
   {
     id: "google",
     name: "Google AI",
     description: "For Gemini image generation models",
+    link: "https://aistudio.google.com/",
   },
   {
     id: "replicate",
     name: "Replicate",
     description: "For Flux, GPT Image, and other community models",
+    link: "https://replicate.com/",
   },
 ];
 
@@ -129,6 +131,7 @@ export function SettingsModal() {
                 description={provider.description}
                 value={apiKeys[provider.id] || ""}
                 onChange={(value) => setApiKey(provider.id, value || null)}
+                link={provider.link}
               />
             ))}
           </div>
@@ -313,7 +316,9 @@ function DataSection() {
         <p className="text-xs text-zinc-500">
           Export or import all images and their metadata as a ZIP file.
           {imageCount !== null && (
-            <span className="ml-1 text-zinc-400">{imageCount} image{imageCount !== 1 ? "s" : ""} in gallery.</span>
+            <span className="ml-1 text-zinc-400">
+              {imageCount} image{imageCount !== 1 ? "s" : ""} in gallery.
+            </span>
           )}
         </p>
 
@@ -355,9 +360,7 @@ function DataSection() {
           />
         </div>
 
-        {status && (
-          <p className="text-xs text-zinc-400">{status}</p>
-        )}
+        {status && <p className="text-xs text-zinc-400">{status}</p>}
       </div>
     </details>
   );
@@ -369,12 +372,14 @@ function ApiKeyInput({
   description,
   value,
   onChange,
+  link,
 }: {
   provider: Provider;
   name: string;
   description: string;
   value: string;
   onChange: (value: string) => void;
+  link: string;
 }) {
   const [showKey, setShowKey] = useState(false);
   const hasKey = value.length > 0;
@@ -384,7 +389,17 @@ function ApiKeyInput({
       <div className="flex items-center justify-between">
         <div>
           <label className="text-sm font-medium text-zinc-200">{name}</label>
-          <p className="text-xs text-zinc-500">{description}</p>
+          <p className="text-xs text-zinc-500">
+            {description} -
+            <a
+              href={link}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="ml-1 text-purple-400 hover:underline"
+            >
+              Get API key
+            </a>
+          </p>
         </div>
         {hasKey && <Check className="h-4 w-4 text-green-500" />}
       </div>
