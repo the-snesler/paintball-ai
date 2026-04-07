@@ -93,7 +93,7 @@ function SourceTurn({
     sourceGalleryItemId ? s.items.find((i) => i.id === sourceGalleryItemId) : null
   );
   const displayUrl =
-    galleryItem && galleryItem.status === "completed" ? galleryItem.thumbnailUrl : url;
+    galleryItem && galleryItem.status === "completed" ? galleryItem.originalUrl : url;
 
   return (
     <div className="animate-fade-in relative flex max-w-3xl flex-col items-center">
@@ -111,7 +111,7 @@ function SourceTurn({
       <button
         type="button"
         onClick={onSelect}
-        className={`group relative cursor-pointer rounded-lg transition-all duration-150 ${
+        className={`group relative cursor-pointer overflow-hidden rounded-lg transition-all duration-150 ${
           isSelected
             ? "ring-2 ring-purple-500 ring-offset-2 ring-offset-zinc-950"
             : "ring-1 ring-zinc-700/50 hover:ring-zinc-600"
