@@ -3,20 +3,12 @@ import type { StoredImageRecord } from "~/types";
 import { getAllImages, getExistingImageIds, importImage } from "./db";
 import { createThumbnailBlob } from "./imageProcessing";
 
-interface ManifestEntry {
-  id: string;
-  prompt: string;
-  modelId: string;
-  modelName: string;
-  aspectRatio: StoredImageRecord["aspectRatio"];
-  resolution: StoredImageRecord["resolution"];
-  width: number;
-  height: number;
-  createdAt: number;
-  referenceImageIds: string[];
-  metadata: Record<string, unknown>;
+// Derived from StoredImageRecord so any new field added there is automatically
+// included in the export manifest. Only the binary blobs are stripped (they
+// live as separate files inside the zip).
+type ManifestEntry = Omit<StoredImageRecord, "originalBlob" | "thumbnailBlob"> & {
   filename: string;
-}
+};
 
 function getBlobExtension(blob: Blob): string {
   const type = blob.type.toLowerCase();
@@ -56,20 +48,12 @@ export async function exportAllImages(
 
     zip.file(filename, image.originalBlob);
 
-    manifest.push({
-      id: image.id,
-      prompt: image.prompt,
-      modelId: image.modelId,
-      modelName: image.modelName,
-      aspectRatio: image.aspectRatio,
-      resolution: image.resolution,
-      width: image.width,
-      height: image.height,
-      createdAt: image.createdAt,
-      referenceImageIds: image.referenceImageIds,
-      metadata: image.metadata,
-      filename,
-    });
+    // Spread the whole record minus blobs so any new fields on StoredImageRecord
+    // round-trip through export without needing to be added here.
+    const { originalBlob: _o, thumbnailBlob: _t, ...rest } = image;
+    void _o;
+    void _t;
+    manifest.push({ ...rest, filename });
 
     onProgress?.(i + 1, images.length);
   }
@@ -132,18 +116,14 @@ export async function importFromZip(
       const originalBlob = new Blob([arrayBuffer], { type: extensionToMimeType(ext) });
       const thumbnailBlob = await createThumbnailBlob(originalBlob, 400);
 
+      // Spread the manifest entry so any new fields added to StoredImageRecord
+      // round-trip through import without needing to be added here.
+      const { filename: _f, ...entryRest } = entry;
+      void _f;
       const record: StoredImageRecord = {
-        id: entry.id,
+        ...entryRest,
         originalBlob,
         thumbnailBlob,
-        prompt: entry.prompt,
-        modelId: entry.modelId,
-        modelName: entry.modelName,
-        aspectRatio: entry.aspectRatio,
-        resolution: entry.resolution,
-        width: entry.width,
-        height: entry.height,
-        createdAt: entry.createdAt,
         referenceImageIds: entry.referenceImageIds ?? [],
         metadata: entry.metadata ?? {},
       };

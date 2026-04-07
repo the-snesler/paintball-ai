@@ -25,6 +25,7 @@ export function Lightbox() {
   const addReferenceImage = useGalleryStore((s) => s.addReferenceImage);
   const clearReferenceImages = useGalleryStore((s) => s.clearReferenceImages);
   const lightboxTarget = useGalleryStore((s) => s.lightboxTarget);
+  const setVariationsEnabled = useGalleryStore((s) => s.setVariationsEnabled);
 
   const items = useGalleryStore((s) => s.items);
 
@@ -96,9 +97,13 @@ export function Lightbox() {
     const references = await getReferenceImagesByIds(galleryImage.referenceImageIds);
     references.forEach((reference) => addReferenceImage(reference));
 
-    setPrompt(galleryImage.prompt);
+    setPrompt(galleryImage.basePrompt ?? galleryImage.prompt);
+    if (galleryImage.basePrompt) {
+      setVariationsEnabled(true);
+    }
+
     closeLightbox();
-  }, [galleryImage, setPrompt, closeLightbox, clearReferenceImages, addReferenceImage]);
+  }, [galleryImage, setPrompt, closeLightbox, clearReferenceImages, addReferenceImage, setVariationsEnabled]);
 
   const handleDelete = useCallback(async () => {
     if (!galleryImage) return;
