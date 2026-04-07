@@ -4,11 +4,12 @@ import { GalleryHeader } from "./GalleryHeader";
 import { MasonryGrid } from "./MasonryGrid";
 import { GalleryImageCard } from "./GalleryImageCard";
 import { TimelineDivider } from "./TimelineDivider";
-import { ImageOff, Paperclip, Download, Trash2, X } from "lucide-react";
+import { ImageOff, Download, Trash2, X, ImagePlus } from "lucide-react";
 import type { GalleryItem } from "~/types";
 import { formatRelativeDate } from "~/lib/util";
 import { groupItemsByPrompt, getFirstCreatedAt } from "~/lib/galleryGrouping";
 import { stripVariationSections } from "~/lib/promptVariations";
+import NumberFlow from "@number-flow/react";
 
 export function Gallery() {
   const items = useGalleryStore((s) => s.items);
@@ -83,7 +84,13 @@ function SelectionActionPopup() {
   return (
     <div className="pointer-events-none absolute inset-x-0 bottom-5 z-20 flex justify-center px-6">
       <div className="animate-slide-up pointer-events-auto flex items-center gap-2 rounded-xl border border-zinc-700 bg-zinc-900/95 px-3 py-2 shadow-lg backdrop-blur-sm">
-        <span className="mr-1 text-xs font-medium text-zinc-300">{selectedCount} selected</span>
+        <span className="mr-1 text-xs font-medium text-zinc-300">
+          <NumberFlow
+            value={selectedCount}
+            className="text-xs font-medium text-zinc-300"
+          />{" "}
+          selected
+        </span>
 
         <PopupActionButton
           icon={<X className="h-3.5 w-3.5" />}
@@ -92,8 +99,8 @@ function SelectionActionPopup() {
         />
 
         <PopupActionButton
-          icon={<Paperclip className="h-3.5 w-3.5" />}
-          label="Attach"
+          icon={<ImagePlus className="h-3.5 w-3.5" />}
+          label="Attach to prompt"
           onClick={handleAttachSelected}
         />
         <PopupActionButton

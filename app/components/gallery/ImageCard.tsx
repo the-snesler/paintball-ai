@@ -38,6 +38,14 @@ export function ImageCard({ image, selectionDisabled = false }: ImageCardProps) 
     toggleItemSelection(image.id);
   };
 
+  const handleSelectControlClick = (event: MouseEvent<HTMLDivElement>) => {
+    event.stopPropagation();
+    if (event.shiftKey) {
+      event.preventDefault();
+      selectItemRange(image.id);
+    }
+  };
+
   const handleDragStart = useCallback(
     (e: React.DragEvent) => {
       // Set drag data for reference images
@@ -72,7 +80,7 @@ export function ImageCard({ image, selectionDisabled = false }: ImageCardProps) 
               : "pointer-events-none opacity-0 group-focus-within:pointer-events-auto group-focus-within:opacity-100 group-hover:pointer-events-auto group-hover:opacity-100"
           }`}
         >
-          <div className="gallery-select-control" onClick={(event) => event.stopPropagation()}>
+          <div className="gallery-select-control" onClick={handleSelectControlClick}>
             <input
               id={checkboxId}
               type="checkbox"
