@@ -2,12 +2,12 @@ import { useState } from "react";
 import { useGalleryStore } from "~/stores/galleryStore";
 import { GalleryHeader } from "./GalleryHeader";
 import { MasonryGrid } from "./MasonryGrid";
-import { ImageCard } from "./ImageCard";
-import { LoadingCard } from "./LoadingCard";
+import { GalleryImageCard } from "./GalleryImageCard";
 import { TimelineDivider } from "./TimelineDivider";
 import { ImageOff, Paperclip, Download, Trash2, X } from "lucide-react";
 import type { GalleryItem } from "~/types";
 import { formatRelativeDate } from "~/lib/util";
+import { groupItemsByPrompt, getFirstCreatedAt } from "~/lib/galleryGrouping";
 
 export function Gallery() {
   const items = useGalleryStore((s) => s.items);
@@ -156,15 +156,9 @@ function EmptyState() {
 function GridView({ items }: { items: ReturnType<typeof useGalleryStore.getState>["items"] }) {
   return (
     <MasonryGrid>
-      {items.map((item) => {
-        // Render appropriate card type based on status
-        if (item.status === "completed") {
-          return <ImageCard key={item.id} image={item} />;
-        } else {
-          // pending, generating, or failed
-          return <LoadingCard key={item.id} item={item} />;
-        }
-      })}
+      {items.map((item) => (
+        <GalleryImageCard key={item.id} item={item} />
+      ))}
     </MasonryGrid>
   );
 }
@@ -182,33 +176,12 @@ function TimelineView({ itemsByPrompt }: { itemsByPrompt: Map<string, GalleryIte
             prompt={promptLabel}
           />
           <MasonryGrid>
-            {promptItems.map((item) =>
-              item.status === "completed" ? (
-                <ImageCard key={item.id} image={item} />
-              ) : (
-                <LoadingCard key={item.id} item={item} />
-              )
-            )}
+            {promptItems.map((item) => (
+              <GalleryImageCard key={item.id} item={item} />
+            ))}
           </MasonryGrid>
         </div>
       ))}
     </div>
   );
-}
-
-function groupItemsByPrompt(items: GalleryItem[]): Map<string, GalleryItem[]> {
-  const grouped = new Map<string, GalleryItem[]>();
-
-  for (const item of items) {
-    const promptKey = item.prompt.trim() || "Untitled prompt";
-    const existing = grouped.get(promptKey) || [];
-    grouped.set(promptKey, [...existing, item]);
-  }
-
-  return grouped;
-}
-
-function getFirstCreatedAt(items: GalleryItem[]): number {
-  const firstCompleted = items.find((item) => item.status === "completed");
-  return firstCompleted?.createdAt ?? Date.now();
 }

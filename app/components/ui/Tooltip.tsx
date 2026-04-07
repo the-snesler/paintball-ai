@@ -31,7 +31,7 @@ export function Tooltip({
 }: TooltipProps) {
   const [open, setOpen] = useState(false);
   const arrowRef = useRef(null);
-  const { refs, floatingStyles, context } = useFloating({
+  const { refs, floatingStyles, context, isPositioned } = useFloating({
     open,
     onOpenChange: setOpen,
     placement,
@@ -55,20 +55,20 @@ export function Tooltip({
       })}
       {isMounted && (
         <FloatingPortal>
-          <div
-            ref={refs.setFloating}
-            style={{ ...transitionStyles, ...floatingStyles }}
-            {...getFloatingProps()}
-            className={`z-50 ${maxWidth} rounded-lg border border-zinc-700 bg-zinc-800 px-2.5 py-1.5 text-[11px] leading-relaxed text-zinc-300 shadow-xl`}
-          >
-            <FloatingArrow
-              ref={arrowRef}
-              context={context}
-              className="fill-zinc-800 [&>path:first-of-type]:stroke-zinc-700"
-              width={12}
-              height={6}
-            />
-            {content}
+          <div ref={refs.setFloating} style={floatingStyles} {...getFloatingProps()} className="z-50">
+            <div
+              style={isPositioned ? transitionStyles : { opacity: 0 }}
+              className={`${maxWidth} rounded-lg border border-zinc-700 bg-zinc-800 px-2.5 py-1.5 text-[11px] leading-relaxed text-zinc-300 shadow-xl`}
+            >
+              <FloatingArrow
+                ref={arrowRef}
+                context={context}
+                className="fill-zinc-800 [&>path:first-of-type]:stroke-zinc-700"
+                width={12}
+                height={6}
+              />
+              {content}
+            </div>
           </div>
         </FloatingPortal>
       )}

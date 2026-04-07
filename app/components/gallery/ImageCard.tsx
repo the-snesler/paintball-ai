@@ -5,26 +5,29 @@ import type { CompletedGalleryItem } from "~/types";
 
 interface ImageCardProps {
   image: CompletedGalleryItem;
+  selectionDisabled?: boolean;
 }
 
-export function ImageCard({ image }: ImageCardProps) {
+export function ImageCard({ image, selectionDisabled = false }: ImageCardProps) {
   const [isLoaded, setIsLoaded] = useState(false);
   const openLightbox = useGalleryStore((s) => s.openLightbox);
   const selectedItemIds = useGalleryStore((s) => s.selectedItemIds);
   const toggleItemSelection = useGalleryStore((s) => s.toggleItemSelection);
   const selectItemRange = useGalleryStore((s) => s.selectItemRange);
-  const isSelected = selectedItemIds.includes(image.id);
+  const isSelected = !selectionDisabled && selectedItemIds.includes(image.id);
   const checkboxId = `gallery-select-${image.id}`;
 
   const handleClick = (event: MouseEvent<HTMLDivElement>) => {
-    if (event.shiftKey) {
-      event.preventDefault();
-      selectItemRange(image.id);
-      return;
-    }
-    if (event.ctrlKey || event.metaKey) {
-      toggleItemSelection(image.id);
-      return;
+    if (!selectionDisabled) {
+      if (event.shiftKey) {
+        event.preventDefault();
+        selectItemRange(image.id);
+        return;
+      }
+      if (event.ctrlKey || event.metaKey) {
+        toggleItemSelection(image.id);
+        return;
+      }
     }
 
     openLightbox({ kind: "gallery", imageId: image.id });
@@ -61,29 +64,31 @@ export function ImageCard({ image }: ImageCardProps) {
       draggable
       onDragStart={handleDragStart}
     >
-      <div
-        className={`absolute top-2 left-2 z-20 transition-opacity duration-150 ${
-          isSelected
-            ? "opacity-100"
-            : "pointer-events-none opacity-0 group-focus-within:pointer-events-auto group-focus-within:opacity-100 group-hover:pointer-events-auto group-hover:opacity-100"
-        }`}
-      >
-        <div className="gallery-select-control" onClick={(event) => event.stopPropagation()}>
-          <input
-            id={checkboxId}
-            type="checkbox"
-            checked={isSelected}
-            onChange={handleSelectToggle}
-            className="gallery-select-checkbox-input"
-            aria-label="Select image"
-          />
-          <label htmlFor={checkboxId} className="gallery-select-checkbox-label">
-            <span className="gallery-select-checkbox-mark" aria-hidden="true">
-              <Check className="animate-in h-4 w-4" />
-            </span>
-          </label>
+      {!selectionDisabled && (
+        <div
+          className={`absolute top-2 left-2 z-20 transition-opacity duration-150 ${
+            isSelected
+              ? "opacity-100"
+              : "pointer-events-none opacity-0 group-focus-within:pointer-events-auto group-focus-within:opacity-100 group-hover:pointer-events-auto group-hover:opacity-100"
+          }`}
+        >
+          <div className="gallery-select-control" onClick={(event) => event.stopPropagation()}>
+            <input
+              id={checkboxId}
+              type="checkbox"
+              checked={isSelected}
+              onChange={handleSelectToggle}
+              className="gallery-select-checkbox-input"
+              aria-label="Select image"
+            />
+            <label htmlFor={checkboxId} className="gallery-select-checkbox-label">
+              <span className="gallery-select-checkbox-mark" aria-hidden="true">
+                <Check className="animate-in h-4 w-4" />
+              </span>
+            </label>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Image */}
       <img

@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from "react";
+import { useEffect, useCallback, useMemo } from "react";
 import {
   X,
   ChevronLeft,
@@ -12,6 +12,9 @@ import {
 import { useNavigate } from "react-router";
 import { useGalleryStore } from "~/stores/galleryStore";
 import { getReferenceImagesByIds } from "~/lib/db";
+import { Tooltip } from "~/components/ui/Tooltip";
+import { groupItemsByPrompt, getPromptKey } from "~/lib/galleryGrouping";
+import { GalleryImageCard } from "~/components/gallery/GalleryImageCard";
 
 export function Lightbox() {
   const navigate = useNavigate();
@@ -23,6 +26,8 @@ export function Lightbox() {
   const clearReferenceImages = useGalleryStore((s) => s.clearReferenceImages);
   const lightboxTarget = useGalleryStore((s) => s.lightboxTarget);
 
+  const items = useGalleryStore((s) => s.items);
+
   const galleryImage = useGalleryStore((s) => {
     const target = s.lightboxTarget;
     if (!target || target.kind !== "gallery") return null;
@@ -31,6 +36,12 @@ export function Lightbox() {
   });
 
   const referenceImage = lightboxTarget?.kind === "reference" ? lightboxTarget.image : null;
+
+  const promptGroup = useMemo(() => {
+    if (!galleryImage) return [];
+    const groups = groupItemsByPrompt(items);
+    return groups.get(getPromptKey(galleryImage)) ?? [];
+  }, [items, galleryImage]);
 
   const showNavigation = useGalleryStore((s) =>
     s.lightboxTarget?.kind === "gallery"
@@ -102,14 +113,14 @@ export function Lightbox() {
   const imageAlt = galleryImage?.prompt ?? referenceImage?.name ?? "Image preview";
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Backdrop */}
       <div className="absolute inset-0 bg-black/90 backdrop-blur-sm" onClick={closeLightbox} />
 
       {/* Close button */}
       <button
         onClick={closeLightbox}
-        className="absolute top-4 right-4 z-10 rounded-lg bg-zinc-900/80 p-2 transition-colors hover:bg-zinc-800"
+        className="absolute top-4 right-4 z-20 rounded-lg bg-zinc-900/80 p-2 transition-colors hover:bg-zinc-800"
       >
         <X className="h-6 w-6 text-zinc-300" />
       </button>
@@ -119,93 +130,113 @@ export function Lightbox() {
         <>
           <button
             onClick={() => navigateLightbox("prev")}
-            className="absolute left-4 z-10 rounded-full bg-zinc-900/80 p-3 transition-colors hover:bg-zinc-800"
+            className="absolute left-4 z-20 rounded-full bg-zinc-900/80 p-3 transition-colors hover:bg-zinc-800"
           >
             <ChevronLeft className="h-6 w-6 text-zinc-300" />
           </button>
           <button
             onClick={() => navigateLightbox("next")}
-            className="absolute right-4 z-10 rounded-full bg-zinc-900/80 p-3 transition-colors hover:bg-zinc-800"
+            className="absolute right-4 z-20 rounded-full bg-zinc-900/80 p-3 transition-colors hover:bg-zinc-800"
           >
             <ChevronRight className="h-6 w-6 text-zinc-300" />
           </button>
         </>
       )}
 
-      {/* Image container */}
-      <div className="animate-fade-in relative max-h-[85vh] max-w-[90vw]">
+      {/* Modal */}
+      <div className="animate-fade-in relative z-10 flex max-h-[90vh] max-w-[90vw] flex-col overflow-hidden rounded-xl bg-zinc-900 shadow-2xl lg:flex-row lg:items-stretch inset-shadow-sm inset-shadow-white/5">
+        {/* Image */}
         <img
           src={imageSrc}
           alt={imageAlt}
-          className="max-h-[85vh] max-w-full rounded-lg object-contain"
+          className="block min-h-0 min-w-0 self-center object-contain lg:max-h-[90vh] lg:max-w-[calc(90vw-24rem)] xl:max-w-[calc(90vw-28rem)]"
         />
-      </div>
 
-      {/* Bottom controls */}
-      {galleryImage && (
-        <div className="pointer-events-none absolute right-0 bottom-0 left-0 p-6">
-          <div className="pointer-events-auto mx-auto max-w-3xl">
-            {/* Prompt */}
-            <div className="rounded-t-lg border-b border-zinc-800 bg-zinc-900/90 p-4 backdrop-blur-sm">
-              <p className="text-sm text-zinc-300">{galleryImage.prompt}</p>
-              <div className="mt-2 flex items-center gap-2 text-xs text-zinc-500">
-                <span>{galleryImage.modelName}</span>
-                {galleryImage.aspectRatio && (
-                  <>
-                    <span>·</span>
-                    <span>{galleryImage.aspectRatio}</span>
-                  </>
-                )}
-                {galleryImage.resolution && (
-                  <>
-                    <span>·</span>
-                    <span>{galleryImage.resolution}</span>
-                  </>
-                )}
-                {galleryImage.createdAt && (
-                  <>
-                    <span>·</span>
-                    <span>{new Date(galleryImage.createdAt).toLocaleString()}</span>
-                  </>
-                )}
+        {/* Info panel */}
+        {galleryImage && (
+          <div className="flex shrink-0 flex-col border-t border-zinc-800 lg:border-t-0 lg:border-l lg:w-96 xl:w-md">
+            {/* Header */}
+            <div className="flex items-center justify-between gap-2 border-b border-zinc-800 p-4">
+              <h2 className="truncate text-lg font-semibold text-zinc-100">
+                {galleryImage.modelName}
+              </h2>
+              <div className="flex items-center gap-1">
+                <IconButton
+                  icon={<FilePenLine className="h-4 w-4" />}
+                  title="Open in Editor"
+                  onClick={() => {
+                    closeLightbox();
+                    navigate(`/editor?imageId=${galleryImage.id}`);
+                  }}
+                />
+                <IconButton
+                  icon={<Download className="h-4 w-4" />}
+                  title="Download"
+                  onClick={handleDownload}
+                />
+                <IconButton
+                  icon={<Trash2 className="h-4 w-4" />}
+                  title="Delete"
+                  onClick={handleDelete}
+                  variant="danger"
+                />
               </div>
             </div>
 
-            {/* Actions */}
-            <div className="flex items-center justify-center gap-2 rounded-b-lg bg-zinc-900/90 p-2 backdrop-blur-sm">
-              <ActionButton
-                icon={<Download className="h-4 w-4" />}
-                label="Download"
-                onClick={handleDownload}
-              />
-              <ActionButton
-                icon={<Copy className="h-4 w-4" />}
-                label="Copy Prompt"
-                onClick={handleCopyPrompt}
-              />
-              <ActionButton
-                icon={<Wand2 className="h-4 w-4" />}
-                label="Re-use Prompt"
-                onClick={handleReusePrompt}
-              />
-              <ActionButton
-                icon={<FilePenLine className="h-4 w-4" />}
-                label="Open in Editor"
-                onClick={() => {
-                  closeLightbox();
-                  navigate(`/editor?imageId=${galleryImage.id}`);
-                }}
-              />
-              <ActionButton
-                icon={<Trash2 className="h-4 w-4" />}
-                label="Delete"
-                onClick={handleDelete}
-                variant="danger"
-              />
+            {/* Body */}
+            <div className="flex-1 space-y-4 overflow-y-auto p-4">
+              {/* Metadata */}
+              {(galleryImage.aspectRatio || galleryImage.resolution) && (
+                <div className="flex flex-wrap items-center gap-2 text-xs text-zinc-500">
+                  {galleryImage.aspectRatio && <span>{galleryImage.aspectRatio}</span>}
+                  {galleryImage.aspectRatio && galleryImage.resolution && <span>·</span>}
+                  {galleryImage.resolution && <span>{galleryImage.resolution}</span>}
+                </div>
+              )}
+
+              {/* Prompt */}
+              <div className="space-y-2">
+                <div className="rounded-lg bg-zinc-800/50 p-3">
+                  <p className="text-sm text-zinc-300">{galleryImage.prompt}</p>
+                </div>
+                <div className="flex items-center gap-1">
+                  <IconButton
+                    icon={<Copy className="h-4 w-4" />}
+                    title="Copy Prompt"
+                    onClick={handleCopyPrompt}
+                  />
+                  <IconButton
+                    icon={<Wand2 className="h-4 w-4" />}
+                    title="Re-use Prompt"
+                    onClick={handleReusePrompt}
+                  />
+                </div>
+              </div>
+
+              {/* Date */}
+              {galleryImage.createdAt && (
+                <p className="text-xs text-zinc-500">
+                  {new Date(galleryImage.createdAt).toLocaleString()}
+                </p>
+              )}
+
+              {/* Other generations */}
+              {promptGroup.length > 1 && (
+                <div className="space-y-2">
+                  <h3 className="text-xs font-medium text-zinc-400">
+                    All outputs ({promptGroup.length})
+                  </h3>
+                  <div className="grid grid-cols-2 gap-2">
+                    {promptGroup.map((item) => (
+                      <GalleryImageCard key={item.id} item={item} selectionDisabled />
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }
@@ -218,28 +249,30 @@ function getBlobExtension(blob: Blob): string {
   return "png";
 }
 
-function ActionButton({
+function IconButton({
   icon,
-  label,
+  title,
   onClick,
   variant = "default",
 }: {
   icon: React.ReactNode;
-  label: string;
+  title: string;
   onClick: () => void;
   variant?: "default" | "danger";
 }) {
   return (
-    <button
-      onClick={onClick}
-      className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-        variant === "danger"
-          ? "text-red-400 hover:bg-red-500/10"
-          : "text-zinc-300 hover:bg-zinc-800"
-      }`}
-    >
-      {icon}
-      {label}
-    </button>
+    <Tooltip content={title} placement="top" delay={200}>
+      <button
+        onClick={onClick}
+        aria-label={title}
+        className={`rounded-lg p-2 transition-colors ${
+          variant === "danger"
+            ? "text-red-400 hover:bg-red-500/10"
+            : "text-zinc-300 hover:bg-zinc-800"
+        }`}
+      >
+        {icon}
+      </button>
+    </Tooltip>
   );
 }
