@@ -151,12 +151,12 @@ export function Lightbox() {
       )}
 
       {/* Modal */}
-      <div className="animate-fade-in relative z-10 flex max-h-[90vh] max-w-[90vw] flex-col overflow-hidden rounded-xl bg-zinc-900 shadow-2xl inset-shadow-sm inset-shadow-white/5 lg:flex-row lg:items-stretch">
+      <div className="animate-fade-in relative z-10 flex max-h-[90vh] max-w-[90vw] flex-col overflow-hidden overflow-y-auto rounded-xl bg-zinc-900 shadow-2xl inset-shadow-sm inset-shadow-white/5 lg:flex-row lg:items-stretch">
         {/* Image */}
         <img
           src={imageSrc}
           alt={imageAlt}
-          className="block min-h-0 min-w-0 self-center object-contain lg:max-h-[90vh] lg:max-w-[calc(90vw-24rem)] xl:max-w-[calc(90vw-28rem)]"
+          className="block min-h-[50vh] min-w-0 self-center object-contain lg:max-h-[90vh] lg:min-h-0 lg:max-w-[calc(90vw-24rem)] xl:max-w-[calc(90vw-28rem)]"
         />
 
         {/* Info panel */}
@@ -233,7 +233,7 @@ export function Lightbox() {
                   <h3 className="text-xs font-medium text-zinc-400">
                     All outputs ({promptGroup.length})
                   </h3>
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-2">
                     {promptGroup.map((item) => (
                       <GalleryImageCard key={item.id} item={item} selectionDisabled />
                     ))}
