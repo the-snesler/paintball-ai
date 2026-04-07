@@ -94,6 +94,8 @@ export function ImageCard({ image }: ImageCardProps) {
         }`}
         onLoad={() => setIsLoaded(true)}
         loading="lazy"
+        width={image.width}
+        height={image.height}
       />
 
       {/* Loading placeholder */}
