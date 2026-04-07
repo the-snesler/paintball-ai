@@ -36,6 +36,7 @@ Rules:
 - Make variations meaningfully different from each other
 - Keep each variation concise — roughly the same word count as the example
 - Do not include any preamble, explanation, or markdown formatting
+- If the user provides a list of previously-used variations to avoid, none of your new variations may repeat or be trivially synonymous with them. They may be similar in style or theme.
 - Return ONLY the JSON array`;
 
 export const SCHEMA_MAPPING_SYSTEM = `You analyze Replicate model API schemas and produce parameter mappings.

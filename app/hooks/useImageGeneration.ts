@@ -6,17 +6,15 @@ import { buildGenerationSignature } from "~/lib/generationSignature";
 import { getModel } from "~/lib/models";
 import { createThumbnailBlob } from "~/lib/imageProcessing";
 import type { ApiKeys, AspectRatio, GalleryItem, Provider, Resolution } from "~/types";
-import { executeGeneration, RateLimitError } from "~/lib/generation";
-import { sleep } from "../lib/util";
+import { executeGeneration } from "~/lib/generation";
+import { retryWithBackoff } from "~/lib/retry";
 import {
   parseVariationSections,
   generateVariations,
   buildVariedPrompts,
   stripVariationSections,
+  collectAvoidList,
 } from "~/lib/promptVariations";
-
-const MAX_RETRIES = 3;
-const BASE_BACKOFF_MS = 1000;
 
 interface GenerationTask {
   id: string;
@@ -25,6 +23,7 @@ interface GenerationTask {
   provider: Provider;
   prompt: string;
   basePrompt?: string;
+  variationReplacements?: string[];
   aspectRatio: AspectRatio | null;
   resolution: Resolution | null;
   referenceImages: Array<{ id: string; blob: Blob }>;
@@ -60,60 +59,20 @@ export function useImageGeneration() {
 
   // Execute a single generation with retry logic
   const executeWithRetry = useCallback(
-    async (
-      task: GenerationTask,
-      apiKeys: ApiKeys,
-      retryCount: number = 0
-    ): Promise<{
-      blob: Blob;
-      width: number;
-      height: number;
-      metadata: Record<string, unknown>;
-    }> => {
-      try {
-        return await executeGenerationTask(task, apiKeys);
-      } catch (error) {
-        // Handle rate limiting - wait and retry indefinitely
-        if (error instanceof RateLimitError) {
-          const waitMs = error.retryAfter * 1000;
-          const waitUntil = Date.now() + waitMs;
-
+    (task: GenerationTask, apiKeys: ApiKeys) =>
+      retryWithBackoff(() => executeGenerationTask(task, apiKeys), {
+        onWaiting: ({ retryCount, waitMs, waitingUntil }) => {
           updateItem(task.id, {
             status: "waiting",
             retryCount,
-            waitingUntil: waitUntil,
-            retryAfter: error.retryAfter,
+            waitingUntil,
+            retryAfter: Math.ceil(waitMs / 1000),
           });
-
-          await sleep(waitMs);
-
-          // After waiting, try again (don't increment retry count for rate limits)
+        },
+        onRetrying: ({ retryCount }) => {
           updateItem(task.id, { status: "generating", retryCount });
-          return executeWithRetry(task, apiKeys, retryCount);
-        }
-
-        // Handle other errors with exponential backoff, up to MAX_RETRIES
-        if (retryCount < MAX_RETRIES) {
-          const backoffMs = BASE_BACKOFF_MS * Math.pow(2, retryCount);
-          const waitUntil = Date.now() + backoffMs;
-
-          updateItem(task.id, {
-            status: "waiting",
-            retryCount: retryCount + 1,
-            waitingUntil: waitUntil,
-            retryAfter: Math.ceil(backoffMs / 1000),
-          });
-
-          await sleep(backoffMs);
-
-          updateItem(task.id, { status: "generating", retryCount: retryCount + 1 });
-          return executeWithRetry(task, apiKeys, retryCount + 1);
-        }
-
-        // Max retries exceeded, throw the error
-        throw error;
-      }
-    },
+        },
+      }),
     [updateItem]
   );
 
@@ -135,6 +94,7 @@ export function useImageGeneration() {
         provider: model.provider,
         prompt: item.prompt,
         basePrompt: item.basePrompt,
+        variationReplacements: item.variationReplacements,
         aspectRatio: item.aspectRatio,
         resolution: item.resolution,
         referenceImages: persistedReferences.map((referenceImage) => ({
@@ -147,7 +107,7 @@ export function useImageGeneration() {
       updateItem(itemId, { status: "generating" });
 
       try {
-        const result = await executeWithRetry(task, apiKeys, 0);
+        const result = await executeWithRetry(task, apiKeys);
         const thumbnailBlob = await createThumbnailBlob(result.blob, 400);
         const createdAt = Date.now();
 
@@ -156,6 +116,7 @@ export function useImageGeneration() {
           thumbnailBlob,
           prompt: task.prompt,
           basePrompt: task.basePrompt,
+          variationReplacements: task.variationReplacements,
           modelId: task.modelId,
           modelName: task.modelName,
           aspectRatio: task.aspectRatio,
@@ -208,22 +169,30 @@ export function useImageGeneration() {
 
     // Generate prompt variations if enabled
     let variedPrompts: string[] | null = null;
+    let variationReplacements: string[][] | null = null;
     if (variationsEnabled) {
       const sections = parseVariationSections(prompt);
       if (sections.length > 0) {
         try {
           useGalleryStore.setState({ isPreparingVariations: true });
           const imageBlobs = referenceImages.map((r) => r.blob);
+          const { avoidPastVariations, items } = useGalleryStore.getState();
+          const avoidPerSection = avoidPastVariations
+            ? (collectAvoidList(prompt, items) ?? undefined)
+            : undefined;
           const replacements = await generateVariations(
             prompt,
             sections,
             totalTasks,
-            imageBlobs.length > 0 ? imageBlobs : undefined
+            imageBlobs.length > 0 ? imageBlobs : undefined,
+            avoidPerSection
           );
           variedPrompts = buildVariedPrompts(prompt, sections, replacements);
+          variationReplacements = replacements;
         } catch {
           // Fall back to stripping variation brackets and using the example text
           variedPrompts = null;
+          variationReplacements = null;
         } finally {
           useGalleryStore.setState({ isPreparingVariations: false });
         }
@@ -253,6 +222,9 @@ export function useImageGeneration() {
         const taskResolution = model.capabilities.supportsResolution ? resolution : null;
         const taskAspectRatio = model.capabilities.supportsAspectRatios ? aspectRatio : null;
         const taskPrompt = variedPrompts ? variedPrompts[taskIndex] : basePromptText;
+        const taskReplacements = variationReplacements
+          ? variationReplacements.map((col) => col[taskIndex])
+          : undefined;
 
         tasks.push({
           id: taskId,
@@ -261,6 +233,7 @@ export function useImageGeneration() {
           provider: model.provider,
           prompt: taskPrompt,
           basePrompt: groupPrompt,
+          variationReplacements: taskReplacements,
           aspectRatio: taskAspectRatio,
           resolution: taskResolution,
           referenceImages: referenceImages.map((r) => ({ id: r.id, blob: r.blob })),
@@ -273,6 +246,7 @@ export function useImageGeneration() {
           modelName: model.name,
           prompt: taskPrompt,
           basePrompt: groupPrompt,
+          variationReplacements: taskReplacements,
           aspectRatio: taskAspectRatio,
           resolution: taskResolution,
           referenceImageIds: referenceImages.map((r) => r.id),
@@ -306,7 +280,7 @@ export function useImageGeneration() {
           updateItem(task.id, { status: "generating" });
 
           try {
-            const result = await executeWithRetry(task, apiKeys, 0);
+            const result = await executeWithRetry(task, apiKeys);
             const thumbnailBlob = await createThumbnailBlob(result.blob, 400);
             const createdAt = Date.now();
 
@@ -316,6 +290,7 @@ export function useImageGeneration() {
               thumbnailBlob,
               prompt: task.prompt,
               basePrompt: task.basePrompt,
+              variationReplacements: task.variationReplacements,
               modelId: task.modelId,
               modelName: task.modelName,
               aspectRatio: task.aspectRatio,

@@ -6,6 +6,7 @@ import { AspectRatioSection } from "./AspectRatioSection";
 import { ResolutionSection } from "./ResolutionSection";
 import { GenerateButton } from "./GenerateButton";
 import { PromptVariationsToggle } from "./PromptVariationsToggle";
+import { AvoidPastVariationsToggle } from "./AvoidPastVariationsToggle";
 import SVG from "react-inlinesvg";
 import drop from "~/drop.svg";
 import AddCustomModelButton from "../settings/AddCustomModelButton";
@@ -48,6 +49,7 @@ function GallerySidebarContent() {
       <div className="flex-1 space-y-6 overflow-y-auto p-4">
         <PromptInput />
         <PromptVariationsToggle />
+        <AvoidPastVariationsToggle />
         <ModelList />
         <AspectRatioSection />
         <ResolutionSection />

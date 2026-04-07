@@ -73,6 +73,10 @@ export interface BaseGalleryItem {
   prompt: string;
   /** Original template prompt (with {{...}} brackets) when variations were applied. Used to group siblings. */
   basePrompt?: string;
+  /** Per-section replacements applied to basePrompt to produce prompt. Index aligns with
+   *  sections parsed from basePrompt. Undefined for items generated before this field existed
+   *  or when variations were not applied. */
+  variationReplacements?: string[];
   aspectRatio: AspectRatio | null;
   resolution: Resolution | null;
   referenceImageIds: string[];
@@ -118,6 +122,7 @@ export interface StoredImageRecord {
   thumbnailBlob: Blob;
   prompt: string;
   basePrompt?: string;
+  variationReplacements?: string[];
   modelId: string;
   modelName: string;
   aspectRatio: AspectRatio | null;

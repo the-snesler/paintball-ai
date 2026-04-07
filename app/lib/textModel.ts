@@ -3,6 +3,8 @@ import Replicate from "replicate";
 import { useSettingsStore } from "~/stores/settingsStore";
 import type { Provider } from "~/types";
 import { blobToBase64 } from "./util";
+import { logger } from "./logging";
+import { retryWithBackoff, toRateLimitError } from "./retry";
 
 const DEFAULT_GOOGLE_MODEL = "gemini-3-flash-preview";
 const DEFAULT_REPLICATE_MODEL = "google/gemini-3-flash";
@@ -43,18 +45,39 @@ export function isTextModelAvailable(): boolean {
   return !!(apiKeys.google || apiKeys.replicate);
 }
 
+/**
+ * Returns the provider that would be used for the next `callTextModel` call,
+ * or null if no API keys are available. Useful for call sites that want to
+ * branch on capability (e.g. only use response prefill on the Google path).
+ */
+export function resolveTextModelProvider(): Provider | null {
+  try {
+    return resolveProvider().provider;
+  } catch {
+    return null;
+  }
+}
+
 export async function callTextModel(
   systemPrompt: string,
   userPrompt: string,
-  images?: Blob[]
+  images?: Blob[],
+  prefill?: string
 ): Promise<string> {
   const { provider, apiKey, modelId } = resolveProvider();
+  logger.debug(
+    `Text model called with ${images?.length ?? 0} images. Prompts:`,
+    `\nSystem: ${systemPrompt}`,
+    `\nUser: ${userPrompt}`,
+    `\nPrefill: ${prefill ?? "none"}`
+  );
 
-  if (provider === "google") {
-    return callGoogleTextModel(apiKey, modelId, systemPrompt, userPrompt, images);
-  }
-
-  return callReplicateTextModel(apiKey, modelId, systemPrompt, userPrompt);
+  return retryWithBackoff(() => {
+    if (provider === "google") {
+      return callGoogleTextModel(apiKey, modelId, systemPrompt, userPrompt, images, prefill);
+    }
+    return callReplicateTextModel(apiKey, modelId, systemPrompt, userPrompt);
+  });
 }
 
 async function callGoogleTextModel(
@@ -62,7 +85,8 @@ async function callGoogleTextModel(
   modelId: string,
   systemPrompt: string,
   userPrompt: string,
-  images?: Blob[]
+  images?: Blob[],
+  prefill?: string
 ): Promise<string> {
   const ai = new GoogleGenAI({ apiKey });
 
@@ -82,20 +106,44 @@ async function callGoogleTextModel(
 
   parts.push({ text: userPrompt });
 
-  const response = await ai.models.generateContent({
-    model: modelId,
-    config: {
-      systemInstruction: systemPrompt,
-      thinkingConfig: {
-        thinkingLevel: ThinkingLevel.LOW,
+  const contents: Array<{
+    role: "user" | "model";
+    parts: Array<{ text?: string; inlineData?: { mimeType: string; data: string } }>;
+  }> = [{ role: "user", parts }];
+
+  if (prefill) {
+    contents.push({ role: "model", parts: [{ text: prefill }] });
+  }
+
+  let response;
+  try {
+    response = await ai.models.generateContent({
+      model: modelId,
+      config: {
+        systemInstruction: systemPrompt,
+        thinkingConfig: {
+          thinkingLevel: ThinkingLevel.LOW,
+        },
       },
-    },
-    contents: [{ role: "user", parts }],
-  });
+      contents,
+    });
+  } catch (error) {
+    throw toRateLimitError(error, "google");
+  }
 
   const text = response.text;
   if (!text) {
     throw new Error("No text in response");
+  }
+
+  if (prefill) {
+    logger.debug(
+      "Google text model response with prefill. prefill=",
+      prefill,
+      "response.text=",
+      text
+    );
+    return prefill + text;
   }
 
   return text;
@@ -110,9 +158,14 @@ async function callReplicateTextModel(
   const baseUrl = new URL("/proxy/replicate/v1", window.location.origin).toString();
   const replicate = new Replicate({ auth: apiKey, baseUrl });
 
-  const output = await replicate.run(modelId as `${string}/${string}`, {
-    input: { prompt: userPrompt, system_prompt: systemPrompt },
-  });
+  let output;
+  try {
+    output = await replicate.run(modelId as `${string}/${string}`, {
+      input: { prompt: userPrompt, system_prompt: systemPrompt },
+    });
+  } catch (error) {
+    throw toRateLimitError(error, "replicate");
+  }
 
   if (typeof output === "string") {
     return output;

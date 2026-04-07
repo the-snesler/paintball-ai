@@ -4,6 +4,7 @@ import { useSettingsStore } from "~/stores/settingsStore";
 import type { AspectRatio, Resolution } from "~/types";
 import { blobToBase64 } from "./util";
 import { getImageDimensions } from "./imageProcessing";
+import { toRateLimitError } from "./retry";
 
 export class RateLimitError extends Error {
   retryAfter: number;
@@ -79,21 +80,7 @@ export async function generateWithGoogle(
       contents: [{ role: "user", parts }],
     });
   } catch (error) {
-    if (error instanceof Error) {
-      const errorAny = error as { status?: number; code?: number; message?: string };
-      if (
-        errorAny.status === 429 ||
-        errorAny.code === 429 ||
-        errorAny.message?.includes("429") ||
-        errorAny.message?.toLowerCase().includes("rate limit")
-      ) {
-        let retryAfter = 10;
-        const retryMatch = errorAny.message?.match(/retry.?after[:\s]*(\d+)/i);
-        if (retryMatch) retryAfter = Math.ceil(parseInt(retryMatch[1], 10));
-        throw new RateLimitError(`Rate limited by google`, retryAfter);
-      }
-    }
-    throw error;
+    throw toRateLimitError(error, "google");
   }
 
   let imageBlob: Blob | null = null;
@@ -160,23 +147,7 @@ export async function generateWithReplicate(
   try {
     output = await replicate.run(replicateModel, { input });
   } catch (error) {
-    if (error instanceof Error) {
-      const errorAny = error as { status?: number; message?: string };
-      if (errorAny.status === 429 || errorAny.message?.includes("429")) {
-        let retryAfter = 10;
-        try {
-          const jsonMatch = errorAny.message?.match(/\{[\s\S]*\}/);
-          if (jsonMatch) {
-            const parsed = JSON.parse(jsonMatch[0]);
-            if (parsed.retry_after) retryAfter = Math.ceil(parsed.retry_after);
-          }
-        } catch {
-          /* use default */
-        }
-        throw new RateLimitError(`Rate limited by replicate`, retryAfter);
-      }
-    }
-    throw error;
+    throw toRateLimitError(error, "replicate");
   }
 
   const imageUrl =

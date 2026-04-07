@@ -14,12 +14,10 @@ export function PromptVariationsToggle() {
   const setPrompt = useGalleryStore((s) => s.setPrompt);
 
   const totalImages = Object.values(modelSelections).reduce((sum, count) => sum + count, 0);
-  const textModelAvailable = isTextModelAvailable();
-  const variationsDisabled = !textModelAvailable || totalImages <= 1;
+  const variationsDisabled = !isTextModelAvailable();
 
-  // Auto-disable when total drops to 1 or below
   useEffect(() => {
-    if (totalImages <= 1 && variationsEnabled) {
+    if (!variationsEnabled) {
       setVariationsEnabled(false);
     }
   }, [totalImages, variationsEnabled, setVariationsEnabled]);
@@ -34,16 +32,15 @@ export function PromptVariationsToggle() {
       <p>
         The text model will replace each{" "}
         <code className="rounded bg-zinc-900 px-1 text-zinc-400">{"{{}}"}</code> section with a
-        unique variation per image. It will use the example text before the colon as a base for generating variations, and the text after the colon as instructions for how to vary it.
+        unique variation per image. It will use the example text before the colon as a base for
+        generating variations, and the text after the colon as instructions for how to vary it.
       </p>
       <p>
-        You can add as many variable sections as you like! Prompt variations require an API key for the text model and at least 2 total images.
+        You can add as many variable sections as you like! Prompt variations require a text model
+        configured in settings.
       </p>
-      {!textModelAvailable && (
+      {!variationsDisabled && (
         <p className="mt-1.5 text-red-500">Requires an API key for the text model.</p>
-      )}
-      {totalImages <= 1 && (
-        <p className="mt-1.5 text-red-500">Requires 2 or more total images to generate variations.</p>
       )}
     </>
   );

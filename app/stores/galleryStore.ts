@@ -34,6 +34,7 @@ interface GalleryState {
   currentResolution: Resolution;
   currentReferenceImages: ReferenceImage[];
   variationsEnabled: boolean;
+  avoidPastVariations: boolean;
   isPreparingVariations: boolean;
   activeGenerationCount: number;
   activeGenerationSignatures: Record<string, number>;
@@ -71,6 +72,7 @@ interface GalleryState {
   setAspectRatio: (ratio: AspectRatio | null) => void;
   setResolution: (resolution: Resolution) => void;
   setVariationsEnabled: (enabled: boolean) => void;
+  setAvoidPastVariations: (enabled: boolean) => void;
   addReferenceImage: (image: ReferenceImage) => void;
   removeReferenceImage: (id: string) => void;
   clearReferenceImages: () => void;
@@ -106,6 +108,7 @@ export const DEFAULT_GENERATION_STATE = {
   currentResolution: "1K" as Resolution,
   currentReferenceImages: [],
   variationsEnabled: false,
+  avoidPastVariations: true,
 };
 
 export const useGalleryStore = create<GalleryState>()((set, get) => ({
@@ -447,6 +450,7 @@ export const useGalleryStore = create<GalleryState>()((set, get) => ({
   setResolution: (resolution) => set({ currentResolution: resolution }),
 
   setVariationsEnabled: (enabled) => set({ variationsEnabled: enabled }),
+  setAvoidPastVariations: (enabled) => set({ avoidPastVariations: enabled }),
 
   addReferenceImage: (image) =>
     set((state) => ({
