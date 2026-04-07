@@ -24,6 +24,7 @@ interface GenerationTask {
   modelName: string;
   provider: Provider;
   prompt: string;
+  basePrompt?: string;
   aspectRatio: AspectRatio | null;
   resolution: Resolution | null;
   referenceImages: Array<{ id: string; blob: Blob }>;
@@ -133,6 +134,7 @@ export function useImageGeneration() {
         modelName: item.modelName,
         provider: model.provider,
         prompt: item.prompt,
+        basePrompt: item.basePrompt,
         aspectRatio: item.aspectRatio,
         resolution: item.resolution,
         referenceImages: persistedReferences.map((referenceImage) => ({
@@ -153,6 +155,7 @@ export function useImageGeneration() {
           originalBlob: result.blob,
           thumbnailBlob,
           prompt: task.prompt,
+          basePrompt: task.basePrompt,
           modelId: task.modelId,
           modelName: task.modelName,
           aspectRatio: task.aspectRatio,
@@ -228,8 +231,11 @@ export function useImageGeneration() {
     }
 
     // If variations were requested but failed/no sections, strip brackets from prompt
-    const basePrompt =
+    const basePromptText =
       variationsEnabled && !variedPrompts ? stripVariationSections(prompt) : prompt;
+
+    // When variations were applied, all sibling tasks share this group key (the original template).
+    const groupPrompt = variedPrompts ? prompt : undefined;
 
     // Build tasks for each model/count
     const tasks: GenerationTask[] = [];
@@ -246,7 +252,7 @@ export function useImageGeneration() {
         const taskId = crypto.randomUUID();
         const taskResolution = model.capabilities.supportsResolution ? resolution : null;
         const taskAspectRatio = model.capabilities.supportsAspectRatios ? aspectRatio : null;
-        const taskPrompt = variedPrompts ? variedPrompts[taskIndex] : basePrompt;
+        const taskPrompt = variedPrompts ? variedPrompts[taskIndex] : basePromptText;
 
         tasks.push({
           id: taskId,
@@ -254,6 +260,7 @@ export function useImageGeneration() {
           modelName: model.name,
           provider: model.provider,
           prompt: taskPrompt,
+          basePrompt: groupPrompt,
           aspectRatio: taskAspectRatio,
           resolution: taskResolution,
           referenceImages: referenceImages.map((r) => ({ id: r.id, blob: r.blob })),
@@ -265,6 +272,7 @@ export function useImageGeneration() {
           modelId,
           modelName: model.name,
           prompt: taskPrompt,
+          basePrompt: groupPrompt,
           aspectRatio: taskAspectRatio,
           resolution: taskResolution,
           referenceImageIds: referenceImages.map((r) => r.id),
@@ -307,6 +315,7 @@ export function useImageGeneration() {
               originalBlob: result.blob,
               thumbnailBlob,
               prompt: task.prompt,
+              basePrompt: task.basePrompt,
               modelId: task.modelId,
               modelName: task.modelName,
               aspectRatio: task.aspectRatio,

@@ -1,7 +1,8 @@
 import type { GalleryItem } from "~/types";
 
 export function getPromptKey(item: GalleryItem): string {
-  return item.prompt.trim() || "Untitled prompt";
+  const key = (item.basePrompt ?? item.prompt).trim();
+  return key || "Untitled prompt";
 }
 
 export function groupItemsByPrompt(items: GalleryItem[]): Map<string, GalleryItem[]> {

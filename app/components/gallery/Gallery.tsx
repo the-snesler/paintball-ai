@@ -8,6 +8,7 @@ import { ImageOff, Paperclip, Download, Trash2, X } from "lucide-react";
 import type { GalleryItem } from "~/types";
 import { formatRelativeDate } from "~/lib/util";
 import { groupItemsByPrompt, getFirstCreatedAt } from "~/lib/galleryGrouping";
+import { stripVariationSections } from "~/lib/promptVariations";
 
 export function Gallery() {
   const items = useGalleryStore((s) => s.items);
@@ -173,7 +174,7 @@ function TimelineView({ itemsByPrompt }: { itemsByPrompt: Map<string, GalleryIte
           <TimelineDivider
             dateLabel={formatRelativeDate(getFirstCreatedAt(promptItems))}
             outputCount={promptItems.length}
-            prompt={promptLabel}
+            prompt={stripVariationSections(promptLabel)}
           />
           <MasonryGrid>
             {promptItems.map((item) => (

@@ -71,6 +71,8 @@ export interface BaseGalleryItem {
   modelId: string;
   modelName: string;
   prompt: string;
+  /** Original template prompt (with {{...}} brackets) when variations were applied. Used to group siblings. */
+  basePrompt?: string;
   aspectRatio: AspectRatio | null;
   resolution: Resolution | null;
   referenceImageIds: string[];
@@ -115,6 +117,7 @@ export interface StoredImageRecord {
   originalBlob: Blob;
   thumbnailBlob: Blob;
   prompt: string;
+  basePrompt?: string;
   modelId: string;
   modelName: string;
   aspectRatio: AspectRatio | null;
