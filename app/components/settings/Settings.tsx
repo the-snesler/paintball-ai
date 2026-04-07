@@ -22,6 +22,7 @@ import { exportAllImages, importFromZip } from "~/lib/exportImport";
 import type { Provider } from "~/types";
 import ModelToggleItem from "./ModelToggle";
 import AddCustomModelButton from "./AddCustomModelButton";
+import { Switch } from "~/components/ui/Switch";
 
 const providers: { id: Provider; name: string; description: string }[] = [
   {
@@ -151,12 +152,11 @@ export function SettingsModal() {
               <span className="text-sm text-zinc-200">
                 Notify when generations complete in background
               </span>
-              <input
-                type="checkbox"
+              <Switch
                 checked={desktopNotificationsEnabled && notificationPermission === "granted"}
                 disabled={notificationPermission !== "granted"}
                 onChange={(e) => setDesktopNotificationsEnabled(e.target.checked)}
-                className="accent-accent h-4 w-4 rounded border-zinc-700 bg-zinc-800 text-purple-500 focus:ring-purple-500 disabled:cursor-not-allowed disabled:opacity-50"
+                aria-label="Toggle desktop notifications"
               />
             </label>
 

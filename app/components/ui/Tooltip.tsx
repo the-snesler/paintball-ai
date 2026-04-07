@@ -35,7 +35,7 @@ export function Tooltip({
     open,
     onOpenChange: setOpen,
     placement,
-    middleware: [offset(8), flip(), shift({ padding: 8 }), arrow({ element: arrowRef })],
+    middleware: [offset(8), flip(), shift({ padding: 8 }), arrow({ element: arrowRef, padding: 8 })],
   });
 
   const hover = useHover(context, { delay: { open: delay, close: 0 } });
@@ -63,7 +63,10 @@ export function Tooltip({
               <FloatingArrow
                 ref={arrowRef}
                 context={context}
-                className="fill-zinc-800 [&>path:first-of-type]:stroke-zinc-700"
+                fill="var(--color-zinc-800)"
+                stroke="var(--color-zinc-700)"
+                strokeWidth={0.75}
+                tipRadius={1}
                 width={12}
                 height={6}
               />

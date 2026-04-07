@@ -3,6 +3,7 @@ import { useSettingsStore } from "~/stores/settingsStore";
 import SVG from "react-inlinesvg";
 import type { StoredModel } from "~/types";
 import { Tooltip } from "~/components/ui/Tooltip";
+import { Switch } from "~/components/ui/Switch";
 
 function CapabilityBadge({
   icon: Icon,
@@ -89,16 +90,12 @@ export default function ModelToggleItem({
         </button>
       )}
 
-      <label className="relative inline-flex shrink-0 cursor-pointer items-center">
-        <input
-          type="checkbox"
-          checked={model.enabled}
-          onChange={(e) => setModelEnabled(model.id, e.target.checked)}
-          className="peer sr-only"
-          disabled={!hasApiKey}
-        />
-        <div className="peer h-5 w-9 rounded-full bg-zinc-700 peer-checked:bg-purple-600 peer-focus:outline-none after:absolute after:start-0.5 after:top-0.5 after:h-4 after:w-4 after:rounded-full after:bg-zinc-400 after:transition-all after:content-[''] peer-checked:after:translate-x-full peer-checked:after:border-white peer-checked:after:bg-white rtl:peer-checked:after:-translate-x-full"></div>
-      </label>
+      <Switch
+        checked={model.enabled}
+        onChange={(e) => setModelEnabled(model.id, e.target.checked)}
+        disabled={!hasApiKey}
+        aria-label={`Toggle ${model.name}`}
+      />
     </div>
   );
 }

@@ -4,6 +4,7 @@ import { useGalleryStore } from "~/stores/galleryStore";
 import { isTextModelAvailable } from "~/lib/textModel";
 import { hasVariationSections } from "~/lib/promptVariations";
 import { Tooltip } from "~/components/ui/Tooltip";
+import { Switch } from "~/components/ui/Switch";
 
 export function PromptVariationsToggle() {
   const modelSelections = useGalleryStore((s) => s.currentModelSelections);
@@ -33,7 +34,10 @@ export function PromptVariationsToggle() {
       <p>
         The text model will replace each{" "}
         <code className="rounded bg-zinc-900 px-1 text-zinc-400">{"{{}}"}</code> section with a
-        unique variation per image.
+        unique variation per image. It will use the example text before the colon as a base for generating variations, and the text after the colon as instructions for how to vary it.
+      </p>
+      <p>
+        You can add as many variable sections as you like! Prompt variations require an API key for the text model and at least 2 total images.
       </p>
       {!textModelAvailable && (
         <p className="mt-1.5 text-red-500">Requires an API key for the text model.</p>
@@ -59,23 +63,19 @@ export function PromptVariationsToggle() {
           </span>
         </Tooltip>
       </div>
-      <label className="relative inline-flex shrink-0 cursor-pointer items-center">
-        <input
-          type="checkbox"
-          checked={variationsEnabled}
-          onChange={(e) => {
-            const enabling = e.target.checked;
-            setVariationsEnabled(enabling);
-            if (enabling && !hasVariationSections(prompt)) {
-              const suffix = prompt.length > 0 && !prompt.endsWith(" ") ? " " : "";
-              setPrompt(prompt + suffix + "{{example: vary this}}");
-            }
-          }}
-          className="peer sr-only"
-          disabled={variationsDisabled}
-        />
-        <div className="peer h-5 w-9 rounded-full bg-zinc-700 peer-checked:bg-purple-600 peer-focus:outline-none after:absolute after:start-0.5 after:top-0.5 after:h-4 after:w-4 after:rounded-full after:bg-zinc-400 after:transition-all after:content-[''] peer-checked:after:translate-x-full peer-checked:after:border-white peer-checked:after:bg-white rtl:peer-checked:after:-translate-x-full peer-disabled:cursor-not-allowed"></div>
-      </label>
+      <Switch
+        checked={variationsEnabled}
+        onChange={(e) => {
+          const enabling = e.target.checked;
+          setVariationsEnabled(enabling);
+          if (enabling && !hasVariationSections(prompt)) {
+            const suffix = prompt.length > 0 && !prompt.endsWith(" ") ? " " : "";
+            setPrompt(prompt + suffix + "{{example: vary this}}");
+          }
+        }}
+        disabled={variationsDisabled}
+        aria-label="Toggle prompt variations"
+      />
     </div>
   );
 }
