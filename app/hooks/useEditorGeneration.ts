@@ -125,6 +125,7 @@ export function useEditorGeneration() {
             const createdAt = Date.now();
 
             await saveImage({
+              id: task.id,
               originalBlob: result.blob,
               thumbnailBlob,
               prompt: instruction,

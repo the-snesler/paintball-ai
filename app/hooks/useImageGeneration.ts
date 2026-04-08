@@ -112,6 +112,7 @@ export function useImageGeneration() {
         const createdAt = Date.now();
 
         await saveImage({
+          id: itemId,
           originalBlob: result.blob,
           thumbnailBlob,
           prompt: task.prompt,
@@ -286,6 +287,7 @@ export function useImageGeneration() {
 
             // Save to IndexedDB
             await saveImage({
+              id: task.id,
               originalBlob: result.blob,
               thumbnailBlob,
               prompt: task.prompt,

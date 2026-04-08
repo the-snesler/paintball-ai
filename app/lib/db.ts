@@ -56,20 +56,27 @@ export async function initDB(): Promise<IDBDatabase> {
   });
 }
 
-// Image operations
-export async function saveImage(image: Omit<StoredImageRecord, "id">): Promise<StoredImageRecord> {
-  const db = await initDB();
-  const id = crypto.randomUUID();
-  const record: StoredImageRecord = { ...image, id };
-
+// Resolves when the transaction commits, not just when the request succeeds.
+// IndexedDB request.onsuccess fires before the transaction commits to disk;
+// resolving on transaction.oncomplete prevents writes from being lost if the
+// page is closed or reloaded mid-transaction.
+function awaitTransaction<T>(transaction: IDBTransaction, value: T): Promise<T> {
   return new Promise((resolve, reject) => {
-    const transaction = db.transaction(STORES.images, "readwrite");
-    const store = transaction.objectStore(STORES.images);
-    const request = store.add(record);
-
-    request.onerror = () => reject(request.error);
-    request.onsuccess = () => resolve(record);
+    transaction.oncomplete = () => resolve(value);
+    transaction.onerror = () => reject(transaction.error);
+    transaction.onabort = () => reject(transaction.error);
   });
+}
+
+// Image operations
+export async function saveImage(image: StoredImageRecord): Promise<StoredImageRecord> {
+  const db = await initDB();
+
+  const transaction = db.transaction(STORES.images, "readwrite");
+  const store = transaction.objectStore(STORES.images);
+  store.add(image);
+
+  return awaitTransaction(transaction, image);
 }
 
 export async function getImages(
@@ -140,14 +147,11 @@ export async function getImageById(id: string): Promise<StoredImageRecord | null
 export async function deleteImage(id: string): Promise<void> {
   const db = await initDB();
 
-  return new Promise((resolve, reject) => {
-    const transaction = db.transaction(STORES.images, "readwrite");
-    const store = transaction.objectStore(STORES.images);
-    const request = store.delete(id);
+  const transaction = db.transaction(STORES.images, "readwrite");
+  const store = transaction.objectStore(STORES.images);
+  store.delete(id);
 
-    request.onerror = () => reject(request.error);
-    request.onsuccess = () => resolve();
-  });
+  await awaitTransaction(transaction, undefined);
 }
 
 export async function getImageCount(): Promise<number> {
@@ -169,18 +173,13 @@ export async function saveReferenceImage(
 ): Promise<ReferenceImage> {
   const db = await initDB();
 
-  return new Promise((resolve, reject) => {
-    const transaction = db.transaction(STORES.references, "readwrite");
-    const store = transaction.objectStore(STORES.references);
-    const request = store.put({ id: image.id, blob: image.blob, name: image.name });
+  const transaction = db.transaction(STORES.references, "readwrite");
+  const store = transaction.objectStore(STORES.references);
+  store.put({ id: image.id, blob: image.blob, name: image.name });
 
-    request.onerror = () => reject(request.error);
-    request.onsuccess = () => {
-      resolve({
-        ...image,
-        url: URL.createObjectURL(image.blob),
-      });
-    };
+  return awaitTransaction(transaction, {
+    ...image,
+    url: URL.createObjectURL(image.blob),
   });
 }
 
@@ -225,27 +224,21 @@ export async function getReferenceImagesByIds(ids: string[]): Promise<ReferenceI
 export async function deleteReferenceImage(id: string): Promise<void> {
   const db = await initDB();
 
-  return new Promise((resolve, reject) => {
-    const transaction = db.transaction(STORES.references, "readwrite");
-    const store = transaction.objectStore(STORES.references);
-    const request = store.delete(id);
+  const transaction = db.transaction(STORES.references, "readwrite");
+  const store = transaction.objectStore(STORES.references);
+  store.delete(id);
 
-    request.onerror = () => reject(request.error);
-    request.onsuccess = () => resolve();
-  });
+  await awaitTransaction(transaction, undefined);
 }
 
 export async function importImage(record: StoredImageRecord): Promise<void> {
   const db = await initDB();
 
-  return new Promise((resolve, reject) => {
-    const transaction = db.transaction(STORES.images, "readwrite");
-    const store = transaction.objectStore(STORES.images);
-    const request = store.put(record);
+  const transaction = db.transaction(STORES.images, "readwrite");
+  const store = transaction.objectStore(STORES.images);
+  store.put(record);
 
-    request.onerror = () => reject(request.error);
-    request.onsuccess = () => resolve();
-  });
+  await awaitTransaction(transaction, undefined);
 }
 
 export async function getExistingImageIds(): Promise<Set<string>> {
@@ -317,12 +310,9 @@ async function persistMigratedImageRecord(
   db: IDBDatabase,
   record: StoredImageRecord
 ): Promise<void> {
-  return new Promise((resolve, reject) => {
-    const transaction = db.transaction(STORES.images, "readwrite");
-    const store = transaction.objectStore(STORES.images);
-    const request = store.put(record);
+  const transaction = db.transaction(STORES.images, "readwrite");
+  const store = transaction.objectStore(STORES.images);
+  store.put(record);
 
-    request.onerror = () => reject(request.error);
-    request.onsuccess = () => resolve();
-  });
+  await awaitTransaction(transaction, undefined);
 }
