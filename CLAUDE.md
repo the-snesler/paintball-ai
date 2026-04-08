@@ -15,55 +15,79 @@
 - **Framework**: React Router 7 (SPA mode, `ssr: false`)
 - **Styling**: Tailwind CSS 4
 - **State**: Zustand (with localStorage persistence for settings)
-- **Storage**: IndexedDB for images, localStorage for API keys
+- **Storage**: IndexedDB for images and references, localStorage for API keys/settings
 - **Icons**: Lucide React
-- **AI**: Vercel AI SDK (`@ai-sdk/google` for Gemini)
+- **AI**: Google GenAI SDK (`@google/genai`), Replicate SDK
 
 ## Architecture
 
 ```
 app/
 ├── routes/
-│   └── home.tsx              # Main page, composes Sidebar + Gallery
+│   ├── home.tsx              # Layout: Sidebar + Lightbox + Notifications
+│   ├── gallery.tsx           # Index route: gallery grid
+│   ├── settings.tsx          # Settings page
+│   └── editor.tsx            # Image editor page (?imageId param)
 ├── components/
 │   ├── sidebar/              # Left panel: prompt, models, settings
-│   ├── gallery/              # Main area: masonry grid of images
+│   ├── gallery/              # Main area: masonry/timeline grid
 │   ├── lightbox/             # Full-screen image viewer
-│   └── settings/             # API key management modal
-├── stores/                   # Zustand stores
-│   ├── settingsStore.ts      # API keys (persisted)
-│   ├── generationStore.ts    # Generation state (prompt, models, pending)
-│   └── galleryStore.ts       # Images, view mode, lightbox state
+│   ├── settings/             # API key management, model toggles
+│   ├── editor/               # Iterative image editor
+│   └── ui/                   # Shared primitives (Switch, Tooltip)
+├── stores/
+│   ├── settingsStore.ts      # API keys + model list (persisted)
+│   ├── galleryStore.ts       # Gallery items + current generation inputs
+│   └── editorStore.ts        # Editor session state (not persisted)
 ├── hooks/
-│   └── useImageGeneration.ts # Core generation logic
+│   ├── useImageGeneration.ts # Gallery generation logic
+│   └── useEditorGeneration.ts# Editor generation logic
 ├── lib/
+│   ├── generation.ts         # Core API calls (Google/Replicate)
+│   ├── models.ts             # Capability helpers & ASPECT_RATIOS
+│   ├── builtInModels.ts      # Pre-configured model definitions
 │   ├── db.ts                 # IndexedDB operations
-│   └── models.ts             # Model definitions & capability helpers
+│   ├── promptVariations.ts   # {{...}} variation parsing & generation
+│   ├── textModel.ts          # LLM calls for variations/analysis
+│   ├── prompts.ts            # System prompt templates
+│   ├── imageProcessing.ts    # Thumbnail generation, dimension reading
+│   ├── generationSignature.ts# Deduplication hash
+│   ├── retry.ts              # Retry with exponential backoff
+│   ├── exportImport.ts       # ZIP-based gallery export/import
+│   ├── replicateSchema.ts    # Replicate model schema introspection
+│   ├── galleryGrouping.ts    # Date-based grouping utility
+│   ├── util.ts               # blobToBase64, sleep
+│   └── logging.ts            # Debug logger
 └── types/
     └── index.ts              # TypeScript types
 ```
 
 ## State Management
 
-### Two Zustand Stores
+### Three Zustand Stores
 
 1. **`settingsStore`** - Persisted to localStorage
-   - `apiKeys`: Record of provider → API key
+   - `apiKeys`: `{ google, replicate }` — provider API keys
+   - `models: StoredModel[]` — built-in + user-added Replicate models (ordered)
+   - `textModel` — provider/modelId for the LLM used for variations
+   - `desktopNotificationsEnabled`, `notificationPromptDismissed`
+   - `requestedOutputCount` — lifetime image request counter
 
-2. **`galleryStore`** - Unified state for inputs and outputs
-   - **Gallery items**: `items: GalleryItem[]` - Unified array containing all items
-     - Items with `status: 'pending' | 'generating'` - Loading cards
-     - Items with `status: 'failed'` - Error cards (dismissible)
-     - Items with `status: 'completed'` - Rendered as image cards
-   - **Current input settings** (for UI controls):
-     - `currentPrompt`: Prompt text being typed
-     - `currentModelSelections`: `Record<modelId, count>`
-     - `currentAspectRatio`, `currentResolution`: Generation settings
-     - `currentReferenceImages`: Uploaded images for img2img
-     - `isGenerating`: Loading state
-   - **View state**:
-     - `viewMode`: 'grid' | 'timeline'
-     - `selectedImageId`, `isLightboxOpen`: Lightbox state
+2. **`galleryStore`** - Not persisted
+   - `items: GalleryItem[]` — unified array of pending/generating/completed/failed items
+   - **Current input state** (for UI controls):
+     - `currentPrompt`, `currentModelSelections`, `currentAspectRatio`, `currentResolution`
+     - `currentReferenceImages: ReferenceImage[]`
+     - `variationsEnabled`, `avoidPastVariations`, `isPreparingVariations`
+   - **Generation tracking**: `isGenerating`, `activeGenerationCount`, `activeGenerationSignatures`
+   - **View state**: `viewMode`, `isLightboxOpen`, `lightboxTarget`, `selectedItemIds`
+
+3. **`editorStore`** - Not persisted
+   - `sourceBlob`, `sourceUrl`, `sourcePrompt`, `sourceGalleryItemId`
+   - `turns: EditorTurn[]` — conversation history
+   - `selectedItemId` — active canvas item (reference for next edit)
+   - `instruction` — current edit input
+   - `isGenerating`
 
 ### Important Zustand Pattern
 
@@ -83,66 +107,130 @@ const selected = Object.entries(modelSelections)
 
 ## Model System
 
-Models are defined in `lib/models.ts` with capabilities:
+Model definitions live in `lib/builtInModels.ts`. `lib/models.ts` contains only capability helpers.
 
 ```typescript
-interface ModelDefinition {
-  id: string;                    // API model ID
-  name: string;                  // Display name
-  provider: 'google' | 'openai'; // Which API key to use
+interface StoredModel {
+  id: string;
+  name: string;
+  provider: 'google' | 'replicate';
+  enabled: boolean;
+  isCustom?: boolean;          // User-added via Settings
+  schemaFetched?: boolean;     // Replicate schema has been introspected
+  schemaMapping?: SchemaMapping; // Translated parameter names for non-standard models
   capabilities: {
-    aspectRatios: AspectRatio[]; // Empty = doesn't support aspect selection
-    supportsResolution: boolean; // 1K/2K/4K options
+    supportsAspectRatios: boolean;
+    supportsResolution: boolean;
+    resolutions?: Resolution[];
     supportsReferenceImages: boolean;
     maxReferenceImages: number;
   };
+  icon?: string;
 }
 ```
 
 ### Capability-Based UI
 
-- **Aspect Ratio Picker**: Enabled if ANY selected model has `aspectRatios.length > 0`
+- **Aspect Ratio Picker**: Enabled if ANY selected model has `supportsAspectRatios: true`
 - **Resolution Picker**: Shown if ANY selected model has `supportsResolution: true`
-- When multiple models selected, show intersection of their capabilities
+- **Reference Images**: Strict intersection of `maxReferenceImages` across selected models
 
 Key helpers in `lib/models.ts`:
-- `anyModelSupportsAspectRatio(ids)` - Should picker be enabled?
-- `getCommonAspectRatios(ids)` - Which ratios are available?
-- `anyModelSupportsResolution(ids)` - Show resolution picker?
+- `anyModelSupportsAspectRatio(models, selectedIds)` — Should picker show?
+- `anyModelSupportsResolution(models, selectedIds)` — Show resolution picker?
+- `getStrictReferenceImageLimit(models, selectedIds)` — Max reference images
+- `canAttachReferenceCount(models, selectedIds, count)` — Validate attachment
+
+### Custom Models
+
+Users can add arbitrary Replicate models via Settings. The app:
+1. Calls `replicateSchema.ts` to introspect the model's API schema
+2. Calls the text model with `SCHEMA_MAPPING_SYSTEM` prompt to generate a `SchemaMapping`
+3. Stores the mapping in `settingsStore` so non-standard parameter names are translated correctly
 
 ## Image Generation Flow
 
 1. User clicks Generate
-2. `useImageGeneration` creates pending `GalleryItem` objects with `status: 'pending'`
-3. Pending items added to `galleryStore.items` (shows loading cards immediately)
-4. Parallel API calls via `Promise.allSettled`
-5. Each item transitions through states in place:
-   - `status: 'generating'` - API call in progress
-   - `status: 'completed'` - Success, saved to IndexedDB, shows image
-   - `status: 'failed'` - Error, shows error message with dismiss button
-6. **No separate cleanup needed** - items naturally transition from pending → completed
+2. `useImageGeneration.generate()` runs:
+   - Parses `{{...}}` variation sections from prompt
+   - If `variationsEnabled`: calls text model to generate N alternatives per section, optionally deduplicating against past generations
+   - Creates one `GalleryItem` per model × count with `status: 'pending'`
+   - Adds all pending items to `galleryStore.items` immediately (loading cards appear)
+   - Persists any reference images to IndexedDB
+   - Calls `executeGeneration()` in parallel via `Promise.allSettled`
+3. Each item transitions through states in place:
+   - `status: 'waiting'` — rate-limit backoff, shows countdown
+   - `status: 'generating'` — API call in flight
+   - `status: 'completed'` — blob saved, thumbnail generated, stored in IndexedDB
+   - `status: 'failed'` — error shown, can retry
 
 ### State Transitions
 
-Each `GalleryItem` flows through these states:
 ```
 pending → generating → completed (saved to IndexedDB)
-                    ↘ failed (ephemeral, dismissed or cleared on reload)
+        ↘ waiting  ↗
+                   ↘ failed (ephemeral — dismissed or cleared on reload)
 ```
 
-Key insight: **Loading cards and image cards are the same item** - just at different stages. When an item completes, it updates in place, instantly replacing its loading card.
+Key insight: **Loading cards and image cards are the same item** — just at different stages. When an item completes, it updates in place.
 
-### Error Handling
+### Retry & Rate Limiting
 
-Failed generations stay visible (not saved to IndexedDB) until:
-- User clicks X to dismiss via `dismissItem(id)`
-- Page is reloaded (ephemeral state)
+`lib/retry.ts` wraps `executeGeneration()` with exponential backoff. A `RateLimitError` (HTTP 429) causes the item to enter `status: 'waiting'` with a visible countdown, then automatically retries.
+
+## Image Editor
+
+The editor is at `/editor` (nested inside the home layout so the sidebar stays visible).
+
+### Flow
+
+1. Entry: user clicks "Edit" in lightbox (passes `?imageId`) or drops a file on the editor page
+2. Source image is saved to IndexedDB as a reference image (for retry resilience)
+3. User writes an instruction in `EditorInputBar` and clicks Send
+4. `useEditorGeneration.generateEdit()`:
+   - Creates pending items synchronously and calls `onItemsCreated` **before any await**
+   - This ensures the turn is registered in `editorStore` before results arrive
+   - Saves completed images to gallery (same IndexedDB as main gallery)
+5. Each result appears in the turn's image grid in `TurnList`
+6. Clicking an image in a turn selects it (purple ring) — it becomes the reference for the next edit
+7. The sidebar's model/aspect ratio/resolution controls apply to editor generation too
+
+### Key Files
+
+- `routes/editor.tsx` — loads image by `?imageId`, sets editor source
+- `components/editor/EditorView.tsx` — layout: header + TurnList/DropZone + EditorInputBar
+- `components/editor/TurnList.tsx` — scrollable conversation history
+- `components/editor/Turn.tsx` — one turn: instruction + source thumb + results grid
+- `components/editor/EditorInputBar.tsx` — input, paste-to-set-source, analyze (reverse prompt)
+- `components/editor/DropZone.tsx` — empty state when no source loaded
+- `stores/editorStore.ts` — session state
+- `hooks/useEditorGeneration.ts` — generation hook
+
+## Prompt Variations
+
+Users write `{{description: example1, example2}}` in prompts. When Variations is enabled:
+
+1. `promptVariations.ts` parses the `{{...}}` sections
+2. `textModel.ts` is called with `VARIATION_SYSTEM` prompt to generate N alternatives per section
+3. If `avoidPastVariations` is on, past variation values are collected and sent to the model to avoid
+4. `buildVariedPrompts()` assembles N complete prompts from the alternatives
+5. The original `{{...}}` template is stored as `basePrompt`; applied values go in `variationReplacements`
+
+## Text Model
+
+A secondary LLM is used for:
+- Generating prompt variations (`VARIATION_SYSTEM`)
+- Reverse-prompting images back to text (`REVERSE_PROMPT_SYSTEM`)
+- Improving user prompts (`IMPROVE_PROMPT_SYSTEM`)
+- Mapping Replicate model schemas (`SCHEMA_MAPPING_SYSTEM`)
+
+Configured in Settings (`settingsStore.textModel`). Supports Google Gemini (with `ThinkingLevel.LOW`) and Replicate text models.
 
 ## CSS Patterns
 
 ### Masonry Grid
 
-Uses CSS `columns` for universal browser support:
+Uses `masonry-pf` library with CSS column fallback:
 
 ```css
 .masonry-grid {
@@ -155,48 +243,52 @@ Uses CSS `columns` for universal browser support:
 }
 ```
 
-Progressive enhancement for native masonry when available.
-
 ### Dark Theme
 
 App is dark-mode only. Key colors:
-- `zinc-950` - Background
-- `zinc-900` - Elevated surfaces (sidebar, cards)
-- `zinc-800` - Interactive elements
-- `purple-500` - Accent/selected states
-- `red-400` - Errors
+- `zinc-950` — Background
+- `zinc-900` — Elevated surfaces (sidebar, cards)
+- `zinc-800` — Interactive elements
+- `purple-500` — Accent/selected states
+- `red-400` — Errors
 
 ## Common Tasks
 
-### Adding a New Model
+### Adding a Built-In Model
 
-1. Add to `MODELS` array in `lib/models.ts`
-2. Set appropriate `capabilities`
-3. If new provider, add to `ApiKeys` type and `settingsStore`
-4. Implement provider in `useImageGeneration.ts` `executeGeneration()`
+1. Add to `BUILT_IN_MODELS` array in `lib/builtInModels.ts`
+2. Set `provider`, `capabilities`, and default `enabled` state
+3. If new provider: add to `ApiKeys` type in `types/index.ts`, `settingsStore`, and implement in `lib/generation.ts`
 
 ### Adding a New Generation Setting
 
-1. Add to `GalleryState` interface in `galleryStore.ts` (e.g., `currentStylePreset`)
-2. Add setter action (e.g., `setStylePreset`)
-3. Add to `GalleryItem` type in `types/index.ts` (so it's saved with outputs)
+1. Add to `GalleryState` in `galleryStore.ts` (e.g., `currentStylePreset`)
+2. Add a setter action
+3. Add to `GalleryItem` + `StoredImageRecord` in `types/index.ts`
 4. Create UI component in `components/sidebar/`
-5. Pass to generation task and update in `useImageGeneration.ts`
-6. Update `saveImage` call to include new setting
+5. Pass to generation in `useImageGeneration.ts` and `lib/generation.ts`
+6. Include in `saveImage()` call in `lib/db.ts`
+
+### Adding a Prompt System
+
+Add a new `const X_SYSTEM = ...` to `lib/prompts.ts` and call it via `callTextModel()` from `lib/textModel.ts`.
 
 ## Gotchas
 
-1. **Object URLs**: Created with `URL.createObjectURL()`, must be revoked to prevent memory leaks. Creation happens in:
-   - `galleryStore.loadImages()` for persisted images
-   - `useImageGeneration` when generation completes
-   - Cleanup happens on `deleteItem()` or `dismissItem()`
+1. **Object URLs**: Created with `URL.createObjectURL()`, must be revoked to prevent memory leaks.
+   - Created in: `galleryStore.loadImages()`, `useImageGeneration` on completion, `editorStore.setSource()`
+   - Cleaned up in: `deleteItem()`, `dismissItem()`, `editorStore.reset()`
 
-2. **IndexedDB async**: All DB operations are async. Gallery loads on mount via `useEffect` in `home.tsx`.
+2. **IndexedDB async**: All DB operations are async. Gallery loads on mount via `useEffect` in `home.tsx`. IndexedDB version is currently **2** (v1→v2 migration: single blob → `originalBlob` + `thumbnailBlob`).
 
 3. **SPA mode**: `react-router.config.ts` has `ssr: false`. No server routes, no loaders/actions.
 
-4. **Gemini API format**: Uses `generateContent` endpoint with `responseModalities: ["image", "text"]`. Response images are in `candidate.content.parts[].inlineData`.
+4. **Unified state**: `GalleryItem` is used for pending, generating, waiting, completed, and failed states. Always check `item.status === 'completed'` before accessing output fields (`originalBlob`, `originalUrl`, `thumbnailUrl`, `width`, `height`, `createdAt`). Input fields (`prompt`, `aspectRatio`, etc.) are always present on all statuses.
 
-5. **Aspect ratio logic**: Models with empty `aspectRatios: []` don't support the feature. The picker should be disabled only when ALL selected models have empty arrays.
+5. **Editor generation callback order**: `useEditorGeneration` calls `onItemsCreated(itemIds)` synchronously before any `await`. This is intentional — callers must register the turn in `editorStore` before the async generation completes.
 
-6. **Unified state**: `GalleryItem` is used for both pending and completed items. Check `item.status === 'completed'` before accessing output fields like `blob`, `url`, `width`, `height`, `createdAt`. Input fields (`prompt`, `aspectRatio`, etc.) are always present.
+6. **Replicate schema mapping**: Non-standard Replicate models use `schemaMapping` to translate parameter names (e.g., `imageInputKey`, `resolution` map). Always pass through `schemaMapping` when calling `generateWithReplicate`.
+
+7. **Reference image limits**: Use the intersection of `maxReferenceImages` across all selected models. `getStrictReferenceImageLimit()` returns this value; use `canAttachReferenceCount()` to validate before attaching.
+
+8. **`builtInModels` vs `settingsStore.models`**: `settingsStore` stores the user's model list (built-ins merged with user overrides). Always read models from the store, not directly from `builtInModels.ts`. Use `mergeWithBuiltInModels()` for migrations.
