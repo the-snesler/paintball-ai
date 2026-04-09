@@ -11,46 +11,29 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router";
 import { useGalleryStore } from "~/stores/galleryStore";
-import { getReferenceImagesByIds } from "~/lib/db";
+import { useLightboxStore } from "~/stores/lightboxStore";
 import { groupItemsByPrompt, getPromptKey } from "~/lib/galleryGrouping";
-import { hasVariationSections } from "~/lib/promptVariations";
 import { GalleryImageCard } from "~/components/gallery/GalleryImageCard";
+import { useLightboxNavigation } from "~/hooks/useLightboxNavigation";
+import { useReuseGalleryItemPrompt } from "~/hooks/useReuseGalleryItemPrompt";
 import { IconButton } from "./IconButton";
 import { WideIconButton } from "./WideIconButton";
 
 export function Lightbox() {
   const navigate = useNavigate();
-  const closeLightbox = useGalleryStore((s) => s.closeLightbox);
-  const navigateLightbox = useGalleryStore((s) => s.navigateLightbox);
+  const closeLightbox = useLightboxStore((s) => s.closeLightbox);
   const deleteItem = useGalleryStore((s) => s.deleteItem);
-  const setPrompt = useGalleryStore((s) => s.setPrompt);
-  const addReferenceImage = useGalleryStore((s) => s.addReferenceImage);
-  const clearReferenceImages = useGalleryStore((s) => s.clearReferenceImages);
-  const lightboxTarget = useGalleryStore((s) => s.lightboxTarget);
-  const setVariationsEnabled = useGalleryStore((s) => s.setVariationsEnabled);
+  const reuseGalleryItemPrompt = useReuseGalleryItemPrompt();
+  const { lightboxTarget, galleryImage, referenceImage, showNavigation, navigateLightbox } =
+    useLightboxNavigation();
 
   const items = useGalleryStore((s) => s.items);
-
-  const galleryImage = useGalleryStore((s) => {
-    const target = s.lightboxTarget;
-    if (!target || target.kind !== "gallery") return null;
-    const item = s.items.find((i) => i.id === target.imageId);
-    return item && item.status === "completed" ? item : null;
-  });
-
-  const referenceImage = lightboxTarget?.kind === "reference" ? lightboxTarget.image : null;
 
   const promptGroup = useMemo(() => {
     if (!galleryImage) return [];
     const groups = groupItemsByPrompt(items);
     return groups.get(getPromptKey(galleryImage)) ?? [];
   }, [items, galleryImage]);
-
-  const showNavigation = useGalleryStore((s) =>
-    s.lightboxTarget?.kind === "gallery"
-      ? s.items.filter((i) => i.status === "completed").length > 1
-      : false
-  );
 
   // Keyboard navigation
   useEffect(() => {
@@ -94,18 +77,9 @@ export function Lightbox() {
 
   const handleReusePrompt = useCallback(async () => {
     if (!galleryImage) return;
-
-    clearReferenceImages();
-    const references = await getReferenceImagesByIds(galleryImage.referenceImageIds);
-    references.forEach((reference) => addReferenceImage(reference));
-
-    setPrompt(galleryImage.basePrompt ?? galleryImage.prompt);
-    if (galleryImage.basePrompt) {
-      setVariationsEnabled(true);
-    }
-
+    await reuseGalleryItemPrompt(galleryImage);
     closeLightbox();
-  }, [galleryImage, setPrompt, closeLightbox, clearReferenceImages, addReferenceImage, setVariationsEnabled]);
+  }, [galleryImage, reuseGalleryItemPrompt, closeLightbox]);
 
   const handleDelete = useCallback(async () => {
     if (!galleryImage) return;

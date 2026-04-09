@@ -1,17 +1,17 @@
 import { useEffect } from "react";
 import { Shuffle, Info } from "lucide-react";
-import { useGalleryStore } from "~/stores/galleryStore";
+import { useGenerationStore } from "~/stores/generationStore";
 import { isTextModelAvailable } from "~/lib/textModel";
 import { hasVariationSections } from "~/lib/promptVariations";
 import { Tooltip } from "~/components/ui/Tooltip";
 import { Switch } from "~/components/ui/Switch";
 
 export function PromptVariationsToggle() {
-  const modelSelections = useGalleryStore((s) => s.currentModelSelections);
-  const variationsEnabled = useGalleryStore((s) => s.variationsEnabled);
-  const setVariationsEnabled = useGalleryStore((s) => s.setVariationsEnabled);
-  const prompt = useGalleryStore((s) => s.currentPrompt);
-  const setPrompt = useGalleryStore((s) => s.setPrompt);
+  const modelSelections = useGenerationStore((s) => s.currentModelSelections);
+  const variationsEnabled = useGenerationStore((s) => s.variationsEnabled);
+  const setVariationsEnabled = useGenerationStore((s) => s.setVariationsEnabled);
+  const prompt = useGenerationStore((s) => s.currentPrompt);
+  const setPrompt = useGenerationStore((s) => s.setPrompt);
 
   const totalImages = Object.values(modelSelections).reduce((sum, count) => sum + count, 0);
   const variationsDisabled = !isTextModelAvailable();

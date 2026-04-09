@@ -2,7 +2,7 @@ import { Box, Minus, Plus } from "lucide-react";
 import SVG from "react-inlinesvg";
 import NumberFlow from "@number-flow/react";
 import type { StoredModel } from "~/types";
-import { useGalleryStore } from "~/stores/galleryStore";
+import { useGenerationStore } from "~/stores/generationStore";
 
 interface ModelItemProps {
   model: StoredModel;
@@ -15,7 +15,7 @@ const providerNames: Record<string, string> = {
 };
 
 export function ModelItem({ model, count }: ModelItemProps) {
-  const setModelCount = useGalleryStore((s) => s.setModelCount);
+  const setModelCount = useGenerationStore((s) => s.setModelCount);
 
   const isActive = count > 0;
 

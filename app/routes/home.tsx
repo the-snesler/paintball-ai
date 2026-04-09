@@ -6,6 +6,7 @@ import { MobileHeader } from "~/components/sidebar/MobileHeader";
 import { NotificationPermissionPrompt } from "~/components/settings/NotificationPermissionPrompt";
 import { Lightbox } from "~/components/lightbox/Lightbox";
 import { useGalleryStore } from "~/stores/galleryStore";
+import { useLightboxStore } from "~/stores/lightboxStore";
 import { useSettingsStore } from "~/stores/settingsStore";
 
 export function meta({}: Route.MetaArgs) {
@@ -18,7 +19,7 @@ export function meta({}: Route.MetaArgs) {
 export default function Home() {
   const loadImages = useGalleryStore((s) => s.loadImages);
   const hasLoaded = useGalleryStore((s) => s.hasLoaded);
-  const isLightboxOpen = useGalleryStore((s) => s.isLightboxOpen);
+  const isLightboxOpen = useLightboxStore((s) => s.isLightboxOpen);
   const items = useGalleryStore((s) => s.items);
   const desktopNotificationsEnabled = useSettingsStore((s) => s.desktopNotificationsEnabled);
   const previousInFlightCountRef = useRef(0);

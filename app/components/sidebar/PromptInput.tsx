@@ -4,16 +4,18 @@ import { anyModelSupportsReferenceImages } from "~/lib/models";
 import { IMPROVE_PROMPT_SYSTEM } from "~/lib/prompts";
 import { callTextModel, isTextModelAvailable } from "~/lib/textModel";
 import { useGalleryStore } from "~/stores/galleryStore";
+import { useGenerationStore } from "~/stores/generationStore";
+import { useLightboxStore } from "~/stores/lightboxStore";
 import { useSettingsStore } from "~/stores/settingsStore";
 
 export function PromptInput() {
-  const prompt = useGalleryStore((s) => s.currentPrompt);
-  const setPrompt = useGalleryStore((s) => s.setPrompt);
-  const referenceImages = useGalleryStore((s) => s.currentReferenceImages);
-  const addReferenceImage = useGalleryStore((s) => s.addReferenceImage);
-  const removeReferenceImage = useGalleryStore((s) => s.removeReferenceImage);
-  const openLightbox = useGalleryStore((s) => s.openLightbox);
-  const modelSelections = useGalleryStore((s) => s.currentModelSelections);
+  const prompt = useGenerationStore((s) => s.currentPrompt);
+  const setPrompt = useGenerationStore((s) => s.setPrompt);
+  const referenceImages = useGenerationStore((s) => s.currentReferenceImages);
+  const addReferenceImage = useGenerationStore((s) => s.addReferenceImage);
+  const removeReferenceImage = useGenerationStore((s) => s.removeReferenceImage);
+  const openLightbox = useLightboxStore((s) => s.openLightbox);
+  const modelSelections = useGenerationStore((s) => s.currentModelSelections);
   const galleryItems = useGalleryStore((s) => s.items);
   const models = useSettingsStore((s) => s.models);
   const [isDragOver, setIsDragOver] = useState(false);

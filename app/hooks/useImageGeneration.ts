@@ -1,5 +1,6 @@
 import { useCallback } from "react";
 import { useGalleryStore } from "~/stores/galleryStore";
+import { useGenerationStore } from "~/stores/generationStore";
 import { useSettingsStore } from "~/stores/settingsStore";
 import { saveReferenceImage } from "~/lib/db";
 import { buildGenerationSignature } from "~/lib/generationSignature";
@@ -17,13 +18,13 @@ import { useGenerationTask, type GenerationTask } from "~/hooks/useGenerationTas
 export function useImageGeneration() {
   const models = useSettingsStore((s) => s.models);
 
-  const prompt = useGalleryStore((s) => s.currentPrompt);
-  const modelSelections = useGalleryStore((s) => s.currentModelSelections);
-  const aspectRatio = useGalleryStore((s) => s.currentAspectRatio);
-  const resolution = useGalleryStore((s) => s.currentResolution);
-  const referenceImages = useGalleryStore((s) => s.currentReferenceImages);
-  const startGeneration = useGalleryStore((s) => s.startGeneration);
-  const finishGeneration = useGalleryStore((s) => s.finishGeneration);
+  const prompt = useGenerationStore((s) => s.currentPrompt);
+  const modelSelections = useGenerationStore((s) => s.currentModelSelections);
+  const aspectRatio = useGenerationStore((s) => s.currentAspectRatio);
+  const resolution = useGenerationStore((s) => s.currentResolution);
+  const referenceImages = useGenerationStore((s) => s.currentReferenceImages);
+  const startGeneration = useGenerationStore((s) => s.startGeneration);
+  const finishGeneration = useGenerationStore((s) => s.finishGeneration);
   const { runTasks, retryItem } = useGenerationTask();
 
   const persistReferences = useCallback(
@@ -39,7 +40,7 @@ export function useImageGeneration() {
   );
 
   const generate = useCallback(async () => {
-    const variationsEnabled = useGalleryStore.getState().variationsEnabled;
+    const variationsEnabled = useGenerationStore.getState().variationsEnabled;
 
     const signature = buildGenerationSignature({
       prompt,
@@ -65,9 +66,10 @@ export function useImageGeneration() {
       const sections = parseVariationSections(prompt);
       if (sections.length > 0) {
         try {
-          useGalleryStore.setState({ isPreparingVariations: true });
+          useGenerationStore.getState().setIsPreparingVariations(true);
           const imageBlobs = referenceImages.map((r) => r.blob);
-          const { avoidPastVariations, items } = useGalleryStore.getState();
+          const { avoidPastVariations } = useGenerationStore.getState();
+          const { items } = useGalleryStore.getState();
           const avoidPerSection = avoidPastVariations
             ? (collectAvoidList(prompt, items) ?? undefined)
             : undefined;
@@ -85,7 +87,7 @@ export function useImageGeneration() {
           variedPrompts = null;
           variationReplacements = null;
         } finally {
-          useGalleryStore.setState({ isPreparingVariations: false });
+          useGenerationStore.getState().setIsPreparingVariations(false);
         }
       }
     }

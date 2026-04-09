@@ -2,11 +2,11 @@ import { Layers } from "lucide-react";
 import NumberFlow from "@number-flow/react";
 import { ModelItem } from "./ModelItem";
 import { CollapsibleSection } from "./CollapsibleSection";
-import { useGalleryStore } from "~/stores/galleryStore";
+import { useGenerationStore } from "~/stores/generationStore";
 import { useSettingsStore } from "~/stores/settingsStore";
 
 export function ModelList() {
-  const modelSelections = useGalleryStore((s) => s.currentModelSelections);
+  const modelSelections = useGenerationStore((s) => s.currentModelSelections);
   const models = useSettingsStore((s) => s.models);
   const apiKeys = useSettingsStore((s) => s.apiKeys);
 

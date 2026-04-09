@@ -1,13 +1,13 @@
 import { Square } from "lucide-react";
 import { ASPECT_RATIOS, anyModelSupportsAspectRatio } from "~/lib/models";
 import { CollapsibleSection } from "./CollapsibleSection";
-import { useGalleryStore } from "~/stores/galleryStore";
+import { useGenerationStore } from "~/stores/generationStore";
 import { useSettingsStore } from "~/stores/settingsStore";
 
 export function AspectRatioSection() {
-  const aspectRatio = useGalleryStore((s) => s.currentAspectRatio);
-  const setAspectRatio = useGalleryStore((s) => s.setAspectRatio);
-  const modelSelections = useGalleryStore((s) => s.currentModelSelections);
+  const aspectRatio = useGenerationStore((s) => s.currentAspectRatio);
+  const setAspectRatio = useGenerationStore((s) => s.setAspectRatio);
+  const modelSelections = useGenerationStore((s) => s.currentModelSelections);
   const models = useSettingsStore((s) => s.models);
 
   // Derive selected model IDs from modelSelections (subscribing to the actual state)

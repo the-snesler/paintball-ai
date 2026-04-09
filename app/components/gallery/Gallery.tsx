@@ -10,6 +10,7 @@ import { formatRelativeDate } from "~/lib/util";
 import { groupItemsByPrompt, getFirstCreatedAt } from "~/lib/galleryGrouping";
 import { stripVariationSections } from "~/lib/promptVariations";
 import NumberFlow from "@number-flow/react";
+import { useAttachSelectedItemsToGeneration } from "~/hooks/useAttachSelectedItemsToGeneration";
 
 export function Gallery() {
   const items = useGalleryStore((s) => s.items);
@@ -53,7 +54,7 @@ function SelectionActionPopup() {
   const clearSelection = useGalleryStore((s) => s.clearSelection);
   const deleteSelectedItems = useGalleryStore((s) => s.deleteSelectedItems);
   const downloadSelectedItems = useGalleryStore((s) => s.downloadSelectedItems);
-  const attachSelectedItemsToPrompt = useGalleryStore((s) => s.attachSelectedItemsToPrompt);
+  const attachSelectedItemsToGeneration = useAttachSelectedItemsToGeneration();
   const [isDeleting, setIsDeleting] = useState(false);
 
   if (selectedCount === 0) {
@@ -61,7 +62,7 @@ function SelectionActionPopup() {
   }
 
   const handleAttachSelected = () => {
-    const result = attachSelectedItemsToPrompt();
+    const result = attachSelectedItemsToGeneration();
     if (!result.success && result.reason) {
       alert(result.reason);
     }

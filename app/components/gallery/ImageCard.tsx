@@ -1,6 +1,7 @@
 import { Check } from "lucide-react";
 import { useState, useCallback, type ChangeEvent, type MouseEvent } from "react";
 import { useGalleryStore } from "~/stores/galleryStore";
+import { useLightboxStore } from "~/stores/lightboxStore";
 import type { CompletedGalleryItem } from "~/types";
 
 interface ImageCardProps {
@@ -10,7 +11,7 @@ interface ImageCardProps {
 
 export function ImageCard({ image, selectionDisabled = false }: ImageCardProps) {
   const [isLoaded, setIsLoaded] = useState(false);
-  const openLightbox = useGalleryStore((s) => s.openLightbox);
+  const openLightbox = useLightboxStore((s) => s.openLightbox);
   const selectedItemIds = useGalleryStore((s) => s.selectedItemIds);
   const toggleItemSelection = useGalleryStore((s) => s.toggleItemSelection);
   const selectItemRange = useGalleryStore((s) => s.selectItemRange);

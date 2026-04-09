@@ -1,6 +1,6 @@
 import { Sparkles, Loader2, KeyRound } from "lucide-react";
 import { useNavigate } from "react-router";
-import { DEFAULT_GENERATION_STATE, useGalleryStore } from "~/stores/galleryStore";
+import { useGenerationStore } from "~/stores/generationStore";
 import { useSettingsStore } from "~/stores/settingsStore";
 import { useImageGeneration } from "~/hooks/useImageGeneration";
 import { buildGenerationSignature } from "~/lib/generationSignature";
@@ -9,13 +9,13 @@ import { hasVariationSections } from "~/lib/promptVariations";
 import NumberFlow from "@number-flow/react";
 
 export function GenerateButton() {
-  const prompt = useGalleryStore((s) => s.currentPrompt);
-  const modelSelections = useGalleryStore((s) => s.currentModelSelections);
-  const lastSubmittedSignature = useGalleryStore((s) => s.lastSubmittedSignature);
-  const activeGenerationSignatures = useGalleryStore((s) => s.activeGenerationSignatures);
-  const aspectRatio = useGalleryStore((s) => s.currentAspectRatio);
-  const resolution = useGalleryStore((s) => s.currentResolution);
-  const referenceImages = useGalleryStore((s) => s.currentReferenceImages);
+  const prompt = useGenerationStore((s) => s.currentPrompt);
+  const modelSelections = useGenerationStore((s) => s.currentModelSelections);
+  const lastSubmittedSignature = useGenerationStore((s) => s.lastSubmittedSignature);
+  const activeGenerationSignatures = useGenerationStore((s) => s.activeGenerationSignatures);
+  const aspectRatio = useGenerationStore((s) => s.currentAspectRatio);
+  const resolution = useGenerationStore((s) => s.currentResolution);
+  const referenceImages = useGenerationStore((s) => s.currentReferenceImages);
   const models = useSettingsStore((s) => s.models);
   const apiKeys = useSettingsStore((s) => s.apiKeys);
   const navigate = useNavigate();
@@ -47,8 +47,8 @@ export function GenerateButton() {
   const isLockedForCurrentParams =
     isLastSubmittedActive && lastSubmittedSignature === currentSignature;
 
-  const variationsEnabled = useGalleryStore((s) => s.variationsEnabled);
-  const isPreparingVariations = useGalleryStore((s) => s.isPreparingVariations);
+  const variationsEnabled = useGenerationStore((s) => s.variationsEnabled);
+  const isPreparingVariations = useGenerationStore((s) => s.isPreparingVariations);
   const variationsBlocking = variationsEnabled && !hasVariationSections(prompt);
 
   const canGenerate =
@@ -71,7 +71,7 @@ export function GenerateButton() {
   };
 
   const handleClear = () => {
-    useGalleryStore.setState(DEFAULT_GENERATION_STATE);
+    useGenerationStore.getState().resetDraft();
   };
 
   return (

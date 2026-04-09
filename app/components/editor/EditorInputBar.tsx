@@ -3,6 +3,7 @@ import { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useEditorStore } from "~/stores/editorStore";
 import { useEditorGeneration } from "~/hooks/useEditorGeneration";
 import { useGalleryStore } from "~/stores/galleryStore";
+import { useGenerationStore } from "~/stores/generationStore";
 import { useSettingsStore } from "~/stores/settingsStore";
 import { callTextModel, isTextModelAvailable } from "~/lib/textModel";
 import { IMPROVE_PROMPT_SYSTEM, REVERSE_PROMPT_SYSTEM } from "~/lib/prompts";
@@ -28,9 +29,9 @@ export function EditorInputBar({ onSourceFile }: EditorInputBarProps) {
   const selectItem = useEditorStore((s) => s.selectItem);
   const turns = useEditorStore((s) => s.turns);
 
-  const modelSelections = useGalleryStore((s) => s.currentModelSelections);
-  const aspectRatio = useGalleryStore((s) => s.currentAspectRatio);
-  const resolution = useGalleryStore((s) => s.currentResolution);
+  const modelSelections = useGenerationStore((s) => s.currentModelSelections);
+  const aspectRatio = useGenerationStore((s) => s.currentAspectRatio);
+  const resolution = useGenerationStore((s) => s.currentResolution);
   const models = useSettingsStore((s) => s.models);
 
   const { generateEdit } = useEditorGeneration();

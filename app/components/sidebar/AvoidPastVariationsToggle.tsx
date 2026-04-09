@@ -1,17 +1,17 @@
 import { useMemo } from "react";
 import { Ban, Info } from "lucide-react";
 import { useGalleryStore } from "~/stores/galleryStore";
+import { useGenerationStore } from "~/stores/generationStore";
 import { collectAvoidList } from "~/lib/promptVariations";
 import { Tooltip } from "~/components/ui/Tooltip";
 import { Switch } from "~/components/ui/Switch";
-import { logger } from "~/lib/logging";
 
 export function AvoidPastVariationsToggle() {
-  const variationsEnabled = useGalleryStore((s) => s.variationsEnabled);
-  const currentPrompt = useGalleryStore((s) => s.currentPrompt);
+  const variationsEnabled = useGenerationStore((s) => s.variationsEnabled);
+  const currentPrompt = useGenerationStore((s) => s.currentPrompt);
   const items = useGalleryStore((s) => s.items);
-  const avoidPastVariations = useGalleryStore((s) => s.avoidPastVariations);
-  const setAvoidPastVariations = useGalleryStore((s) => s.setAvoidPastVariations);
+  const avoidPastVariations = useGenerationStore((s) => s.avoidPastVariations);
+  const setAvoidPastVariations = useGenerationStore((s) => s.setAvoidPastVariations);
 
   const avoidList = useMemo(
     () => collectAvoidList(currentPrompt, items),
