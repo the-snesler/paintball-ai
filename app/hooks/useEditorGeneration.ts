@@ -1,18 +1,12 @@
 import { useCallback } from "react";
-import { useGalleryStore } from "~/stores/galleryStore";
 import { useSettingsStore } from "~/stores/settingsStore";
-import { saveImage } from "~/lib/db";
 import { getModel } from "~/lib/models";
-import { createThumbnailBlob } from "~/lib/imageProcessing";
-import { executeGeneration } from "~/lib/generation";
 import type { AspectRatio, GalleryItem, Resolution } from "~/types";
+import { useGenerationTask, type GenerationTask } from "~/hooks/useGenerationTask";
 
 export function useEditorGeneration() {
   const models = useSettingsStore((s) => s.models);
-  const apiKeys = useSettingsStore((s) => s.apiKeys);
-  const addItems = useGalleryStore((s) => s.addItems);
-  const updateItem = useGalleryStore((s) => s.updateItem);
-  const incrementRequestedOutputCount = useSettingsStore((s) => s.incrementRequestedOutputCount);
+  const { runTasks } = useGenerationTask();
 
   /**
    * Prepare and execute an edit turn.
@@ -41,16 +35,7 @@ export function useEditorGeneration() {
         onItemsCreated,
       } = params;
 
-      interface Task {
-        id: string;
-        modelId: string;
-        modelName: string;
-        provider: "google" | "replicate";
-        aspectRatio: AspectRatio | null;
-        resolution: Resolution | null;
-      }
-
-      const tasks: Task[] = [];
+      const tasks: GenerationTask[] = [];
       const pendingItems: GalleryItem[] = [];
 
       for (const [modelId, count] of Object.entries(modelSelections)) {
@@ -68,8 +53,10 @@ export function useEditorGeneration() {
             modelId,
             modelName: model.name,
             provider: model.provider,
+            prompt: instruction,
             aspectRatio: taskAspectRatio,
             resolution: taskResolution,
+            referenceImages: [{ id: referenceId, blob: referenceBlob }],
           });
 
           pendingItems.push({
@@ -88,77 +75,13 @@ export function useEditorGeneration() {
 
       if (tasks.length === 0) return;
 
-      incrementRequestedOutputCount(tasks.length);
-      addItems(pendingItems);
-
-      // Notify caller synchronously before first await
-      onItemsCreated(tasks.map((t) => t.id));
-
-      await Promise.allSettled(
-        tasks.map(async (task) => {
-          updateItem(task.id, { status: "generating" });
-
-          const apiKey = apiKeys[task.provider];
-          if (!apiKey) {
-            updateItem(task.id, {
-              status: "failed",
-              error: `No API key for ${task.provider}`,
-              canRetry: false,
-            });
-            return;
-          }
-
-          try {
-            const result = await executeGeneration(
-              {
-                modelId: task.modelId,
-                provider: task.provider,
-                prompt: instruction,
-                aspectRatio: task.aspectRatio,
-                resolution: task.resolution,
-                referenceImages: [{ id: referenceId, blob: referenceBlob }],
-              },
-              apiKey
-            );
-
-            const thumbnailBlob = await createThumbnailBlob(result.blob, 400);
-            const createdAt = Date.now();
-
-            await saveImage({
-              id: task.id,
-              originalBlob: result.blob,
-              thumbnailBlob,
-              prompt: instruction,
-              modelId: task.modelId,
-              modelName: task.modelName,
-              aspectRatio: task.aspectRatio,
-              resolution: task.resolution,
-              width: result.width,
-              height: result.height,
-              createdAt,
-              referenceImageIds: [referenceId],
-              metadata: result.metadata,
-            });
-
-            updateItem(task.id, {
-              status: "completed",
-              originalBlob: result.blob,
-              originalUrl: URL.createObjectURL(result.blob),
-              thumbnailBlob,
-              thumbnailUrl: URL.createObjectURL(thumbnailBlob),
-              width: result.width,
-              height: result.height,
-              createdAt,
-              metadata: result.metadata,
-            });
-          } catch (error) {
-            const message = error instanceof Error ? error.message : "Generation failed";
-            updateItem(task.id, { status: "failed", error: message, canRetry: true });
-          }
-        })
-      );
+      await runTasks(tasks, pendingItems, {
+        onItemsCreated,
+        getCanRetry: (error) =>
+          !(error instanceof Error && error.message.startsWith("No API key for ")),
+      });
     },
-    [models, apiKeys, addItems, updateItem, incrementRequestedOutputCount]
+    [models, runTasks]
   );
 
   return { generateEdit };
