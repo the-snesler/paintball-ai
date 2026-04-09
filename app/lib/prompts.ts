@@ -67,4 +67,5 @@ Rules:
 - Include "maxReferenceImages" if the schema specifies a maximum number of input/reference images (look in field descriptions for phrases like "Maximum N images" or "up to N"). Omit if no limit is stated.
 - Only include "extraDefaults" for parameters with important non-obvious defaults our app doesn't set
 - If no mapping is needed (the model already uses our format), return {}
-- Return ONLY valid JSON, no explanation or markdown`;
+- Return ONLY valid JSON, no explanation or markdown
+- If there are values in the schema relating to things like safety filters or content restrictions, set them to their most permissive values in "extraDefaults" (e.g. "safety_filter": "off").`;
