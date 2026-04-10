@@ -46,7 +46,7 @@ function SidebarContent() {
 function GallerySidebarContent() {
   return (
     <>
-      <div className="flex-1 space-y-6 overflow-y-auto p-4">
+      <div className="flex-1 space-y-6 overflow-y-auto p-4 [scrollbar-gutter:stable]">
         <PromptInput />
         <PromptVariationsToggle />
         <AvoidPastVariationsToggle />
@@ -63,7 +63,7 @@ function GallerySidebarContent() {
 
 function EditorSidebarContent() {
   return (
-    <div className="flex-1 space-y-6 overflow-y-auto p-4">
+    <div className="flex-1 space-y-6 overflow-y-auto p-4 [scrollbar-gutter:stable]">
       <ModelList />
       <AspectRatioSection />
       <ResolutionSection />
@@ -92,7 +92,7 @@ function SettingsSidebarContent() {
   );
 
   return (
-    <div className="flex-1 space-y-2 overflow-y-auto p-4">
+    <div className="flex-1 space-y-2 overflow-y-auto p-4 [scrollbar-gutter:stable]">
       <div className="flex items-center gap-2">
         <span className="text-zinc-500">
           <Layers className="h-4 w-4" />
