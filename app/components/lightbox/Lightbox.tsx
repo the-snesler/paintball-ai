@@ -8,14 +8,18 @@ import {
   Copy,
   Wand2,
   FilePenLine,
+  Expand,
 } from "lucide-react";
 import { useNavigate } from "react-router";
 import { useGalleryStore } from "~/stores/galleryStore";
 import { useLightboxStore } from "~/stores/lightboxStore";
+import { useSettingsStore } from "~/stores/settingsStore";
 import { groupItemsByPrompt, getPromptKey } from "~/lib/galleryGrouping";
 import { GalleryImageCard } from "~/components/gallery/GalleryImageCard";
 import { useLightboxNavigation } from "~/hooks/useLightboxNavigation";
 import { useReuseGalleryItemPrompt } from "~/hooks/useReuseGalleryItemPrompt";
+import { useUpscale } from "~/hooks/useUpscale";
+import { UPSCALERS } from "~/lib/upscaling";
 import { IconButton } from "./IconButton";
 import { WideIconButton } from "./WideIconButton";
 import { getReferenceImagesByIds } from "~/lib/db";
@@ -33,6 +37,9 @@ export function Lightbox() {
   const items = useGalleryStore((s) => s.items);
 
   const [referenceImages, setReferenceImages] = useState<ReferenceImage[]>([]);
+  const [showUpscalePicker, setShowUpscalePicker] = useState(false);
+  const { status: upscaleStatus, error: upscaleError, upscale } = useUpscale();
+  const replicateKey = useSettingsStore((s) => s.apiKeys.replicate);
 
   useEffect(() => {
     if (!galleryImage || galleryImage.referenceImageIds.length === 0) {
@@ -57,6 +64,10 @@ export function Lightbox() {
       loaded.forEach((url) => URL.revokeObjectURL(url));
       setReferenceImages([]);
     };
+  }, [galleryImage?.id]);
+
+  useEffect(() => {
+    setShowUpscalePicker(false);
   }, [galleryImage?.id]);
 
   const promptGroup = useMemo(() => {
@@ -185,11 +196,21 @@ export function Lightbox() {
               <div className="flex items-center gap-1">
                 <IconButton
                   icon={<FilePenLine className="h-4 w-4" />}
-                  title="Open in Editor"
+                  title="Send to Editor"
                   onClick={() => {
                     closeLightbox();
                     navigate(`/editor?imageId=${galleryImage.id}`);
                   }}
+                />
+                <IconButton
+                  icon={<Expand className="h-4 w-4" />}
+                  title={replicateKey ? "Upscale" : "Upscale (add Replicate API key in Settings)"}
+                  onClick={() => setShowUpscalePicker((v) => !v)}
+                  disabled={
+                    !replicateKey ||
+                    galleryImage.status !== "completed" ||
+                    upscaleStatus === "running"
+                  }
                 />
                 <IconButton
                   icon={<Download className="h-4 w-4" />}
@@ -207,6 +228,34 @@ export function Lightbox() {
 
             {/* Body */}
             <div className="flex-1 space-y-4 overflow-y-auto p-4">
+              {/* Upscale picker */}
+              {showUpscalePicker && galleryImage.status === "completed" && (
+                <div className="space-y-2 rounded-lg border border-zinc-700 bg-zinc-800/50 p-3">
+                  <p className="text-xs font-medium text-zinc-400">Upscale with</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {UPSCALERS.map((u) => (
+                      <button
+                        key={u.label}
+                        disabled={upscaleStatus === "running"}
+                        onClick={() => {
+                          upscale(galleryImage, u);
+                          setShowUpscalePicker(false);
+                        }}
+                        className="rounded-md bg-zinc-700 px-2.5 py-1 text-xs text-zinc-300 transition-colors hover:bg-zinc-600 disabled:cursor-not-allowed disabled:bg-zinc-700/50 disabled:text-zinc-600"
+                      >
+                        {u.label}
+                      </button>
+                    ))}
+                  </div>
+                  {upscaleStatus === "running" && (
+                    <p className="text-xs text-zinc-500">Upscaling…</p>
+                  )}
+                  {upscaleStatus === "error" && upscaleError && (
+                    <p className="text-xs text-red-400">{upscaleError}</p>
+                  )}
+                </div>
+              )}
+
               {/* Metadata */}
               {topMetadataRow && (
                 <div className="flex flex-wrap items-center gap-2 text-xs text-zinc-500">
@@ -216,20 +265,20 @@ export function Lightbox() {
 
               {/* Prompt */}
               <div className="space-y-2">
-                <div className="rounded-lg bg-zinc-800/50 p-3">
+                <div className="space-y-2 rounded-lg bg-zinc-800/50 p-3">
                   <p className="text-sm text-zinc-300">{galleryImage.prompt}</p>
-                </div>
-                <div className="flex items-center gap-1">
-                  <IconButton
-                    icon={<Copy className="h-4 w-4" />}
-                    title="Copy Prompt"
-                    onClick={handleCopyPrompt}
-                  />
-                  <WideIconButton
-                    icon={<Wand2 className="h-4 w-4" />}
-                    title="Re-use Prompt"
-                    onClick={handleReusePrompt}
-                  />
+                  <div className="flex items-center gap-1">
+                    <IconButton
+                      icon={<Copy className="h-4 w-4" />}
+                      title="Copy Prompt"
+                      onClick={handleCopyPrompt}
+                    />
+                    <WideIconButton
+                      icon={<Wand2 className="h-4 w-4" />}
+                      title="Re-use Prompt"
+                      onClick={handleReusePrompt}
+                    />
+                  </div>
                 </div>
               </div>
 
