@@ -44,6 +44,8 @@ export interface ReferenceImage {
   blob: Blob;
   url: string; // Object URL for display
   name: string;
+  /** Gallery item ID this reference was derived from, if any */
+  sourceGalleryItemId?: string;
 }
 
 export interface LightboxGalleryTarget {
@@ -103,6 +105,8 @@ export interface CompletedGalleryItemFields {
   createdAt: number;
   generationTimeMs?: number;
   metadata: Record<string, unknown>; // Will include thinking traces for gemini 3 models
+  /** Gallery item IDs of gallery images used as reference sources for this generation */
+  parentGalleryItemIds?: string[];
 }
 
 export type CompletedGalleryItem = BaseGalleryItem & CompletedGalleryItemFields;
@@ -134,6 +138,7 @@ export interface StoredImageRecord {
   createdAt: number;
   generationTimeMs?: number;
   referenceImageIds: string[];
+  parentGalleryItemIds?: string[];
   metadata: Record<string, unknown>;
 }
 

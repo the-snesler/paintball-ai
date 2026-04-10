@@ -78,6 +78,7 @@ export function PromptInput() {
               blob: galleryItem.originalBlob,
               url: URL.createObjectURL(galleryItem.originalBlob),
               name: name || "Gallery image",
+              sourceGalleryItemId: imageId,
             });
             return;
           }

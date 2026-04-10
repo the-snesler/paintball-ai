@@ -18,7 +18,7 @@ export interface GenerationTask {
   variationReplacements?: string[];
   aspectRatio: AspectRatio | null;
   resolution: Resolution | null;
-  referenceImages: Array<{ id: string; blob: Blob }>;
+  referenceImages: Array<{ id: string; blob: Blob; sourceGalleryItemId?: string }>;
 }
 
 interface RunTaskOptions {
@@ -81,6 +81,10 @@ export function useGenerationTask() {
       const thumbnailBlob = await createThumbnailBlob(result.blob, 400);
       const createdAt = Date.now();
 
+      const parentGalleryItemIds = task.referenceImages
+        .map((r) => r.sourceGalleryItemId)
+        .filter((id): id is string => !!id);
+
       await saveImage({
         id: task.id,
         originalBlob: result.blob,
@@ -97,6 +101,7 @@ export function useGenerationTask() {
         createdAt,
         generationTimeMs,
         referenceImageIds: task.referenceImages.map((referenceImage) => referenceImage.id),
+        parentGalleryItemIds: parentGalleryItemIds.length > 0 ? parentGalleryItemIds : undefined,
         metadata: result.metadata,
       });
 
@@ -111,6 +116,7 @@ export function useGenerationTask() {
         createdAt,
         generationTimeMs,
         metadata: result.metadata,
+        parentGalleryItemIds: parentGalleryItemIds.length > 0 ? parentGalleryItemIds : undefined,
       });
 
       return result;

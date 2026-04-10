@@ -28,7 +28,7 @@ export function useImageGeneration() {
   const { runTasks, retryItem } = useGenerationTask();
 
   const persistReferences = useCallback(
-    async (images: Array<{ id: string; blob: Blob; name: string }>) => {
+    async (images: Array<{ id: string; blob: Blob; name: string; sourceGalleryItemId?: string }>) => {
       await Promise.all(
         images.map(async (image) => {
           const saved = await saveReferenceImage(image);
@@ -137,7 +137,7 @@ export function useImageGeneration() {
           variationReplacements: taskReplacements,
           aspectRatio: taskAspectRatio,
           resolution: taskResolution,
-          referenceImages: referenceImages.map((r) => ({ id: r.id, blob: r.blob })),
+          referenceImages: referenceImages.map((r) => ({ id: r.id, blob: r.blob, sourceGalleryItemId: r.sourceGalleryItemId })),
         });
 
         pendingItems.push({
@@ -165,6 +165,7 @@ export function useImageGeneration() {
         id: image.id,
         blob: image.blob,
         name: image.name,
+        sourceGalleryItemId: image.sourceGalleryItemId,
       }))
     );
 

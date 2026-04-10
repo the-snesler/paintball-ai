@@ -78,6 +78,14 @@ export function Lightbox() {
     return groups.get(getPromptKey(galleryImage)) ?? [];
   }, [items, galleryImage]);
 
+  const childItems = useMemo(() => {
+    if (!galleryImage) return [];
+    return items.filter(
+      (item): item is typeof item & { status: "completed" } =>
+        item.status === "completed" && (item.parentGalleryItemIds?.includes(galleryImage.id) ?? false)
+    );
+  }, [galleryImage, items]);
+
   // Keyboard navigation
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -206,6 +214,7 @@ export function Lightbox() {
                         id: refId,
                         blob: galleryImage.originalBlob,
                         name: `${galleryImage.modelName} - ${galleryImage.prompt.slice(0, 40)}`,
+                        sourceGalleryItemId: galleryImage.id,
                       });
                     } catch {
                       // continue without saved reference
@@ -328,18 +337,42 @@ export function Lightbox() {
                     Reference images ({referenceImages.length})
                   </h3>
                   <div className="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-2">
-                    {referenceImages.map((img) => (
-                      <button
-                        key={img.id}
-                        onClick={() => openLightbox({ kind: "reference", image: img })}
-                        className="overflow-hidden rounded-lg bg-zinc-800 transition-all hover:ring-2 hover:ring-zinc-500"
-                      >
-                        <img
-                          src={img.url}
-                          alt={img.name}
-                          className="aspect-square w-full object-cover"
-                        />
-                      </button>
+                    {referenceImages.map((img) => {
+                      const sourceItem = img.sourceGalleryItemId
+                        ? items.find(
+                            (item) =>
+                              item.id === img.sourceGalleryItemId && item.status === "completed"
+                          )
+                        : undefined;
+                      return sourceItem ? (
+                        <GalleryImageCard key={img.id} item={sourceItem} selectionDisabled />
+                      ) : (
+                        <button
+                          key={img.id}
+                          onClick={() => openLightbox({ kind: "reference", image: img })}
+                          className="overflow-hidden rounded-lg bg-zinc-800 transition-all hover:ring-2 hover:ring-zinc-500"
+                        >
+                          <img
+                            src={img.url}
+                            alt={img.name}
+                            className="aspect-square w-full object-cover"
+                          />
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Children — generations that used this image as a reference */}
+              {childItems.length > 0 && (
+                <div className="space-y-2">
+                  <h3 className="text-xs font-medium text-zinc-400">
+                    Children ({childItems.length})
+                  </h3>
+                  <div className="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-2">
+                    {childItems.map((item) => (
+                      <GalleryImageCard key={item.id} item={item} selectionDisabled />
                     ))}
                   </div>
                 </div>

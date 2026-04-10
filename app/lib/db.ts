@@ -175,7 +175,13 @@ export async function saveReferenceImage(
 
   const transaction = db.transaction(STORES.references, "readwrite");
   const store = transaction.objectStore(STORES.references);
-  store.put({ id: image.id, blob: image.blob, name: image.name });
+  const record: { id: string; blob: Blob; name: string; sourceGalleryItemId?: string } = {
+    id: image.id,
+    blob: image.blob,
+    name: image.name,
+  };
+  if (image.sourceGalleryItemId) record.sourceGalleryItemId = image.sourceGalleryItemId;
+  store.put(record);
 
   return awaitTransaction(transaction, {
     ...image,
@@ -198,7 +204,9 @@ export async function getReferenceImagesByIds(ids: string[]): Promise<ReferenceI
 
           request.onerror = () => requestReject(request.error);
           request.onsuccess = () => {
-            const record = request.result as { id: string; blob: Blob; name: string } | undefined;
+            const record = request.result as
+              | { id: string; blob: Blob; name: string; sourceGalleryItemId?: string }
+              | undefined;
 
             if (!record) {
               requestResolve(null);
@@ -210,6 +218,7 @@ export async function getReferenceImagesByIds(ids: string[]): Promise<ReferenceI
               blob: record.blob,
               name: record.name,
               url: URL.createObjectURL(record.blob),
+              sourceGalleryItemId: record.sourceGalleryItemId,
             });
           };
         })

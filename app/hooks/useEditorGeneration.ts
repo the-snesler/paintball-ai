@@ -21,7 +21,9 @@ export function useEditorGeneration() {
       instruction: string;
       referenceBlob: Blob;
       referenceId: string;
-      additionalReferences?: Array<{ id: string; blob: Blob; name: string }>;
+      /** Gallery item ID that the source blob was derived from, if any */
+      sourceGalleryItemId?: string;
+      additionalReferences?: Array<{ id: string; blob: Blob; name: string; sourceGalleryItemId?: string }>;
       modelSelections: Record<string, number>;
       aspectRatio: AspectRatio | null;
       resolution: Resolution;
@@ -31,6 +33,7 @@ export function useEditorGeneration() {
         instruction,
         referenceBlob,
         referenceId,
+        sourceGalleryItemId,
         additionalReferences,
         modelSelections,
         aspectRatio,
@@ -49,9 +52,9 @@ export function useEditorGeneration() {
       }
 
       // Source image first, then additional references
-      const allReferences: Array<{ id: string; blob: Blob }> = [
-        { id: referenceId, blob: referenceBlob },
-        ...(additionalReferences ?? []).map((r) => ({ id: r.id, blob: r.blob })),
+      const allReferences: Array<{ id: string; blob: Blob; sourceGalleryItemId?: string }> = [
+        { id: referenceId, blob: referenceBlob, sourceGalleryItemId },
+        ...(additionalReferences ?? []).map((r) => ({ id: r.id, blob: r.blob, sourceGalleryItemId: r.sourceGalleryItemId })),
       ];
       const allReferenceIds = allReferences.map((r) => r.id);
 

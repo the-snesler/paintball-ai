@@ -44,6 +44,7 @@ export function EditorInputBar({ onSourceFile }: EditorInputBarProps) {
   const models = useSettingsStore((s) => s.models);
 
   const sourcePrompt = useEditorStore((s) => s.sourcePrompt);
+  const sourceGalleryItemId = useEditorStore((s) => s.sourceGalleryItemId);
   const contextInjectionEnabled = useSettingsStore((s) => s.editorContextInjectionEnabled);
 
   const { generateEdit } = useEditorGeneration();
@@ -164,6 +165,7 @@ export function EditorInputBar({ onSourceFile }: EditorInputBarProps) {
               blob: galleryItem.originalBlob,
               url: URL.createObjectURL(galleryItem.originalBlob),
               name: name || "Gallery image",
+              sourceGalleryItemId: imageId,
             });
             return;
           }
@@ -257,7 +259,8 @@ export function EditorInputBar({ onSourceFile }: EditorInputBarProps) {
     try {
       // Save the canvas blob as a reference image for retry support
       const refId = crypto.randomUUID();
-      await saveReferenceImage({ id: refId, blob: canvasBlob, name: "editor-source" });
+      const canvasSourceGalleryItemId = selectedItemId ?? sourceGalleryItemId ?? undefined;
+      await saveReferenceImage({ id: refId, blob: canvasBlob, name: "editor-source", sourceGalleryItemId: canvasSourceGalleryItemId });
 
       const turnId = crypto.randomUUID();
       addTurn({
@@ -291,12 +294,14 @@ export function EditorInputBar({ onSourceFile }: EditorInputBarProps) {
         id: r.id,
         blob: r.blob,
         name: r.name,
+        sourceGalleryItemId: r.sourceGalleryItemId,
       }));
 
       await generateEdit({
         instruction: finalInstruction,
         referenceBlob: canvasBlob,
         referenceId: refId,
+        sourceGalleryItemId: canvasSourceGalleryItemId,
         additionalReferences: additionalRefs.length > 0 ? additionalRefs : undefined,
         modelSelections,
         aspectRatio,
@@ -331,6 +336,7 @@ export function EditorInputBar({ onSourceFile }: EditorInputBarProps) {
     contextBriefDismissed,
     turns,
     sourcePrompt,
+    sourceGalleryItemId,
   ]);
 
   const handleImprove = useCallback(async () => {
