@@ -14,6 +14,7 @@ import { useNavigate } from "react-router";
 import { useGalleryStore } from "~/stores/galleryStore";
 import { useLightboxStore } from "~/stores/lightboxStore";
 import { useSettingsStore } from "~/stores/settingsStore";
+import { useEditorStore } from "~/stores/editorStore";
 import { groupItemsByPrompt, getPromptKey } from "~/lib/galleryGrouping";
 import { GalleryImageCard } from "~/components/gallery/GalleryImageCard";
 import { useLightboxNavigation } from "~/hooks/useLightboxNavigation";
@@ -22,7 +23,7 @@ import { useUpscale } from "~/hooks/useUpscale";
 import { UPSCALERS } from "~/lib/upscaling";
 import { IconButton } from "./IconButton";
 import { WideIconButton } from "./WideIconButton";
-import { getReferenceImagesByIds } from "~/lib/db";
+import { getReferenceImagesByIds, saveReferenceImage } from "~/lib/db";
 import type { ReferenceImage } from "~/types";
 
 export function Lightbox() {
@@ -35,6 +36,7 @@ export function Lightbox() {
 
   const openLightbox = useLightboxStore((s) => s.openLightbox);
   const items = useGalleryStore((s) => s.items);
+  const setEditorSource = useEditorStore((s) => s.setSource);
 
   const [referenceImages, setReferenceImages] = useState<ReferenceImage[]>([]);
   const [showUpscalePicker, setShowUpscalePicker] = useState(false);
@@ -197,9 +199,25 @@ export function Lightbox() {
                 <IconButton
                   icon={<FilePenLine className="h-4 w-4" />}
                   title="Send to Editor"
-                  onClick={() => {
+                  onClick={async () => {
+                    const refId = crypto.randomUUID();
+                    try {
+                      await saveReferenceImage({
+                        id: refId,
+                        blob: galleryImage.originalBlob,
+                        name: `${galleryImage.modelName} - ${galleryImage.prompt.slice(0, 40)}`,
+                      });
+                    } catch {
+                      // continue without saved reference
+                    }
+                    setEditorSource({
+                      blob: galleryImage.originalBlob,
+                      prompt: galleryImage.prompt,
+                      galleryItemId: galleryImage.id,
+                      referenceId: refId,
+                    });
                     closeLightbox();
-                    navigate(`/editor?imageId=${galleryImage.id}`);
+                    navigate("/editor");
                   }}
                 />
                 <IconButton
