@@ -3,6 +3,8 @@ import SVG from "react-inlinesvg";
 import NumberFlow from "@number-flow/react";
 import type { StoredModel } from "~/types";
 import { useGenerationStore } from "~/stores/generationStore";
+import { useSettingsStore } from "~/stores/settingsStore";
+import { anyModelSupportsReferenceImages } from "~/lib/models";
 
 interface ModelItemProps {
   model: StoredModel;
@@ -19,9 +21,23 @@ export function ModelItem({ model, count }: ModelItemProps) {
 
   const isActive = count > 0;
 
+  const clearReferencesIfUnsupported = (nextCount: number) => {
+    const selections = useGenerationStore.getState().currentModelSelections;
+    const nextSelections = { ...selections, [model.id]: nextCount };
+    const selectedIds = Object.entries(nextSelections)
+      .filter(([, c]) => c > 0)
+      .map(([id]) => id);
+    const models = useSettingsStore.getState().models;
+
+    if (!anyModelSupportsReferenceImages(models, selectedIds)) {
+      useGenerationStore.getState().clearReferenceImages();
+    }
+  };
+
   const handleDecrement = () => {
     if (count > 0) {
       setModelCount(model.id, count - 1);
+      clearReferencesIfUnsupported(count - 1);
     }
   };
 
