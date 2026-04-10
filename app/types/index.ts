@@ -175,4 +175,6 @@ export interface EditorTurn {
   /** Gallery item IDs for all generated results in this turn */
   itemIds: string[];
   createdAt: number;
+  /** AI-generated summary of editing lineage intent (style, character, constraints) */
+  contextBrief?: string;
 }

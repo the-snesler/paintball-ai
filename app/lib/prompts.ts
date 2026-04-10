@@ -42,6 +42,18 @@ Rules:
 - If the user provides a list of previously-used variations to avoid, none of your new variations may repeat or be trivially synonymous with them. They may be similar in style or theme.
 - Return ONLY the JSON array`;
 
+export const CONTEXT_BRIEF_SYSTEM = `You summarize the creative intent behind a sequence of image editing instructions. Given a chronological list of prompts from an iterative editing session, produce a 2-3 sentence brief that captures:
+- The subject/character and their persistent traits (appearance, clothing, pose, etc.)
+- The intended artistic style, medium, or aesthetic
+- Any recurring constraints or requirements the user has emphasized
+
+Rules:
+- Return ONLY the brief, no preamble or labels
+- Write in present tense as a description of the current creative direction
+- Focus on intent that should carry forward to future edits — omit one-off corrections
+- Keep the brief under 200 characters
+- If there is only one instruction and it is simple/short, return an empty string`;
+
 export const SCHEMA_MAPPING_SYSTEM = `You analyze Replicate model API schemas and produce parameter mappings.
 
 Given a model's input schema (JSON), produce a JSON mapping object so our app can translate its parameters to what the model expects.
