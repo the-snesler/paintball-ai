@@ -1,5 +1,5 @@
 import { Check, Link2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useShallow } from "zustand/react/shallow";
 import { useGalleryStore } from "~/stores/galleryStore";
 import { useEditorStore } from "~/stores/editorStore";
@@ -44,13 +44,16 @@ export function Turn({ turn, turnIndex, isFirst = false }: TurnProps) {
     }
   }, [turn.sourceItemId, turn.sourceBlob]);
 
-  // Auto-select the first completed item in the most recent turn
+  // Auto-select the first completed item in the most recent turn (once only)
   const isLastTurn = turnIndex === turns.length - 1;
+  const hasAutoSelectedRef = useRef(false);
   useEffect(() => {
     if (!isLastTurn) return;
+    if (hasAutoSelectedRef.current) return;
     const firstCompleted = items.find((item) => item?.status === "completed");
     if (firstCompleted && !selectedItemId) {
       selectItem(firstCompleted.id);
+      hasAutoSelectedRef.current = true;
     }
   }, [items, isLastTurn, selectedItemId, selectItem]);
 
