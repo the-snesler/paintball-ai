@@ -18,7 +18,13 @@ export function ResolutionSection() {
   const pickerEnabled = anyModelSupportsResolution(models, selectedModels);
 
   return (
-    <CollapsibleSection icon={<Maximize className="h-4 w-4" />} title="Resolution">
+    <section>
+      <div className="mb-2 flex items-center gap-2">
+        <span className="text-zinc-500">
+          <Maximize className="h-4 w-4" />
+        </span>
+        <h2 className="text-xs font-medium tracking-wide text-zinc-400 uppercase">Resolution</h2>
+      </div>
       <div className="flex gap-2">
         {RESOLUTIONS.map((res) => {
           const isSelected = resolution === res;
@@ -42,6 +48,6 @@ export function ResolutionSection() {
           );
         })}
       </div>
-    </CollapsibleSection>
+    </section>
   );
 }

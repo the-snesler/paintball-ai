@@ -10,6 +10,8 @@ export const ASPECT_RATIOS: { value: AspectRatio; label: string; width: number; 
     { value: "21:9", label: "21:9", width: 21, height: 9 },
   ];
 
+const PRIMARY_ASPECT_RATIO_VALUES = ASPECT_RATIOS.map((ratio) => ratio.value);
+
 export const RESOLUTIONS = ["1K", "2K", "4K"] as const;
 
 // Helper to get a model by ID from a models array
@@ -22,10 +24,85 @@ export function anyModelSupportsAspectRatio(
   models: StoredModel[],
   selectedModelIds: string[]
 ): boolean {
-  return selectedModelIds.some((modelId) => {
+  return getAspectRatioIntersection(models, selectedModelIds).length > 0;
+}
+
+function getSupportedAspectRatiosForModel(model: StoredModel): string[] {
+  if (!model.capabilities.supportsAspectRatios) {
+    return [];
+  }
+
+  if (
+    Array.isArray(model.capabilities.supportedAspectRatios) &&
+    model.capabilities.supportedAspectRatios.length > 0
+  ) {
+    return model.capabilities.supportedAspectRatios;
+  }
+
+  // Fallback for un-migrated models or schemas with unknown enum values.
+  return PRIMARY_ASPECT_RATIO_VALUES;
+}
+
+export function parseAspectRatio(ratio: string): { width: number; height: number } {
+  const [w, h] = ratio.split(":");
+  const width = Number(w);
+  const height = Number(h);
+
+  if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) {
+    return { width: 1, height: 1 };
+  }
+
+  return { width, height };
+}
+
+export function getAspectRatioIntersection(
+  models: StoredModel[],
+  selectedModelIds: string[]
+): string[] {
+  if (selectedModelIds.length === 0) {
+    return PRIMARY_ASPECT_RATIO_VALUES;
+  }
+
+  let intersection: Set<string> | null = null;
+
+  for (const modelId of selectedModelIds) {
     const model = getModel(models, modelId);
-    return model?.capabilities.supportsAspectRatios;
-  });
+    if (!model) continue;
+
+    const modelRatios = getSupportedAspectRatiosForModel(model);
+    if (modelRatios.length === 0) {
+      return [];
+    }
+
+    const modelSet = new Set(modelRatios);
+    if (!intersection) {
+      intersection = modelSet;
+      continue;
+    }
+
+    intersection = new Set([...intersection].filter((ratio) => modelSet.has(ratio)));
+  }
+
+  return intersection ? [...intersection] : [];
+}
+
+export function getAspectRatioUnion(models: StoredModel[], selectedModelIds: string[]): string[] {
+  if (selectedModelIds.length === 0) {
+    return PRIMARY_ASPECT_RATIO_VALUES;
+  }
+
+  const ratioSet = new Set<string>();
+
+  for (const modelId of selectedModelIds) {
+    const model = getModel(models, modelId);
+    if (!model) continue;
+
+    for (const ratio of getSupportedAspectRatiosForModel(model)) {
+      ratioSet.add(ratio);
+    }
+  }
+
+  return [...ratioSet];
 }
 
 // Helper to check if any selected model supports resolution

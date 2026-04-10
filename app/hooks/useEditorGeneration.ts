@@ -66,7 +66,15 @@ export function useEditorGeneration() {
         for (let i = 0; i < count; i++) {
           const taskId = crypto.randomUUID();
           const taskResolution = model.capabilities.supportsResolution ? resolution : null;
-          const taskAspectRatio = model.capabilities.supportsAspectRatios ? aspectRatio : null;
+          const supportedRatios = model.capabilities.supportedAspectRatios;
+          const taskAspectRatio =
+            aspectRatio && supportedRatios
+              ? supportedRatios.includes(aspectRatio)
+                ? aspectRatio
+                : null
+              : model.capabilities.supportsAspectRatios
+                ? aspectRatio
+                : null;
 
           tasks.push({
             id: taskId,

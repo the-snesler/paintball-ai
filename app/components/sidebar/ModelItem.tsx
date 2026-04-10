@@ -4,7 +4,7 @@ import NumberFlow from "@number-flow/react";
 import type { StoredModel } from "~/types";
 import { useGenerationStore } from "~/stores/generationStore";
 import { useSettingsStore } from "~/stores/settingsStore";
-import { anyModelSupportsReferenceImages } from "~/lib/models";
+import { anyModelSupportsReferenceImages, getAspectRatioIntersection } from "~/lib/models";
 
 interface ModelItemProps {
   model: StoredModel;
@@ -21,28 +21,37 @@ export function ModelItem({ model, count }: ModelItemProps) {
 
   const isActive = count > 0;
 
-  const clearReferencesIfUnsupported = (nextCount: number) => {
+  const applySelectionConstraints = (nextCount: number) => {
     const selections = useGenerationStore.getState().currentModelSelections;
     const nextSelections = { ...selections, [model.id]: nextCount };
     const selectedIds = Object.entries(nextSelections)
       .filter(([, c]) => c > 0)
       .map(([id]) => id);
     const models = useSettingsStore.getState().models;
+    const generationState = useGenerationStore.getState();
 
     if (!anyModelSupportsReferenceImages(models, selectedIds)) {
-      useGenerationStore.getState().clearReferenceImages();
+      generationState.clearReferenceImages();
+    }
+
+    if (
+      generationState.currentAspectRatio &&
+      !getAspectRatioIntersection(models, selectedIds).includes(generationState.currentAspectRatio)
+    ) {
+      generationState.setAspectRatio(null);
     }
   };
 
   const handleDecrement = () => {
     if (count > 0) {
       setModelCount(model.id, count - 1);
-      clearReferencesIfUnsupported(count - 1);
+      applySelectionConstraints(count - 1);
     }
   };
 
   const handleIncrement = () => {
     setModelCount(model.id, count + 1);
+    applySelectionConstraints(count + 1);
   };
 
   return (

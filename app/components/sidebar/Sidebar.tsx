@@ -1,4 +1,4 @@
-import { ChevronDown, Layers, Loader2, Sparkles, X } from "lucide-react";
+import { ChevronDown, Layers, Sparkles, X } from "lucide-react";
 import { useLocation } from "react-router";
 import { PromptInput } from "./PromptInput";
 import { ModelList } from "./ModelList";
@@ -12,8 +12,7 @@ import drop from "~/drop.svg";
 import AddCustomModelButton from "../settings/AddCustomModelButton";
 import SortableModelItem from "../settings/SortableModelItem";
 import { useSettingsStore } from "~/stores/settingsStore";
-import { useState, useEffect, useCallback } from "react";
-import { fetchModelInfo } from "~/lib/replicateSchema";
+import { useCallback } from "react";
 import {
   DndContext,
   closestCenter,
@@ -74,9 +73,7 @@ function EditorSidebarContent() {
 function SettingsSidebarContent() {
   const models = useSettingsStore((s) => s.models);
   const apiKeys = useSettingsStore((s) => s.apiKeys);
-  const updateModelCapabilities = useSettingsStore((s) => s.updateModelCapabilities);
   const reorderModels = useSettingsStore((s) => s.reorderModels);
-  const [fetchingSchemas, setFetchingSchemas] = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -93,32 +90,6 @@ function SettingsSidebarContent() {
     [reorderModels]
   );
 
-  // Fetch schemas for Replicate models that haven't been fetched yet
-  useEffect(() => {
-    const unfetchedModels = models.filter(
-      (m) => m.provider === "replicate" && !m.schemaFetched && !m.isCustom
-    );
-
-    if (unfetchedModels.length === 0 || !apiKeys.replicate) return;
-
-    setFetchingSchemas(true);
-
-    Promise.all(
-      unfetchedModels.map(async (model) => {
-        try {
-          const replicateId = model.id.replace("replicate/", "");
-          const { capabilities } = await fetchModelInfo(replicateId, apiKeys.replicate || "");
-          updateModelCapabilities(model.id, capabilities, true);
-        } catch (err) {
-          // Silently fail - keep default capabilities
-          console.warn(`Failed to fetch schema for ${model.id}:`, err);
-        }
-      })
-    ).finally(() => {
-      setFetchingSchemas(false);
-    });
-  }, [apiKeys.replicate, models, updateModelCapabilities]);
-
   return (
     <div className="flex-1 space-y-2 overflow-y-auto p-4">
       <div className="flex items-center gap-2">
@@ -126,7 +97,6 @@ function SettingsSidebarContent() {
           <Layers className="h-4 w-4" />
         </span>
         <h2 className="text-xs font-medium tracking-wide text-zinc-400 uppercase">Models</h2>
-        {fetchingSchemas && <Loader2 className="h-3 w-3 animate-spin text-zinc-500" />}
       </div>
 
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>

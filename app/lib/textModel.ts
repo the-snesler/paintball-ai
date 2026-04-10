@@ -72,12 +72,16 @@ export async function callTextModel(
     `\nPrefill: ${prefill ?? "none"}`
   );
 
-  return retryWithBackoff(() => {
+  const output = await retryWithBackoff(() => {
+    let output = "";
     if (provider === "google") {
       return callGoogleTextModel(apiKey, modelId, systemPrompt, userPrompt, images, prefill);
     }
     return callReplicateTextModel(apiKey, modelId, systemPrompt, userPrompt);
   });
+
+  logger.debug("Text model output:", output);
+  return output;
 }
 
 async function callGoogleTextModel(

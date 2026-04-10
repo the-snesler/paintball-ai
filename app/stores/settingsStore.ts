@@ -38,6 +38,7 @@ interface SettingsState {
     capabilities: ModelCapabilities,
     schemaFetched?: boolean
   ) => void;
+  updateModelSchemaMapping: (id: string, schemaMapping: SchemaMapping) => void;
 
   // Text model actions
   setTextModel: (config: TextModelConfig) => void;
@@ -121,6 +122,11 @@ export const useSettingsStore = create<SettingsState>()(
           ),
         })),
 
+      updateModelSchemaMapping: (id, schemaMapping) =>
+        set((state) => ({
+          models: state.models.map((m) => (m.id === id ? { ...m, schemaMapping } : m)),
+        })),
+
       setTextModel: (config) => set({ textModel: config }),
 
       setDesktopNotificationsEnabled: (enabled) => set({ desktopNotificationsEnabled: enabled }),
@@ -134,7 +140,7 @@ export const useSettingsStore = create<SettingsState>()(
     }),
     {
       name: "studio-settings",
-      version: 7,
+      version: 8,
       partialize: (state) => ({
         apiKeys: state.apiKeys,
         models: state.models,
@@ -217,6 +223,17 @@ export const useSettingsStore = create<SettingsState>()(
           notificationPromptDismissed: state.notificationPromptDismissed ?? false,
           requestedOutputCount: state.requestedOutputCount ?? 0,
         };
+
+        if (version < 8) {
+          state = {
+            ...state,
+            models: state.models?.map((model) =>
+              model.provider === "replicate" && model.isCustom
+                ? { ...model, schemaFetched: false }
+                : model
+            ),
+          };
+        }
 
         return state;
       },

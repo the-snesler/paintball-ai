@@ -2,6 +2,10 @@ import { SCHEMA_MAPPING_SYSTEM } from "~/lib/prompts";
 import { callTextModel } from "~/lib/textModel";
 import type { ModelCapabilities, SchemaMapping } from "~/types";
 
+interface SchemaMappingWithRatios extends SchemaMapping {
+  supportedAspectRatios?: string[];
+}
+
 interface SchemaProperty {
   type: string;
   enum?: string[];
@@ -27,21 +31,6 @@ interface ReplicateModelResponse {
 }
 
 /**
- * Fetch model info and parse capabilities from Replicate API schema.
- * Used internally and by Settings.tsx for fetching built-in model schemas.
- */
-export async function fetchModelInfo(
-  modelId: string,
-  apiKey: string
-): Promise<{
-  name: string;
-  capabilities: ModelCapabilities;
-}> {
-  const { name, capabilities } = await fetchModelRaw(modelId, apiKey);
-  return { name, capabilities };
-}
-
-/**
  * Full model resolution: fetch schema, run LLM analysis, reconcile capabilities.
  * Returns everything needed to add a custom model in one call.
  */
@@ -56,13 +45,37 @@ export async function resolveModelCapabilities(
   icon: string | undefined;
 }> {
   onProgress?.("Fetching schema...");
-  const { name, capabilities, rawProperties } = await fetchModelRaw(modelId, apiKey);
+  const { name, capabilities, rawProperties, detectedAspectRatioKey } = await fetchModelRaw(
+    modelId,
+    apiKey
+  );
   const icon = inferIcon(modelId);
 
   onProgress?.("Analyzing parameters...");
-  const schemaMapping = (await generateSchemaMapping(rawProperties)) ?? undefined;
+  const llmResult = (await generateSchemaMapping(rawProperties)) ?? undefined;
+
+  // Separate supportedAspectRatios (goes into capabilities) from the rest (schemaMapping)
+  let supportedAspectRatios: string[] | undefined;
+  let schemaMapping: SchemaMapping | undefined;
+
+  if (llmResult) {
+    const { supportedAspectRatios: llmRatios, ...rest } = llmResult;
+    supportedAspectRatios = llmRatios;
+    schemaMapping = Object.keys(rest).length > 0 ? rest : undefined;
+  }
+
+  // If heuristic detected a non-standard aspect ratio key and LLM didn't, include it
+  if (detectedAspectRatioKey && detectedAspectRatioKey !== "aspect_ratio") {
+    if (!schemaMapping?.aspectRatioKey) {
+      schemaMapping = { ...(schemaMapping ?? {}), aspectRatioKey: detectedAspectRatioKey };
+    }
+  }
 
   // Reconcile: LLM findings are authoritative over heuristic parseCapabilities
+  if (supportedAspectRatios && supportedAspectRatios.length > 0) {
+    capabilities.supportedAspectRatios = supportedAspectRatios;
+  }
+
   if (schemaMapping) {
     if (schemaMapping.imageInputKey && !capabilities.supportsReferenceImages) {
       capabilities.supportsReferenceImages = true;
@@ -87,6 +100,7 @@ async function fetchModelRaw(
   name: string;
   capabilities: ModelCapabilities;
   rawProperties: Record<string, SchemaProperty>;
+  detectedAspectRatioKey?: string;
 }> {
   const response = await fetch(`/proxy/replicate/v1/models/${modelId}`, {
     headers: {
@@ -102,22 +116,22 @@ async function fetchModelRaw(
   const schema = data.latest_version?.openapi_schema?.components?.schemas?.Input;
   const properties = schema?.properties || {};
 
-  const capabilities = parseCapabilities(properties);
+  const { capabilities, detectedAspectRatioKey } = parseCapabilities(properties);
   const name = data.name || modelId.split("/").pop() || modelId;
 
-  return { name, capabilities, rawProperties: properties };
+  return { name, capabilities, rawProperties: properties, detectedAspectRatioKey };
 }
 
 /**
  * Parse schema properties into our ModelCapabilities format
  */
-function parseCapabilities(properties: Record<string, SchemaProperty>): ModelCapabilities {
-  // Check for aspect ratio support
-  const supportsAspectRatios = !!(
-    properties.aspect_ratio ||
-    properties.aspectRatio ||
-    properties.output_aspect_ratio
-  );
+function parseCapabilities(properties: Record<string, SchemaProperty>): {
+  capabilities: ModelCapabilities;
+  detectedAspectRatioKey?: string;
+} {
+  const aspectRatioKeys = ["aspect_ratio", "aspectRatio", "output_aspect_ratio"];
+  const detectedAspectRatioKey = aspectRatioKeys.find((key) => properties[key]);
+  const supportsAspectRatios = !!detectedAspectRatioKey;
 
   // Check for resolution/megapixels support
   const supportsResolution = !!(
@@ -151,10 +165,13 @@ function parseCapabilities(properties: Record<string, SchemaProperty>): ModelCap
   }
 
   return {
-    supportsAspectRatios,
-    supportsResolution,
-    supportsReferenceImages,
-    maxReferenceImages,
+    capabilities: {
+      supportsAspectRatios,
+      supportsResolution,
+      supportsReferenceImages,
+      maxReferenceImages,
+    },
+    detectedAspectRatioKey,
   };
 }
 
@@ -164,7 +181,7 @@ function parseCapabilities(properties: Record<string, SchemaProperty>): ModelCap
  */
 async function generateSchemaMapping(
   rawProperties: Record<string, SchemaProperty>
-): Promise<SchemaMapping | null> {
+): Promise<SchemaMappingWithRatios | null> {
   try {
     const response = await callTextModel(SCHEMA_MAPPING_SYSTEM, JSON.stringify(rawProperties));
 
@@ -177,11 +194,21 @@ async function generateSchemaMapping(
       return null;
     }
 
-    // Validate and build a clean SchemaMapping
-    const mapping: SchemaMapping = {};
+    // Validate and build a clean SchemaMapping + extracted aspect ratios
+    const mapping: SchemaMappingWithRatios = {};
 
     if (parsed.resolution && typeof parsed.resolution === "object") {
       mapping.resolution = parsed.resolution;
+    }
+
+    if (typeof parsed.aspectRatioKey === "string" && parsed.aspectRatioKey !== "aspect_ratio") {
+      mapping.aspectRatioKey = parsed.aspectRatioKey;
+    }
+
+    if (Array.isArray(parsed.supportedAspectRatios) && parsed.supportedAspectRatios.length > 0) {
+      mapping.supportedAspectRatios = parsed.supportedAspectRatios.filter(
+        (v: unknown): v is string => typeof v === "string"
+      );
     }
 
     if (typeof parsed.imageInputKey === "string" && parsed.imageInputKey !== "image_input") {
@@ -199,6 +226,8 @@ async function generateSchemaMapping(
     // Return null if no mapping is needed
     if (
       !mapping.resolution &&
+      !mapping.aspectRatioKey &&
+      !mapping.supportedAspectRatios &&
       !mapping.imageInputKey &&
       !mapping.maxReferenceImages &&
       !mapping.extraDefaults

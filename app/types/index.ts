@@ -1,12 +1,13 @@
 // Model types
 export type Provider = "google" | "replicate";
 
-export type AspectRatio = "1:1" | "16:9" | "9:16" | "4:3" | "3:4" | "21:9";
+export type AspectRatio = string;
 
 export type Resolution = "1K" | "2K" | "4K";
 
 export interface ModelCapabilities {
   supportsAspectRatios: boolean;
+  supportedAspectRatios?: string[];
   supportsResolution: boolean;
   resolutions?: Resolution[];
   supportsReferenceImages: boolean;
@@ -151,6 +152,7 @@ export interface TextModelConfig {
 
 export interface SchemaMapping {
   resolution?: Record<string, string>;
+  aspectRatioKey?: string;
   imageInputKey?: string;
   maxReferenceImages?: number;
   extraDefaults?: Record<string, unknown>;

@@ -16,12 +16,9 @@ import { useState, useEffect, useRef } from "react";
 import { GalleryHeader } from "~/components/gallery/GalleryHeader";
 import { useSettingsStore } from "~/stores/settingsStore";
 import { useGalleryStore } from "~/stores/galleryStore";
-import { fetchModelInfo } from "~/lib/replicateSchema";
 import { getImageCount } from "~/lib/db";
 import { exportAllImages, importFromZip } from "~/lib/exportImport";
 import type { Provider } from "~/types";
-import ModelToggleItem from "./ModelToggle";
-import AddCustomModelButton from "./AddCustomModelButton";
 import { Switch } from "~/components/ui/Switch";
 
 const providers: { id: Provider; name: string; description: string; link: string }[] = [

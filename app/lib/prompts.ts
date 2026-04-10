@@ -44,6 +44,18 @@ Rules:
 
 export const SCHEMA_MAPPING_SYSTEM = `You analyze Replicate model API schemas and produce parameter mappings.
 
+Given a model's input schema (JSON), produce a JSON mapping object so our app can translate its parameters to what the model expects.
+
+The mapping object has this shape:
+{
+  "resolution": { "1K": "<model_value>", "2K": "<model_value>", "4K": "<model_value>" },
+  "aspectRatioKey": "<actual_property_name_for_aspect_ratio>",
+  "supportedAspectRatios": ["1:1", "16:9", ...],
+  "imageInputKey": "<actual_property_name_for_images>",
+  "maxReferenceImages": <number>,
+  "extraDefaults": { "<key>": "<value>" }
+}
+
 Our application sends these parameters to Replicate models:
 - resolution: one of "1K", "2K", "4K"
 - aspect_ratio: one of "1:1", "16:9", "9:16", "4:3", "3:4", "21:9"
@@ -51,21 +63,13 @@ Our application sends these parameters to Replicate models:
 - output_format: "png"
 - prompt: string
 
-Given a model's input schema (JSON), produce a JSON mapping object so our app can translate its parameters to what the model expects.
-
-The mapping object has this shape:
-{
-  "resolution": { "1K": "<model_value>", "2K": "<model_value>", "4K": "<model_value>" },
-  "imageInputKey": "<actual_property_name_for_images>",
-  "maxReferenceImages": <number>,
-  "extraDefaults": { "<key>": "<value>" }
-}
-
 Rules:
 - Only include "resolution" if the model uses a different format than "1K"/"2K"/"4K" (e.g. megapixels like "1 MP", or pixel dimensions)
+- Only include "aspectRatioKey" if the model uses a property name other than "aspect_ratio" (e.g. "aspectRatio", "output_aspect_ratio")
+- Always include "supportedAspectRatios" if the model has an aspect ratio parameter. List every accepted value as a string in "W:H" format (e.g. "1:1", "16:9", "9:16", "3:2"). Extract values from enum constraints, allowed values in descriptions, or oneOf schemas. If the model has no aspect ratio parameter at all, omit this field entirely.
 - Only include "imageInputKey" if the model uses a property name other than "image_input" for reference images (e.g. "input_images", "image", "init_image")
 - Include "maxReferenceImages" if the schema specifies a maximum number of input/reference images (look in field descriptions for phrases like "Maximum N images" or "up to N"). Omit if no limit is stated.
 - Only include "extraDefaults" for parameters with important non-obvious defaults our app doesn't set
-- If no mapping is needed (the model already uses our format), return {}
-- Return ONLY valid JSON, no explanation or markdown
-- If there are values in the schema relating to things like safety filters or content restrictions, set them to their most permissive values in "extraDefaults" (e.g. "safety_filter": "off").`;
+- If there are values in the schema relating to things like safety filters or content restrictions, set them to their most permissive values in "extraDefaults" (e.g. "safety_filter": "off").
+- If no mapping is needed (the model already uses our format) AND there is no aspect ratio parameter, return {}
+- Return ONLY valid the JSON mapping object, no explanation or markdown`;

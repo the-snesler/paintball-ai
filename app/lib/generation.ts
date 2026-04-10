@@ -127,7 +127,10 @@ export async function generateWithReplicate(
     prompt: params.prompt,
     output_format: "png",
   };
-  if (params.aspectRatio) input.aspect_ratio = params.aspectRatio;
+  if (params.aspectRatio) {
+    const aspectRatioKey = mapping?.aspectRatioKey ?? "aspect_ratio";
+    input[aspectRatioKey] = params.aspectRatio;
+  }
   if (imageInputs.length > 0) {
     const imageKey = mapping?.imageInputKey ?? "image_input";
     input[imageKey] = imageInputs;
