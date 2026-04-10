@@ -153,7 +153,7 @@ export const BUILT_IN_MODELS: StoredModel[] = [
     capabilities: {
       supportsAspectRatios: true,
       supportedAspectRatios: ["1:1", "16:9", "3:2", "2:3", "4:5", "5:4", "9:16", "3:4", "4:3"],
-      supportsResolution: false,
+      supportsResolution: true,
       supportsReferenceImages: true,
       maxReferenceImages: 10,
     },
@@ -167,8 +167,8 @@ export const BUILT_IN_MODELS: StoredModel[] = [
     capabilities: {
       supportsAspectRatios: true,
       supportedAspectRatios: ["1:1", "4:3", "3:4", "16:9", "9:16", "3:2", "2:3", "21:9"],
-      supportsResolution: false,
-      supportsReferenceImages: false,
+      supportsResolution: true,
+      supportsReferenceImages: true,
       maxReferenceImages: 14,
     },
   },
