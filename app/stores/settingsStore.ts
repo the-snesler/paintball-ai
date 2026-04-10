@@ -17,6 +17,7 @@ interface SettingsState {
   desktopNotificationsEnabled: boolean;
   notificationPromptDismissed: boolean;
   requestedOutputCount: number;
+  editorContextInjectionEnabled: boolean;
 
   // API key actions
   setApiKey: (provider: Provider, key: string | null) => void;
@@ -47,6 +48,9 @@ interface SettingsState {
   setDesktopNotificationsEnabled: (enabled: boolean) => void;
   dismissNotificationPrompt: () => void;
   incrementRequestedOutputCount: (count?: number) => void;
+
+  // Editor context injection
+  setEditorContextInjectionEnabled: (enabled: boolean) => void;
 }
 
 export const useSettingsStore = create<SettingsState>()(
@@ -61,6 +65,7 @@ export const useSettingsStore = create<SettingsState>()(
       desktopNotificationsEnabled: false,
       notificationPromptDismissed: false,
       requestedOutputCount: 0,
+      editorContextInjectionEnabled: true,
 
       setApiKey: (provider, key) =>
         set((state) => ({
@@ -133,6 +138,8 @@ export const useSettingsStore = create<SettingsState>()(
 
       dismissNotificationPrompt: () => set({ notificationPromptDismissed: true }),
 
+      setEditorContextInjectionEnabled: (enabled) => set({ editorContextInjectionEnabled: enabled }),
+
       incrementRequestedOutputCount: (count = 1) =>
         set((state) => ({
           requestedOutputCount: state.requestedOutputCount + Math.max(0, count),
@@ -140,7 +147,7 @@ export const useSettingsStore = create<SettingsState>()(
     }),
     {
       name: "studio-settings",
-      version: 8,
+      version: 9,
       partialize: (state) => ({
         apiKeys: state.apiKeys,
         models: state.models,
@@ -148,6 +155,7 @@ export const useSettingsStore = create<SettingsState>()(
         desktopNotificationsEnabled: state.desktopNotificationsEnabled,
         notificationPromptDismissed: state.notificationPromptDismissed,
         requestedOutputCount: state.requestedOutputCount,
+        editorContextInjectionEnabled: state.editorContextInjectionEnabled,
       }),
       migrate: (persisted, version) => {
         let state = persisted as {
@@ -157,6 +165,7 @@ export const useSettingsStore = create<SettingsState>()(
           desktopNotificationsEnabled?: boolean;
           notificationPromptDismissed?: boolean;
           requestedOutputCount?: number;
+          editorContextInjectionEnabled?: boolean;
         };
 
         // always update builtin models
@@ -232,6 +241,13 @@ export const useSettingsStore = create<SettingsState>()(
                 ? { ...model, schemaFetched: false }
                 : model
             ),
+          };
+        }
+
+        if (version < 9) {
+          state = {
+            ...state,
+            editorContextInjectionEnabled: state.editorContextInjectionEnabled ?? true,
           };
         }
 

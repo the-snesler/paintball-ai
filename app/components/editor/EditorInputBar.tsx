@@ -1,5 +1,5 @@
 import { ArrowUp, ImagePlus, Loader2, ScanSearch, Sparkles, Wand2, X } from "lucide-react";
-import { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useEditorStore } from "~/stores/editorStore";
 import { useEditorGeneration } from "~/hooks/useEditorGeneration";
 import { useGalleryStore } from "~/stores/galleryStore";
@@ -10,6 +10,7 @@ import { anyModelSupportsReferenceImages, getStrictReferenceImageLimit } from "~
 import { callTextModel, isTextModelAvailable } from "~/lib/textModel";
 import { IMPROVE_PROMPT_SYSTEM, REVERSE_PROMPT_SYSTEM } from "~/lib/prompts";
 import { saveReferenceImage } from "~/lib/db";
+import { generateContextBrief, getSourceTurnBrief } from "~/lib/contextBrief";
 import { Tooltip } from "../ui/Tooltip";
 
 interface EditorInputBarProps {
@@ -42,10 +43,14 @@ export function EditorInputBar({ onSourceFile }: EditorInputBarProps) {
   const resolution = useGenerationStore((s) => s.currentResolution);
   const models = useSettingsStore((s) => s.models);
 
+  const sourcePrompt = useEditorStore((s) => s.sourcePrompt);
+  const contextInjectionEnabled = useSettingsStore((s) => s.editorContextInjectionEnabled);
+
   const { generateEdit } = useEditorGeneration();
 
   const [isImproving, setIsImproving] = useState(false);
   const [isDragOver, setIsDragOver] = useState(false);
+  const [contextBriefDismissed, setContextBriefDismissed] = useState(false);
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -61,6 +66,17 @@ export function EditorInputBar({ onSourceFile }: EditorInputBarProps) {
     textarea.style.height = "0px";
     textarea.style.height = `${textarea.scrollHeight}px`;
   }, [instruction, supportsFieldSizing]);
+
+  // Reset brief dismissal when the selected image changes
+  useEffect(() => {
+    setContextBriefDismissed(false);
+  }, [selectedItemId]);
+
+  // Context brief from the turn that produced the currently selected image
+  const contextBrief = useMemo(
+    () => getSourceTurnBrief(turns, selectedItemId),
+    [turns, selectedItemId]
+  );
 
   // Active model names for chip display
   const activeModelNames = useMemo(() => {
@@ -229,6 +245,15 @@ export function EditorInputBar({ onSourceFile }: EditorInputBarProps) {
     const text = instruction.trim();
     setInstruction("");
 
+    // Prepend context brief from the source turn if enabled
+    let finalInstruction = text;
+    if (contextInjectionEnabled && !contextBriefDismissed && selectedItemId) {
+      const brief = getSourceTurnBrief(turns, selectedItemId);
+      if (brief) {
+        finalInstruction = `[Context: ${brief}]\n\n${text}`;
+      }
+    }
+
     try {
       // Save the canvas blob as a reference image for retry support
       const refId = crypto.randomUUID();
@@ -243,6 +268,25 @@ export function EditorInputBar({ onSourceFile }: EditorInputBarProps) {
         createdAt: Date.now(),
       });
 
+      // Fire-and-forget: generate context brief for this turn in parallel
+      if (contextInjectionEnabled && isTextModelAvailable()) {
+        const currentTurns = useEditorStore.getState().turns;
+        const currentSourcePrompt = useEditorStore.getState().sourcePrompt;
+        const thisTurn = currentTurns.find((t) => t.id === turnId);
+        if (thisTurn) {
+          void generateContextBrief(
+            currentTurns,
+            thisTurn,
+            currentSourcePrompt,
+            referenceImages
+          ).then((brief) => {
+            if (brief) {
+              useEditorStore.getState().setTurnContextBrief(turnId, brief);
+            }
+          });
+        }
+      }
+
       const additionalRefs = referenceImages.map((r) => ({
         id: r.id,
         blob: r.blob,
@@ -250,7 +294,7 @@ export function EditorInputBar({ onSourceFile }: EditorInputBarProps) {
       }));
 
       await generateEdit({
-        instruction: text,
+        instruction: finalInstruction,
         referenceBlob: canvasBlob,
         referenceId: refId,
         additionalReferences: additionalRefs.length > 0 ? additionalRefs : undefined,
@@ -283,6 +327,10 @@ export function EditorInputBar({ onSourceFile }: EditorInputBarProps) {
     modelSelections,
     aspectRatio,
     resolution,
+    contextInjectionEnabled,
+    contextBriefDismissed,
+    turns,
+    sourcePrompt,
   ]);
 
   const handleImprove = useCallback(async () => {
@@ -368,6 +416,22 @@ export function EditorInputBar({ onSourceFile }: EditorInputBarProps) {
                   : "border-zinc-700 focus-within:border-zinc-600 focus-within:ring-1 focus-within:ring-zinc-600/50"
             }`}
           >
+            {/* Context brief banner */}
+            {contextBrief && contextInjectionEnabled && !contextBriefDismissed && (
+              <div className="flex items-start gap-2 border-b border-zinc-700/50 px-4 py-2">
+                <Sparkles className="mt-0.5 h-3 w-3 shrink-0 text-purple-400" />
+                <p className="flex-1 text-xs leading-relaxed text-zinc-400">{contextBrief}</p>
+                <button
+                  type="button"
+                  onClick={() => setContextBriefDismissed(true)}
+                  className="shrink-0 cursor-pointer rounded p-0.5 text-zinc-600 transition-colors hover:text-zinc-400"
+                  title="Dismiss context brief for this edit"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </div>
+            )}
+
             <textarea
               ref={textareaRef}
               value={instruction}
@@ -422,7 +486,7 @@ export function EditorInputBar({ onSourceFile }: EditorInputBarProps) {
                   ))}
 
                   {isDragOver && referenceImages.length === 0 && (
-                    <div className="col-span-4 rounded-lg border-2 border-dashed border-zinc-600 py-4 text-center text-xs text-zinc-400">
+                    <div className="col-span-full rounded-lg border-2 border-dashed border-zinc-600 py-8 text-center text-xs text-zinc-400">
                       Drop images here
                     </div>
                   )}

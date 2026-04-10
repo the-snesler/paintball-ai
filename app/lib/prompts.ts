@@ -42,6 +42,19 @@ Rules:
 - If the user provides a list of previously-used variations to avoid, none of your new variations may repeat or be trivially synonymous with them. They may be similar in style or theme.
 - Return ONLY the JSON array`;
 
+export const CONTEXT_BRIEF_SYSTEM = `You identify specific visual details that must be preserved across future image edits. You will receive a chronological list of editing instructions from an iterative session, plus the image that the most recent instruction was applied to.
+
+Your job: produce a concise brief listing the concrete visual details that future edits should not accidentally overwrite. Focus on details that were explicitly requested. For example: facial expressions, pose details, background elements. If things were specifically maintained, describe them. Do NOT describe obvious or dominant features that any model would naturally preserve.
+
+The brief will be prepended to future edit instructions. The future editor will see the output of the most recent edit (one generation newer than the image you received), not the edit history. The brief exists to carry forward constraints that are easy to lose — like a specific expression that was established and should survive a character swap, or a color that was locked in two edits ago.
+
+Rules:
+- Return ONLY the brief, no preamble or labels
+- Write in present tense, as a list of specific preserved details ("eyes are closed; scarf is red; background is black")
+- Focus only on details that are easy to accidentally change — skip the obvious
+- Keep the brief under 200 characters
+- If there is only one instruction and it is simple/short, return an empty string`;
+
 export const SCHEMA_MAPPING_SYSTEM = `You analyze Replicate model API schemas and produce parameter mappings.
 
 Given a model's input schema (JSON), produce a JSON mapping object so our app can translate its parameters to what the model expects.

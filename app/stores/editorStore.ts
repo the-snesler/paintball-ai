@@ -42,6 +42,7 @@ interface EditorState {
   setIsGenerating: (val: boolean) => void;
   addReferenceImage: (image: ReferenceImage) => void;
   removeReferenceImage: (id: string) => void;
+  setTurnContextBrief: (turnId: string, brief: string) => void;
   clearReferenceImages: () => void;
   reset: () => void;
 }
@@ -96,6 +97,13 @@ export const useEditorStore = create<EditorState>()((set, get) => ({
     })),
 
   selectItem: (selectedItemId) => set({ selectedItemId }),
+
+  setTurnContextBrief: (turnId, brief) =>
+    set((state) => ({
+      turns: state.turns.map((t) =>
+        t.id === turnId ? { ...t, contextBrief: brief } : t
+      ),
+    })),
 
   setInstruction: (instruction) => set({ instruction }),
 
