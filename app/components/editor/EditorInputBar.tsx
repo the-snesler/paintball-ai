@@ -1,13 +1,16 @@
-import { ArrowUp, Loader2, ScanSearch, Sparkles, Wand2 } from "lucide-react";
+import { ArrowUp, ImagePlus, Loader2, ScanSearch, Sparkles, Wand2, X } from "lucide-react";
 import { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useEditorStore } from "~/stores/editorStore";
 import { useEditorGeneration } from "~/hooks/useEditorGeneration";
 import { useGalleryStore } from "~/stores/galleryStore";
 import { useGenerationStore } from "~/stores/generationStore";
+import { useLightboxStore } from "~/stores/lightboxStore";
 import { useSettingsStore } from "~/stores/settingsStore";
+import { anyModelSupportsReferenceImages, getStrictReferenceImageLimit } from "~/lib/models";
 import { callTextModel, isTextModelAvailable } from "~/lib/textModel";
 import { IMPROVE_PROMPT_SYSTEM, REVERSE_PROMPT_SYSTEM } from "~/lib/prompts";
 import { saveReferenceImage } from "~/lib/db";
+import { Tooltip } from "../ui/Tooltip";
 
 interface EditorInputBarProps {
   /** Called when user pastes/drops an image and no source is set yet */
@@ -29,6 +32,11 @@ export function EditorInputBar({ onSourceFile }: EditorInputBarProps) {
   const selectItem = useEditorStore((s) => s.selectItem);
   const turns = useEditorStore((s) => s.turns);
 
+  const referenceImages = useEditorStore((s) => s.referenceImages);
+  const addReferenceImage = useEditorStore((s) => s.addReferenceImage);
+  const removeReferenceImage = useEditorStore((s) => s.removeReferenceImage);
+  const openLightbox = useLightboxStore((s) => s.openLightbox);
+
   const modelSelections = useGenerationStore((s) => s.currentModelSelections);
   const aspectRatio = useGenerationStore((s) => s.currentAspectRatio);
   const resolution = useGenerationStore((s) => s.currentResolution);
@@ -37,6 +45,7 @@ export function EditorInputBar({ onSourceFile }: EditorInputBarProps) {
   const { generateEdit } = useEditorGeneration();
 
   const [isImproving, setIsImproving] = useState(false);
+  const [isDragOver, setIsDragOver] = useState(false);
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -69,6 +78,25 @@ export function EditorInputBar({ onSourceFile }: EditorInputBarProps) {
     return `${activeModelNames[0]} +${activeModelNames.length - 1}`;
   }, [activeModelNames]);
 
+  const selectedModelIds = useMemo(
+    () =>
+      Object.entries(modelSelections)
+        .filter(([, count]) => count > 0)
+        .map(([modelId]) => modelId),
+    [modelSelections]
+  );
+
+  const referenceEnabled = anyModelSupportsReferenceImages(models, selectedModelIds);
+
+  const referenceLimit = useMemo(() => {
+    const limit = getStrictReferenceImageLimit(models, selectedModelIds);
+    if (limit === null) return 0;
+    // Source always takes 1 slot, additional references limited to limit - 1
+    return limit === Infinity ? Infinity : Math.max(0, limit - 1);
+  }, [models, selectedModelIds]);
+
+  const canAttachMore = referenceEnabled && referenceImages.length < referenceLimit;
+
   const hasSource = sourceBlob !== null;
   const canSubmit = hasSource && instruction.trim().length > 0 && !isGenerating && !isAnalyzing;
 
@@ -80,6 +108,116 @@ export function EditorInputBar({ onSourceFile }: EditorInputBarProps) {
     }
     return sourceBlob;
   }, [selectedItemId, sourceBlob]);
+
+  const addFiles = useCallback(
+    (files: File[]) => {
+      if (!referenceEnabled) return;
+      const imageFiles = files.filter((f) => f.type.startsWith("image/"));
+      const currentCount = useEditorStore.getState().referenceImages.length;
+      const slotsAvailable =
+        referenceLimit === Infinity ? imageFiles.length : referenceLimit - currentCount;
+      const toAdd = imageFiles.slice(0, Math.max(0, slotsAvailable));
+      for (const file of toAdd) {
+        addReferenceImage({
+          id: crypto.randomUUID(),
+          blob: file,
+          url: URL.createObjectURL(file),
+          name: file.name,
+        });
+      }
+    },
+    [addReferenceImage, referenceEnabled, referenceLimit]
+  );
+
+  const addGalleryImage = useCallback(
+    (imageData: string) => {
+      if (!referenceEnabled) return;
+      try {
+        const { imageId, blob, name } = JSON.parse(imageData) as {
+          imageId?: string;
+          blob?: string;
+          name?: string;
+        };
+        const galleryItems = useGalleryStore.getState().items;
+
+        if (imageId) {
+          const galleryItem = galleryItems.find((item) => item.id === imageId);
+          if (galleryItem && galleryItem.status === "completed") {
+            addReferenceImage({
+              id: crypto.randomUUID(),
+              blob: galleryItem.originalBlob,
+              url: URL.createObjectURL(galleryItem.originalBlob),
+              name: name || "Gallery image",
+            });
+            return;
+          }
+        }
+
+        if (typeof blob === "string") {
+          fetch(blob)
+            .then((res) => res.blob())
+            .then((blobData) => {
+              addReferenceImage({
+                id: crypto.randomUUID(),
+                blob: blobData,
+                url: URL.createObjectURL(blobData),
+                name: name || "Gallery image",
+              });
+            });
+        }
+      } catch {
+        // Ignore invalid drag payloads
+      }
+    },
+    [addReferenceImage, referenceEnabled]
+  );
+
+  const handleDrop = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setIsDragOver(false);
+      if (!referenceEnabled || !hasSource) return;
+
+      const imageData = e.dataTransfer.getData("application/json");
+      if (imageData) addGalleryImage(imageData);
+
+      addFiles(Array.from(e.dataTransfer.files));
+    },
+    [addFiles, addGalleryImage, referenceEnabled, hasSource]
+  );
+
+  const handleDragEnter = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (referenceEnabled && hasSource) setIsDragOver(true);
+    },
+    [referenceEnabled, hasSource]
+  );
+
+  const handleDragOver = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (referenceEnabled && hasSource) setIsDragOver(true);
+    },
+    [referenceEnabled, hasSource]
+  );
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(false);
+  }, []);
+
+  const handleFileSelect = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      addFiles(Array.from(e.target.files || []));
+      e.target.value = "";
+    },
+    [addFiles]
+  );
 
   const handleSubmit = useCallback(async () => {
     if (!canSubmit) return;
@@ -105,10 +243,17 @@ export function EditorInputBar({ onSourceFile }: EditorInputBarProps) {
         createdAt: Date.now(),
       });
 
+      const additionalRefs = referenceImages.map((r) => ({
+        id: r.id,
+        blob: r.blob,
+        name: r.name,
+      }));
+
       await generateEdit({
         instruction: text,
         referenceBlob: canvasBlob,
         referenceId: refId,
+        additionalReferences: additionalRefs.length > 0 ? additionalRefs : undefined,
         modelSelections,
         aspectRatio,
         resolution,
@@ -134,6 +279,7 @@ export function EditorInputBar({ onSourceFile }: EditorInputBarProps) {
     addItemToTurn,
     selectItem,
     generateEdit,
+    referenceImages,
     modelSelections,
     aspectRatio,
     resolution,
@@ -191,13 +337,15 @@ export function EditorInputBar({ onSourceFile }: EditorInputBarProps) {
             e.preventDefault();
             if (!hasSource && onSourceFile) {
               onSourceFile(file);
+            } else if (hasSource && canAttachMore) {
+              addFiles([file]);
             }
             return;
           }
         }
       }
     },
-    [hasSource, onSourceFile]
+    [hasSource, onSourceFile, canAttachMore, addFiles]
   );
 
   const turnCount = turns.length;
@@ -208,10 +356,16 @@ export function EditorInputBar({ onSourceFile }: EditorInputBarProps) {
         <div className="mx-auto max-w-3xl">
           {/* Textarea */}
           <div
+            onDrop={handleDrop}
+            onDragEnter={handleDragEnter}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
             className={`rounded-xl border bg-zinc-800/80 transition-all duration-200 ${
-              !hasSource
-                ? "border-zinc-700/50 opacity-60"
-                : "border-zinc-700 focus-within:border-zinc-600 focus-within:ring-1 focus-within:ring-zinc-600/50"
+              isDragOver && referenceEnabled && hasSource
+                ? "border-purple-500 ring-1 ring-purple-500/50"
+                : !hasSource
+                  ? "border-zinc-700/50 opacity-60"
+                  : "border-zinc-700 focus-within:border-zinc-600 focus-within:ring-1 focus-within:ring-zinc-600/50"
             }`}
           >
             <textarea
@@ -232,10 +386,54 @@ export function EditorInputBar({ onSourceFile }: EditorInputBarProps) {
               className="field-sizing-content max-h-48 min-h-11 w-full resize-none rounded-t-xl bg-transparent px-4 pt-3 pb-2 text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none disabled:cursor-not-allowed"
             />
 
+            {/* Reference images */}
+            {(referenceImages.length > 0 || (isDragOver && hasSource)) && (
+              <div className="px-3 py-2">
+                <div className="grid max-w-full grid-cols-[repeat(auto-fill,minmax(80px,1fr))] gap-2">
+                  {referenceImages.map((img) => (
+                    <div key={img.id} className="group relative aspect-square">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          openLightbox({
+                            kind: "reference",
+                            image: { id: img.id, url: img.url, name: img.name },
+                          })
+                        }
+                        className="block h-full w-full cursor-zoom-in"
+                      >
+                        <img
+                          src={img.url}
+                          alt={img.name}
+                          className="h-full w-full rounded object-cover"
+                        />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          removeReferenceImage(img.id);
+                        }}
+                        className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full border border-zinc-700 bg-zinc-900 opacity-0 transition-opacity group-hover:opacity-100"
+                      >
+                        <X className="h-3 w-3 text-zinc-400" />
+                      </button>
+                    </div>
+                  ))}
+
+                  {isDragOver && referenceImages.length === 0 && (
+                    <div className="col-span-4 rounded-lg border-2 border-dashed border-zinc-600 py-4 text-center text-xs text-zinc-400">
+                      Drop images here
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
             {/* Bottom row of input */}
             <div className="flex items-center justify-between gap-2 px-3 pb-3">
-              {/* Left: model chip + analyze */}
-              <div className="flex min-w-0 items-center gap-2">
+              {/* Left: model chip + analyze + references */}
+              <div className="flex min-w-0 flex-wrap items-center gap-2">
                 {/* Model chip */}
                 <div className="flex max-w-40 items-center gap-1.5 truncate rounded-full bg-zinc-700/60 px-2.5 py-1 text-xs text-zinc-400">
                   <Sparkles className="h-3 w-3 shrink-0 text-purple-400" />
@@ -243,38 +441,70 @@ export function EditorInputBar({ onSourceFile }: EditorInputBarProps) {
                 </div>
 
                 {/* Analyze button */}
-                <button
-                  type="button"
-                  onClick={() => void handleAnalyze()}
-                  disabled={!hasSource || isAnalyzing || isGenerating}
-                  className="flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs text-zinc-500 transition-colors hover:bg-zinc-700/60 hover:text-zinc-300 disabled:cursor-not-allowed disabled:opacity-40"
-                  title="Analyze image and generate a prompt"
-                >
-                  {isAnalyzing ? (
-                    <Loader2 className="h-3 w-3 animate-spin" />
-                  ) : (
-                    <ScanSearch className="h-3 w-3" />
-                  )}
-                  {isAnalyzing ? "Analyzing…" : "Analyze"}
-                </button>
+                <Tooltip content="Generate a prompt based on the source image">
+                  <button
+                    type="button"
+                    onClick={() => void handleAnalyze()}
+                    disabled={!hasSource || isAnalyzing || isGenerating}
+                    className="flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs text-zinc-500 transition-colors hover:bg-zinc-700/60 hover:text-zinc-300 disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    {isAnalyzing ? (
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                    ) : (
+                      <ScanSearch className="h-3 w-3" />
+                    )}
+                    {isAnalyzing ? "Analyzing…" : "Analyze"}
+                  </button>
+                </Tooltip>
 
                 {/* Improve button */}
-                <button
-                  type="button"
-                  onClick={() => void handleImprove()}
-                  disabled={
-                    !isTextModelAvailable() || !instruction.trim() || isImproving || isGenerating
-                  }
-                  className="flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs text-zinc-500 transition-colors hover:bg-zinc-700/60 hover:text-zinc-300 disabled:cursor-not-allowed disabled:opacity-40"
-                  title="Improve instruction with AI"
-                >
-                  {isImproving ? (
-                    <Loader2 className="h-3 w-3 animate-spin" />
-                  ) : (
-                    <Wand2 className="h-3 w-3" />
-                  )}
-                  {isImproving ? "Improving…" : "Improve"}
-                </button>
+                <Tooltip content="Use AI to improve your instruction">
+                  <button
+                    type="button"
+                    onClick={() => void handleImprove()}
+                    disabled={
+                      !isTextModelAvailable() || !instruction.trim() || isImproving || isGenerating
+                    }
+                    className="flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs text-zinc-500 transition-colors hover:bg-zinc-700/60 hover:text-zinc-300 disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    {isImproving ? (
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                    ) : (
+                      <Wand2 className="h-3 w-3" />
+                    )}
+                    {isImproving ? "Improving…" : "Improve"}
+                  </button>
+                </Tooltip>
+
+                {/* Attach references button */}
+                {referenceEnabled && hasSource && (
+                  <Tooltip
+                    content={
+                      canAttachMore
+                        ? `${referenceImages.length}/${referenceLimit === Infinity ? "\u221E" : referenceLimit} references attached`
+                        : "Reference limit reached"
+                    }
+                  >
+                    <label
+                      className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs transition-colors ${
+                        canAttachMore
+                          ? "cursor-pointer text-zinc-500 hover:bg-zinc-700/60 hover:text-zinc-300"
+                          : "cursor-not-allowed text-zinc-600"
+                      }`}
+                    >
+                      <ImagePlus className="h-3 w-3" />
+                      {referenceImages.length > 0 ? ` References` : "References"}
+                      <input
+                        type="file"
+                        accept="image/*"
+                        multiple
+                        onChange={handleFileSelect}
+                        disabled={!canAttachMore}
+                        className="hidden"
+                      />
+                    </label>
+                  </Tooltip>
+                )}
               </div>
 
               {/* Right: send button */}

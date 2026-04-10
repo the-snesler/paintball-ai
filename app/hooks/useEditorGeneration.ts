@@ -1,6 +1,7 @@
 import { useCallback } from "react";
 import { useSettingsStore } from "~/stores/settingsStore";
 import { getModel } from "~/lib/models";
+import { saveReferenceImage } from "~/lib/db";
 import type { AspectRatio, GalleryItem, Resolution } from "~/types";
 import { useGenerationTask, type GenerationTask } from "~/hooks/useGenerationTask";
 
@@ -20,6 +21,7 @@ export function useEditorGeneration() {
       instruction: string;
       referenceBlob: Blob;
       referenceId: string;
+      additionalReferences?: Array<{ id: string; blob: Blob; name: string }>;
       modelSelections: Record<string, number>;
       aspectRatio: AspectRatio | null;
       resolution: Resolution;
@@ -29,11 +31,29 @@ export function useEditorGeneration() {
         instruction,
         referenceBlob,
         referenceId,
+        additionalReferences,
         modelSelections,
         aspectRatio,
         resolution,
         onItemsCreated,
       } = params;
+
+      // Persist additional references to IndexedDB for retry support
+      if (additionalReferences && additionalReferences.length > 0) {
+        await Promise.all(
+          additionalReferences.map(async (ref) => {
+            const saved = await saveReferenceImage(ref);
+            URL.revokeObjectURL(saved.url);
+          })
+        );
+      }
+
+      // Source image first, then additional references
+      const allReferences: Array<{ id: string; blob: Blob }> = [
+        { id: referenceId, blob: referenceBlob },
+        ...(additionalReferences ?? []).map((r) => ({ id: r.id, blob: r.blob })),
+      ];
+      const allReferenceIds = allReferences.map((r) => r.id);
 
       const tasks: GenerationTask[] = [];
       const pendingItems: GalleryItem[] = [];
@@ -56,7 +76,7 @@ export function useEditorGeneration() {
             prompt: instruction,
             aspectRatio: taskAspectRatio,
             resolution: taskResolution,
-            referenceImages: [{ id: referenceId, blob: referenceBlob }],
+            referenceImages: allReferences,
           });
 
           pendingItems.push({
@@ -67,7 +87,7 @@ export function useEditorGeneration() {
             prompt: instruction,
             aspectRatio: taskAspectRatio,
             resolution: taskResolution,
-            referenceImageIds: [referenceId],
+            referenceImageIds: allReferenceIds,
             retryCount: 0,
           });
         }

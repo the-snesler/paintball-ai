@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { EditorTurn } from "~/types";
+import type { EditorTurn, ReferenceImage } from "~/types";
 
 interface EditorState {
   // Source image
@@ -20,6 +20,9 @@ interface EditorState {
   isAnalyzing: boolean;
   analysisResult: string | null;
 
+  // Reference images (additional, beyond the source)
+  referenceImages: ReferenceImage[];
+
   // Generation state
   isGenerating: boolean;
 
@@ -37,6 +40,9 @@ interface EditorState {
   setAnalyzing: (val: boolean) => void;
   setAnalysisResult: (text: string | null) => void;
   setIsGenerating: (val: boolean) => void;
+  addReferenceImage: (image: ReferenceImage) => void;
+  removeReferenceImage: (id: string) => void;
+  clearReferenceImages: () => void;
   reset: () => void;
 }
 
@@ -49,6 +55,7 @@ const INITIAL_STATE = {
   turns: [],
   selectedItemId: null,
   instruction: "",
+  referenceImages: [],
   isAnalyzing: false,
   analysisResult: null,
   isGenerating: false,
@@ -60,6 +67,7 @@ export const useEditorStore = create<EditorState>()((set, get) => ({
   setSource: ({ blob, prompt, galleryItemId, referenceId }) => {
     const prev = get();
     if (prev.sourceUrl) URL.revokeObjectURL(prev.sourceUrl);
+    prev.referenceImages.forEach((img) => URL.revokeObjectURL(img.url));
     set({
       sourceBlob: blob,
       sourceUrl: URL.createObjectURL(blob),
@@ -69,6 +77,7 @@ export const useEditorStore = create<EditorState>()((set, get) => ({
       turns: [],
       selectedItemId: null,
       instruction: "",
+      referenceImages: [],
       analysisResult: null,
       isGenerating: false,
     });
@@ -96,9 +105,30 @@ export const useEditorStore = create<EditorState>()((set, get) => ({
 
   setIsGenerating: (isGenerating) => set({ isGenerating }),
 
+  addReferenceImage: (image) =>
+    set((state) => ({
+      referenceImages: [...state.referenceImages, image],
+    })),
+
+  removeReferenceImage: (id) =>
+    set((state) => {
+      const image = state.referenceImages.find((entry) => entry.id === id);
+      if (image) URL.revokeObjectURL(image.url);
+      return {
+        referenceImages: state.referenceImages.filter((entry) => entry.id !== id),
+      };
+    }),
+
+  clearReferenceImages: () =>
+    set((state) => {
+      state.referenceImages.forEach((image) => URL.revokeObjectURL(image.url));
+      return { referenceImages: [] };
+    }),
+
   reset: () => {
-    const { sourceUrl } = get();
-    if (sourceUrl) URL.revokeObjectURL(sourceUrl);
+    const prev = get();
+    if (prev.sourceUrl) URL.revokeObjectURL(prev.sourceUrl);
+    prev.referenceImages.forEach((img) => URL.revokeObjectURL(img.url));
     set(INITIAL_STATE);
   },
 }));
