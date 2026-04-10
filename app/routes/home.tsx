@@ -8,6 +8,7 @@ import { Lightbox } from "~/components/lightbox/Lightbox";
 import { useGalleryStore } from "~/stores/galleryStore";
 import { useLightboxStore } from "~/stores/lightboxStore";
 import { useSettingsStore } from "~/stores/settingsStore";
+import { useGalleryDerivedIndexes } from "~/hooks/useGalleryDerivedIndexes";
 
 export function meta({}: Route.MetaArgs) {
   return [
@@ -20,8 +21,8 @@ export default function Home() {
   const loadImages = useGalleryStore((s) => s.loadImages);
   const hasLoaded = useGalleryStore((s) => s.hasLoaded);
   const isLightboxOpen = useLightboxStore((s) => s.isLightboxOpen);
-  const items = useGalleryStore((s) => s.items);
   const desktopNotificationsEnabled = useSettingsStore((s) => s.desktopNotificationsEnabled);
+  const { inFlightCount } = useGalleryDerivedIndexes();
   const previousInFlightCountRef = useRef(0);
 
   useEffect(() => {
@@ -31,10 +32,6 @@ export default function Home() {
   }, [hasLoaded, loadImages]);
 
   useEffect(() => {
-    const inFlightCount = items.filter(
-      (item) =>
-        item.status === "pending" || item.status === "generating" || item.status === "waiting"
-    ).length;
     const hadInFlight = previousInFlightCountRef.current > 0;
 
     previousInFlightCountRef.current = inFlightCount;
@@ -63,7 +60,7 @@ export default function Home() {
       body: "All generations are complete.",
       tag: "paintball-generation-complete",
     });
-  }, [items, desktopNotificationsEnabled]);
+  }, [inFlightCount, desktopNotificationsEnabled]);
 
   return (
     <div className="flex h-screen flex-col md:flex-row">

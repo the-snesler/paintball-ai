@@ -1,4 +1,4 @@
-import { useEffect, useCallback, useMemo, useState } from "react";
+import { useEffect, useCallback, useState } from "react";
 import {
   X,
   ChevronLeft,
@@ -15,9 +15,9 @@ import { useGalleryStore } from "~/stores/galleryStore";
 import { useLightboxStore } from "~/stores/lightboxStore";
 import { useSettingsStore } from "~/stores/settingsStore";
 import { useEditorStore } from "~/stores/editorStore";
-import { groupItemsByPrompt, getPromptKey } from "~/lib/galleryGrouping";
 import { GalleryImageCard } from "~/components/gallery/GalleryImageCard";
 import { useLightboxNavigation } from "~/hooks/useLightboxNavigation";
+import { useGalleryDerivedIndexes } from "~/hooks/useGalleryDerivedIndexes";
 import { useReuseGalleryItemPrompt } from "~/hooks/useReuseGalleryItemPrompt";
 import { useUpscale } from "~/hooks/useUpscale";
 import { UPSCALERS } from "~/lib/upscaling";
@@ -35,7 +35,7 @@ export function Lightbox() {
     useLightboxNavigation();
 
   const openLightbox = useLightboxStore((s) => s.openLightbox);
-  const items = useGalleryStore((s) => s.items);
+  const { getPromptGroupForItem, getChildItems, getItemById } = useGalleryDerivedIndexes();
   const setEditorSource = useEditorStore((s) => s.setSource);
 
   const [referenceImages, setReferenceImages] = useState<ReferenceImage[]>([]);
@@ -72,19 +72,8 @@ export function Lightbox() {
     setShowUpscalePicker(false);
   }, [galleryImage?.id]);
 
-  const promptGroup = useMemo(() => {
-    if (!galleryImage) return [];
-    const groups = groupItemsByPrompt(items);
-    return groups.get(getPromptKey(galleryImage)) ?? [];
-  }, [items, galleryImage]);
-
-  const childItems = useMemo(() => {
-    if (!galleryImage) return [];
-    return items.filter(
-      (item): item is typeof item & { status: "completed" } =>
-        item.status === "completed" && (item.parentGalleryItemIds?.includes(galleryImage.id) ?? false)
-    );
-  }, [galleryImage, items]);
+  const promptGroup = getPromptGroupForItem(galleryImage);
+  const childItems = getChildItems(galleryImage?.id);
 
   // Keyboard navigation
   useEffect(() => {
@@ -339,11 +328,8 @@ export function Lightbox() {
                   <div className="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-2">
                     {referenceImages.map((img) => {
                       const sourceItem = img.sourceGalleryItemId
-                        ? items.find(
-                            (item) =>
-                              item.id === img.sourceGalleryItemId && item.status === "completed"
-                          )
-                        : undefined;
+                        ? getItemById(img.sourceGalleryItemId)
+                        : null;
                       return sourceItem ? (
                         <GalleryImageCard key={img.id} item={sourceItem} selectionDisabled />
                       ) : (

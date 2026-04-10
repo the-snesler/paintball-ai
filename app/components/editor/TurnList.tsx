@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { Check, Trash2, X } from "lucide-react";
 import { useEditorStore } from "~/stores/editorStore";
-import { useGalleryStore } from "~/stores/galleryStore";
 import { Turn } from "./Turn";
 import { useNavigate } from "react-router";
+import { useGalleryDerivedIndexes } from "~/hooks/useGalleryDerivedIndexes";
 
 export function TurnList() {
   const turns = useEditorStore((s) => s.turns);
@@ -89,9 +89,8 @@ function SourceTurn({
 
   // Get source item from gallery if available
   const sourceGalleryItemId = useEditorStore((s) => s.sourceGalleryItemId);
-  const galleryItem = useGalleryStore((s) =>
-    sourceGalleryItemId ? s.items.find((i) => i.id === sourceGalleryItemId) : null
-  );
+  const { getItemById } = useGalleryDerivedIndexes();
+  const galleryItem = getItemById(sourceGalleryItemId);
   const displayUrl =
     galleryItem && galleryItem.status === "completed" ? galleryItem.originalUrl : url;
 

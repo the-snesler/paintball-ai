@@ -1,10 +1,10 @@
 import { Check, Link2 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
-import { useShallow } from "zustand/react/shallow";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useGalleryStore } from "~/stores/galleryStore";
 import { useEditorStore } from "~/stores/editorStore";
 import type { EditorTurn } from "~/types";
 import { SineWaveGrid } from "~/components/gallery/SineWaveGrid";
+import { useGalleryDerivedIndexes } from "~/hooks/useGalleryDerivedIndexes";
 
 interface TurnProps {
   turn: EditorTurn;
@@ -13,10 +13,10 @@ interface TurnProps {
 }
 
 export function Turn({ turn, turnIndex, isFirst = false }: TurnProps) {
-  const items = useGalleryStore(
-    useShallow((s) =>
-      turn.itemIds.map((id) => s.items.find((item) => item.id === id)).filter(Boolean)
-    )
+  const { getItemById } = useGalleryDerivedIndexes();
+  const items = useMemo(
+    () => turn.itemIds.map((id) => getItemById(id)).filter(Boolean),
+    [getItemById, turn.itemIds]
   ) as ReturnType<typeof useGalleryStore.getState>["items"];
 
   const selectedItemId = useEditorStore((s) => s.selectedItemId);
@@ -29,8 +29,7 @@ export function Turn({ turn, turnIndex, isFirst = false }: TurnProps) {
 
   useEffect(() => {
     if (turn.sourceItemId) {
-      // Get from gallery store directly
-      const item = useGalleryStore.getState().items.find((i) => i.id === turn.sourceItemId);
+      const item = getItemById(turn.sourceItemId);
       if (item && item.status === "completed") {
         setSourceThumbUrl(item.thumbnailUrl);
       }
@@ -42,7 +41,7 @@ export function Turn({ turn, turnIndex, isFirst = false }: TurnProps) {
         return () => URL.revokeObjectURL(url);
       }
     }
-  }, [turn.sourceItemId, turn.sourceBlob]);
+  }, [getItemById, turn.sourceItemId, turn.sourceBlob]);
 
   // Auto-select the first completed item in the most recent turn (once only)
   const isLastTurn = turnIndex === turns.length - 1;

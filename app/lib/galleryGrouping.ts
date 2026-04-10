@@ -10,8 +10,12 @@ export function groupItemsByPrompt(items: GalleryItem[]): Map<string, GalleryIte
 
   for (const item of items) {
     const key = getPromptKey(item);
-    const existing = grouped.get(key) || [];
-    grouped.set(key, [...existing, item]);
+    const existing = grouped.get(key);
+    if (existing) {
+      existing.push(item);
+    } else {
+      grouped.set(key, [item]);
+    }
   }
 
   return grouped;

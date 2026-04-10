@@ -7,18 +7,18 @@ import { TimelineDivider } from "./TimelineDivider";
 import { ImageOff, Download, Trash2, X, ImagePlus } from "lucide-react";
 import type { GalleryItem } from "~/types";
 import { formatRelativeDate } from "~/lib/util";
-import { groupItemsByPrompt, getFirstCreatedAt } from "~/lib/galleryGrouping";
+import { getFirstCreatedAt } from "~/lib/galleryGrouping";
 import { stripVariationSections } from "~/lib/promptVariations";
 import NumberFlow from "@number-flow/react";
 import { useAttachSelectedItemsToGeneration } from "~/hooks/useAttachSelectedItemsToGeneration";
+import { useGalleryDerivedIndexes } from "~/hooks/useGalleryDerivedIndexes";
 
 export function Gallery() {
   const items = useGalleryStore((s) => s.items);
   const viewMode = useGalleryStore((s) => s.viewMode);
   const isLoading = useGalleryStore((s) => s.isLoading);
   const selectedCount = useGalleryStore((s) => s.selectedItemIds.length);
-
-  const itemsByPrompt = groupItemsByPrompt(items);
+  const { itemsByPrompt } = useGalleryDerivedIndexes();
 
   const totalCount = items.length;
 
