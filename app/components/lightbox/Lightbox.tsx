@@ -1,4 +1,4 @@
-import { useEffect, useCallback, useMemo } from "react";
+import { useEffect, useCallback, useMemo, useState } from "react";
 import {
   X,
   ChevronLeft,
@@ -18,6 +18,8 @@ import { useLightboxNavigation } from "~/hooks/useLightboxNavigation";
 import { useReuseGalleryItemPrompt } from "~/hooks/useReuseGalleryItemPrompt";
 import { IconButton } from "./IconButton";
 import { WideIconButton } from "./WideIconButton";
+import { getReferenceImagesByIds } from "~/lib/db";
+import type { ReferenceImage } from "~/types";
 
 export function Lightbox() {
   const navigate = useNavigate();
@@ -27,7 +29,35 @@ export function Lightbox() {
   const { lightboxTarget, galleryImage, referenceImage, showNavigation, navigateLightbox } =
     useLightboxNavigation();
 
+  const openLightbox = useLightboxStore((s) => s.openLightbox);
   const items = useGalleryStore((s) => s.items);
+
+  const [referenceImages, setReferenceImages] = useState<ReferenceImage[]>([]);
+
+  useEffect(() => {
+    if (!galleryImage || galleryImage.referenceImageIds.length === 0) {
+      setReferenceImages([]);
+      return;
+    }
+
+    let cancelled = false;
+    const loaded: string[] = [];
+
+    getReferenceImagesByIds(galleryImage.referenceImageIds).then((images) => {
+      if (cancelled) {
+        images.forEach((img) => URL.revokeObjectURL(img.url));
+        return;
+      }
+      loaded.push(...images.map((img) => img.url));
+      setReferenceImages(images);
+    });
+
+    return () => {
+      cancelled = true;
+      loaded.forEach((url) => URL.revokeObjectURL(url));
+      setReferenceImages([]);
+    };
+  }, [galleryImage?.id]);
 
   const promptGroup = useMemo(() => {
     if (!galleryImage) return [];
@@ -210,6 +240,30 @@ export function Lightbox() {
                   <div className="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-2">
                     {promptGroup.map((item) => (
                       <GalleryImageCard key={item.id} item={item} selectionDisabled />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Reference images */}
+              {referenceImages.length > 0 && (
+                <div className="space-y-2">
+                  <h3 className="text-xs font-medium text-zinc-400">
+                    Reference images ({referenceImages.length})
+                  </h3>
+                  <div className="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-2">
+                    {referenceImages.map((img) => (
+                      <button
+                        key={img.id}
+                        onClick={() => openLightbox({ kind: "reference", image: img })}
+                        className="overflow-hidden rounded-lg bg-zinc-800 transition-all hover:ring-2 hover:ring-zinc-500"
+                      >
+                        <img
+                          src={img.url}
+                          alt={img.name}
+                          className="aspect-square w-full object-cover"
+                        />
+                      </button>
                     ))}
                   </div>
                 </div>
