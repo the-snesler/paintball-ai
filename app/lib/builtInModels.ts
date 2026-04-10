@@ -1,6 +1,6 @@
 import type { StoredModel } from "~/types";
 
-export const BUILT_IN_MODELS: StoredModel[] = [
+const BASE_BUILT_IN_MODELS: StoredModel[] = [
   {
     id: "gemini-2.5-flash-image",
     name: "Gemini 2.5 Flash",
@@ -173,6 +173,35 @@ export const BUILT_IN_MODELS: StoredModel[] = [
     },
   },
 ];
+
+const DEBUG_MODEL: StoredModel = {
+  id: "debug/dev-placeholder",
+  name: "Dev Placeholder",
+  provider: "debug",
+  enabled: true,
+  capabilities: {
+    supportsAspectRatios: true,
+    supportedAspectRatios: [
+      "1:1",
+      "2:3",
+      "3:2",
+      "3:4",
+      "4:3",
+      "4:5",
+      "5:4",
+      "9:16",
+      "16:9",
+      "21:9",
+    ],
+    supportsResolution: true,
+    supportsReferenceImages: true,
+    maxReferenceImages: 10,
+  },
+};
+
+export const BUILT_IN_MODELS: StoredModel[] = import.meta.env.DEV
+  ? [...BASE_BUILT_IN_MODELS, DEBUG_MODEL]
+  : BASE_BUILT_IN_MODELS;
 
 const BUILT_IN_MODEL_IDS = new Set(BUILT_IN_MODELS.map((model) => model.id));
 

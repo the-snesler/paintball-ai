@@ -1,7 +1,8 @@
 import { GoogleGenAI } from "@google/genai";
 import Replicate from "replicate";
+import { parseAspectRatio } from "~/lib/models";
 import { useSettingsStore } from "~/stores/settingsStore";
-import type { AspectRatio, Resolution } from "~/types";
+import type { AspectRatio, Provider, Resolution } from "~/types";
 import { blobToBase64 } from "./util";
 import { getImageDimensions } from "./imageProcessing";
 import { toRateLimitError } from "./retry";
@@ -18,7 +19,7 @@ export class RateLimitError extends Error {
 
 export interface GenerationParams {
   modelId: string;
-  provider: "google" | "replicate";
+  provider: Provider;
   prompt: string;
   aspectRatio: AspectRatio | null;
   resolution: Resolution | null;
@@ -34,17 +35,19 @@ export interface GenerationResult {
 
 export async function executeGeneration(
   params: GenerationParams,
-  apiKey: string
+  apiKey?: string
 ): Promise<GenerationResult> {
   if (params.provider === "google") return generateWithGoogle(params, apiKey);
   if (params.provider === "replicate") return generateWithReplicate(params, apiKey);
+  if (params.provider === "debug") return generateWithDebug(params);
   throw new Error(`Provider ${params.provider} not implemented`);
 }
 
 export async function generateWithGoogle(
   params: GenerationParams,
-  apiKey: string
+  apiKey?: string
 ): Promise<GenerationResult> {
+  if (!apiKey) throw new Error("No API key for google");
   const ai = new GoogleGenAI({ apiKey });
 
   const parts: Array<{ text?: string; inlineData?: { mimeType: string; data: string } }> = [];
@@ -111,8 +114,9 @@ export async function generateWithGoogle(
 
 export async function generateWithReplicate(
   params: GenerationParams,
-  apiKey: string
+  apiKey?: string
 ): Promise<GenerationResult> {
+  if (!apiKey) throw new Error("No API key for replicate");
   const baseUrl = new URL("/proxy/replicate/v1", window.location.origin).toString();
   const replicate = new Replicate({ auth: apiKey, baseUrl });
 
@@ -170,4 +174,87 @@ export async function generateWithReplicate(
   const dimensions = await getImageDimensions(blob);
 
   return { blob, width: dimensions.width, height: dimensions.height, metadata: {} };
+}
+
+const DEBUG_RESOLUTION_WIDTH: Record<Resolution, number> = {
+  "1K": 1024,
+  "2K": 2048,
+  "4K": 4096,
+};
+
+async function canvasToBlob(canvas: HTMLCanvasElement): Promise<Blob> {
+  return new Promise((resolve, reject) => {
+    canvas.toBlob((blob) => {
+      if (blob) {
+        resolve(blob);
+      } else {
+        reject(new Error("Failed to create debug image"));
+      }
+    }, "image/png");
+  });
+}
+
+function getDebugDimensions(
+  aspectRatio: AspectRatio | null,
+  resolution: Resolution | null
+): { width: number; height: number } {
+  const { width: ratioWidth, height: ratioHeight } = parseAspectRatio(aspectRatio ?? "1:1");
+  const baseWidth = resolution ? DEBUG_RESOLUTION_WIDTH[resolution] : 1024;
+  const computedHeight = Math.round((baseWidth * ratioHeight) / ratioWidth);
+
+  return {
+    width: Math.max(1, baseWidth),
+    height: Math.max(1, computedHeight),
+  };
+}
+
+export async function generateWithDebug(params: GenerationParams): Promise<GenerationResult> {
+  const { width, height } = getDebugDimensions(params.aspectRatio, params.resolution);
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+
+  const ctx = canvas.getContext("2d");
+  if (!ctx) {
+    throw new Error("Unable to create debug canvas");
+  }
+
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, 0, width, height);
+
+  ctx.strokeStyle = "#d4d4d8";
+  ctx.lineWidth = Math.max(4, Math.round(Math.min(width, height) * 0.01));
+  ctx.strokeRect(0, 0, width, height);
+
+  const headlineSize = Math.max(24, Math.round(Math.min(width, height) * 0.06));
+  const detailSize = Math.max(16, Math.round(headlineSize * 0.45));
+  ctx.fillStyle = "#18181b";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+
+  ctx.font = `600 ${headlineSize}px ui-sans-serif, system-ui, sans-serif`;
+  ctx.fillText("DEBUG", width / 2, height / 2 - headlineSize * 0.7);
+
+  ctx.font = `${detailSize}px ui-monospace, monospace`;
+  ctx.fillText(params.modelId, width / 2, height / 2 + detailSize * 0.25);
+
+  const promptPreview = params.prompt.trim().slice(0, 80) || "No prompt";
+  ctx.fillStyle = "#52525b";
+  ctx.fillText(promptPreview, width / 2, height / 2 + detailSize * 1.8);
+
+  await new Promise((resolve) => window.setTimeout(resolve, 350));
+
+  const blob = await canvasToBlob(canvas);
+  const dimensions = await getImageDimensions(blob);
+
+  return {
+    blob,
+    width: dimensions.width,
+    height: dimensions.height,
+    metadata: {
+      debug: true,
+      generatedAt: new Date().toISOString(),
+      referenceImageCount: params.referenceImages.length,
+    },
+  };
 }

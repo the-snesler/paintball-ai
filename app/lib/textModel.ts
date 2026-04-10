@@ -1,7 +1,7 @@
 import { GoogleGenAI, ThinkingLevel } from "@google/genai";
 import Replicate from "replicate";
 import { useSettingsStore } from "~/stores/settingsStore";
-import type { Provider } from "~/types";
+import type { ApiKeyProvider } from "~/types";
 import { blobToBase64 } from "./util";
 import { logger } from "./logging";
 import { retryWithBackoff, toRateLimitError } from "./retry";
@@ -10,7 +10,7 @@ const DEFAULT_GOOGLE_MODEL = "gemini-3-flash-preview";
 const DEFAULT_REPLICATE_MODEL = "google/gemini-3-flash";
 
 interface ResolvedProvider {
-  provider: Provider;
+  provider: ApiKeyProvider;
   apiKey: string;
   modelId: string;
 }
@@ -28,7 +28,7 @@ function resolveProvider(): ResolvedProvider {
   }
 
   // Fallback to the other provider
-  const fallback: Provider = textModel.provider === "google" ? "replicate" : "google";
+  const fallback: ApiKeyProvider = textModel.provider === "google" ? "replicate" : "google";
   if (apiKeys[fallback]) {
     return {
       provider: fallback,
@@ -50,7 +50,7 @@ export function isTextModelAvailable(): boolean {
  * or null if no API keys are available. Useful for call sites that want to
  * branch on capability (e.g. only use response prefill on the Google path).
  */
-export function resolveTextModelProvider(): Provider | null {
+export function resolveTextModelProvider(): ApiKeyProvider | null {
   try {
     return resolveProvider().provider;
   } catch {

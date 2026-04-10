@@ -3,6 +3,7 @@ import { getReferenceImagesByIds, saveImage } from "~/lib/db";
 import { executeGeneration, type GenerationResult } from "~/lib/generation";
 import { createThumbnailBlob } from "~/lib/imageProcessing";
 import { getModel } from "~/lib/models";
+import { providerRequiresApiKey } from "~/lib/providers";
 import { retryWithBackoff } from "~/lib/retry";
 import { useGalleryStore } from "~/stores/galleryStore";
 import { useSettingsStore } from "~/stores/settingsStore";
@@ -40,8 +41,10 @@ export function useGenerationTask() {
 
   const executeTask = useCallback(
     async (task: GenerationTask): Promise<GenerationResult> => {
-      const apiKey = apiKeys[task.provider];
-      if (!apiKey) throw new Error(`No API key for ${task.provider}`);
+      const apiKey = providerRequiresApiKey(task.provider) ? apiKeys[task.provider] : undefined;
+      if (providerRequiresApiKey(task.provider) && !apiKey) {
+        throw new Error(`No API key for ${task.provider}`);
+      }
 
       return executeGeneration(
         {

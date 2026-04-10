@@ -19,10 +19,10 @@ import { useSettingsStore } from "~/stores/settingsStore";
 import { useGalleryStore } from "~/stores/galleryStore";
 import { getImageCount } from "~/lib/db";
 import { exportAllImages, importFromZip } from "~/lib/exportImport";
-import type { Provider } from "~/types";
+import type { ApiKeyProvider } from "~/types";
 import { Switch } from "~/components/ui/Switch";
 
-const providers: { id: Provider; name: string; description: string; link: string }[] = [
+const providers: { id: ApiKeyProvider; name: string; description: string; link: string }[] = [
   {
     id: "google",
     name: "Google AI",
@@ -213,7 +213,7 @@ export function SettingsModal() {
                 onChange={(e) =>
                   setTextModel({
                     ...textModel,
-                    provider: e.target.value as Provider,
+                    provider: e.target.value as ApiKeyProvider,
                     modelId:
                       e.target.value === "google"
                         ? "gemini-3-flash-preview"
@@ -271,8 +271,8 @@ export function SettingsModal() {
             </label>
             <p className="text-xs text-zinc-500">
               After each edit, an AI summary of your editing intent is generated and prepended to
-              subsequent prompts. This helps maintain style and character consistency across multiple
-              edits.
+              subsequent prompts. This helps maintain style and character consistency across
+              multiple edits.
             </p>
           </div>
         </details>
@@ -406,7 +406,7 @@ function ApiKeyInput({
   onChange,
   link,
 }: {
-  provider: Provider;
+  provider: ApiKeyProvider;
   name: string;
   description: string;
   value: string;

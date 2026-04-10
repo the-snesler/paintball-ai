@@ -1,7 +1,9 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { BUILT_IN_MODELS, isBuiltInModel, mergeWithBuiltInModels } from "~/lib/builtInModels";
+import { hasProviderAccess } from "~/lib/providers";
 import type {
+  ApiKeyProvider,
   ApiKeys,
   ModelCapabilities,
   Provider,
@@ -20,8 +22,8 @@ interface SettingsState {
   editorContextInjectionEnabled: boolean;
 
   // API key actions
-  setApiKey: (provider: Provider, key: string | null) => void;
-  clearApiKey: (provider: Provider) => void;
+  setApiKey: (provider: ApiKeyProvider, key: string | null) => void;
+  clearApiKey: (provider: ApiKeyProvider) => void;
 
   // Model actions
   setModelEnabled: (id: string, enabled: boolean) => void;
@@ -138,7 +140,8 @@ export const useSettingsStore = create<SettingsState>()(
 
       dismissNotificationPrompt: () => set({ notificationPromptDismissed: true }),
 
-      setEditorContextInjectionEnabled: (enabled) => set({ editorContextInjectionEnabled: enabled }),
+      setEditorContextInjectionEnabled: (enabled) =>
+        set({ editorContextInjectionEnabled: enabled }),
 
       incrementRequestedOutputCount: (count = 1) =>
         set((state) => ({
@@ -259,5 +262,5 @@ export const useSettingsStore = create<SettingsState>()(
 
 // Helper to get enabled models that have API keys
 export function getEnabledModels(state: SettingsState): StoredModel[] {
-  return state.models.filter((m) => m.enabled && state.apiKeys[m.provider]);
+  return state.models.filter((m) => m.enabled && hasProviderAccess(state.apiKeys, m.provider));
 }

@@ -5,6 +5,7 @@ import { useSettingsStore } from "~/stores/settingsStore";
 import { useImageGeneration } from "~/hooks/useImageGeneration";
 import { buildGenerationSignature } from "~/lib/generationSignature";
 import { getModel } from "~/lib/models";
+import { hasProviderAccess } from "~/lib/providers";
 import { hasVariationSections } from "~/lib/promptVariations";
 import NumberFlow from "@number-flow/react";
 
@@ -29,7 +30,7 @@ export function GenerateButton() {
   // Check if we have API keys for selected models
   const missingKeys = activeModels.some(([modelId]) => {
     const model = getModel(models, modelId);
-    return model && !apiKeys[model.provider];
+    return model && !hasProviderAccess(apiKeys, model.provider);
   });
 
   const currentSignature = buildGenerationSignature({

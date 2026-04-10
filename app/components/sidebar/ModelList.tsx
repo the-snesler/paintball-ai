@@ -2,6 +2,7 @@ import { Layers } from "lucide-react";
 import NumberFlow from "@number-flow/react";
 import { ModelItem } from "./ModelItem";
 import { CollapsibleSection } from "./CollapsibleSection";
+import { hasProviderAccess } from "~/lib/providers";
 import { useGenerationStore } from "~/stores/generationStore";
 import { useSettingsStore } from "~/stores/settingsStore";
 
@@ -10,8 +11,8 @@ export function ModelList() {
   const models = useSettingsStore((s) => s.models);
   const apiKeys = useSettingsStore((s) => s.apiKeys);
 
-  // Filter to only show enabled models that have API keys
-  const visibleModels = models.filter((m) => m.enabled && apiKeys[m.provider]);
+  // Filter to only show enabled models the current environment can use.
+  const visibleModels = models.filter((m) => m.enabled && hasProviderAccess(apiKeys, m.provider));
 
   const activeCount = Object.values(modelSelections).filter((c) => c > 0).length;
 

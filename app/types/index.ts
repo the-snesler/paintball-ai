@@ -1,5 +1,6 @@
 // Model types
-export type Provider = "google" | "replicate";
+export type ApiKeyProvider = "google" | "replicate";
+export type Provider = ApiKeyProvider | "debug";
 
 export type AspectRatio = string;
 
@@ -18,7 +19,7 @@ export interface ModelDefinition {
   id: string;
   name: string;
   provider: Provider;
-  apiKeyRequired: Provider;
+  apiKeyRequired: ApiKeyProvider;
   capabilities: ModelCapabilities;
   defaultAspectRatio: AspectRatio;
   maxImagesPerRequest: number;
@@ -153,7 +154,7 @@ export interface AttachSelectedItemsResult {
 
 // Text model types
 export interface TextModelConfig {
-  provider: Provider;
+  provider: ApiKeyProvider;
   modelId: string;
 }
 

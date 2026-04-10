@@ -11,6 +11,7 @@ import SVG from "react-inlinesvg";
 import drop from "~/drop.svg";
 import AddCustomModelButton from "../settings/AddCustomModelButton";
 import SortableModelItem from "../settings/SortableModelItem";
+import { hasProviderAccess } from "~/lib/providers";
 import { useSettingsStore } from "~/stores/settingsStore";
 import { useCallback } from "react";
 import {
@@ -106,7 +107,7 @@ function SettingsSidebarContent() {
               <SortableModelItem
                 key={model.id}
                 model={model}
-                hasApiKey={!!apiKeys[model.provider]}
+                hasApiKey={hasProviderAccess(apiKeys, model.provider)}
               />
             ))}
           </div>
