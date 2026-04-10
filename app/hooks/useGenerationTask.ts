@@ -77,7 +77,7 @@ export function useGenerationTask() {
   );
 
   const completeTask = useCallback(
-    async (task: GenerationTask, result: GenerationResult) => {
+    async (task: GenerationTask, result: GenerationResult, generationTimeMs: number) => {
       const thumbnailBlob = await createThumbnailBlob(result.blob, 400);
       const createdAt = Date.now();
 
@@ -95,6 +95,7 @@ export function useGenerationTask() {
         width: result.width,
         height: result.height,
         createdAt,
+        generationTimeMs,
         referenceImageIds: task.referenceImages.map((referenceImage) => referenceImage.id),
         metadata: result.metadata,
       });
@@ -108,6 +109,7 @@ export function useGenerationTask() {
         width: result.width,
         height: result.height,
         createdAt,
+        generationTimeMs,
         metadata: result.metadata,
       });
 
@@ -122,8 +124,9 @@ export function useGenerationTask() {
       updateItem(task.id, { status: "generating" });
 
       try {
+        const startTime = Date.now();
         const result = useRetry ? await executeWithRetry(task) : await executeTask(task);
-        return await completeTask(task, result);
+        return await completeTask(task, result, Date.now() - startTime);
       } catch (error) {
         const message = error instanceof Error ? error.message : "Generation failed";
         updateItem(task.id, {

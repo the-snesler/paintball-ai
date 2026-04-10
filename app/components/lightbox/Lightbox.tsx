@@ -123,6 +123,17 @@ export function Lightbox() {
   const imageSrc = galleryImage?.originalUrl ?? referenceImage?.url ?? "";
   const imageAlt = galleryImage?.prompt ?? referenceImage?.name ?? "Image preview";
 
+  const topMetadataRow = [
+    galleryImage?.aspectRatio,
+    galleryImage?.resolution,
+    `${galleryImage?.width}x${galleryImage?.height}`,
+    galleryImage?.generationTimeMs != null
+      ? `${(galleryImage.generationTimeMs / 1000).toFixed(1)}s`
+      : undefined,
+  ]
+    .filter(Boolean)
+    .join(" • ");
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Backdrop */}
@@ -197,11 +208,9 @@ export function Lightbox() {
             {/* Body */}
             <div className="flex-1 space-y-4 overflow-y-auto p-4">
               {/* Metadata */}
-              {(galleryImage.aspectRatio || galleryImage.resolution) && (
+              {topMetadataRow && (
                 <div className="flex flex-wrap items-center gap-2 text-xs text-zinc-500">
-                  {galleryImage.aspectRatio && <span>{galleryImage.aspectRatio}</span>}
-                  {galleryImage.aspectRatio && galleryImage.resolution && <span>·</span>}
-                  {galleryImage.resolution && <span>{galleryImage.resolution}</span>}
+                  {topMetadataRow}
                 </div>
               )}
 

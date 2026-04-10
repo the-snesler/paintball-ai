@@ -101,6 +101,7 @@ export interface CompletedGalleryItemFields {
   width: number;
   height: number;
   createdAt: number;
+  generationTimeMs?: number;
   metadata: Record<string, unknown>; // Will include thinking traces for gemini 3 models
 }
 
@@ -131,6 +132,7 @@ export interface StoredImageRecord {
   width: number;
   height: number;
   createdAt: number;
+  generationTimeMs?: number;
   referenceImageIds: string[];
   metadata: Record<string, unknown>;
 }
