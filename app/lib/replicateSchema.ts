@@ -117,7 +117,8 @@ async function fetchModelRaw(
   const properties = schema?.properties || {};
 
   const { capabilities, detectedAspectRatioKey } = parseCapabilities(properties);
-  const name = data.name || modelId.split("/").pop() || modelId;
+  const rawName = data.name || modelId.split("/").pop() || modelId;
+  const name = rawName.replace(/[-_]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()); // replace dashes/underscores with spaces and capitalize words
 
   return { name, capabilities, rawProperties: properties, detectedAspectRatioKey };
 }
