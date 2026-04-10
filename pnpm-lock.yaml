@@ -26,6 +26,9 @@ importers:
       '@google/genai':
         specifier: ^1.35.0
         version: 1.35.0
+      '@masonry-grid/react':
+        specifier: ^1.1.1
+        version: 1.1.1(react@19.2.3)
       '@number-flow/react':
         specifier: ^0.5.10
         version: 0.5.10(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
@@ -835,6 +838,16 @@ packages:
 
   '@jridgewell/trace-mapping@0.3.9':
     resolution: {integrity: sha512-3Belt6tdc8bPgAtbcmdtNJlirVoTmEb5e2gC94PnkwEW9jI6CAHUeoG85tjWP5WquqfavoMtMwiG4P926ZKKuQ==}
+
+  '@masonry-grid/react@1.1.1':
+    resolution: {integrity: sha512-IKHd8fLgL7kjPIz4lL6cIgPXv31goVvrQK03nK0zBqBLDelPDPRaYtpqqTzpb4EGNXepoj5Z157/F2Vijeqfsw==}
+    engines: {node: '>=16'}
+    peerDependencies:
+      react: ^17.0.0 || ^18.0.0 || ^19.0.0
+
+  '@masonry-grid/vanilla@1.1.0':
+    resolution: {integrity: sha512-bHpdnA3xBzBey0PpHvrBYs9IZ8vn5VevP75+Vdg5Dqlsez/hufJZ7oRh5rrDK1aAaggoN+FM5fXPdaXOuEvf4Q==}
+    engines: {node: '>=16'}
 
   '@mjackson/node-fetch-server@0.2.0':
     resolution: {integrity: sha512-EMlH1e30yzmTpGLQjlFmaDAjyOeZhng1/XCd7DExR8PNAnG/G1tyruZxEoUe11ClnwGhGrtsdnyyUx1frSzjng==}
@@ -2985,6 +2998,13 @@ snapshots:
     dependencies:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.5.5
+
+  '@masonry-grid/react@1.1.1(react@19.2.3)':
+    dependencies:
+      '@masonry-grid/vanilla': 1.1.0
+      react: 19.2.3
+
+  '@masonry-grid/vanilla@1.1.0': {}
 
   '@mjackson/node-fetch-server@0.2.0': {}
 

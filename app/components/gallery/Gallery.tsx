@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useGalleryStore } from "~/stores/galleryStore";
 import { GalleryHeader } from "./GalleryHeader";
-import { MasonryGrid } from "./MasonryGrid";
+import { MasonryGrid, MasonryFrame } from "./MasonryGrid";
 import { GalleryImageCard } from "./GalleryImageCard";
 import { TimelineDivider } from "./TimelineDivider";
 import { ImageOff, Download, Trash2, X, ImagePlus } from "lucide-react";
@@ -162,12 +162,28 @@ function EmptyState() {
   );
 }
 
+function getFrameDimensions(item: GalleryItem): { width: number; height: number } {
+  if (item.status === "completed") {
+    return { width: item.width, height: item.height };
+  }
+  if (item.aspectRatio) {
+    const [w, h] = item.aspectRatio.split(":").map(Number);
+    if (w && h) return { width: w, height: h };
+  }
+  return { width: 1, height: 1 };
+}
+
 function GridView({ items }: { items: ReturnType<typeof useGalleryStore.getState>["items"] }) {
   return (
     <MasonryGrid>
-      {items.map((item) => (
-        <GalleryImageCard key={item.id} item={item} />
-      ))}
+      {items.map((item) => {
+        const { width, height } = getFrameDimensions(item);
+        return (
+          <MasonryFrame key={item.id} width={width} height={height}>
+            <GalleryImageCard item={item} />
+          </MasonryFrame>
+        );
+      })}
     </MasonryGrid>
   );
 }
@@ -185,9 +201,14 @@ function TimelineView({ itemsByPrompt }: { itemsByPrompt: Map<string, GalleryIte
             prompt={stripVariationSections(promptLabel)}
           />
           <MasonryGrid>
-            {promptItems.map((item) => (
-              <GalleryImageCard key={item.id} item={item} />
-            ))}
+            {promptItems.map((item) => {
+              const { width, height } = getFrameDimensions(item);
+              return (
+                <MasonryFrame key={item.id} width={width} height={height}>
+                  <GalleryImageCard item={item} />
+                </MasonryFrame>
+              );
+            })}
           </MasonryGrid>
         </div>
       ))}

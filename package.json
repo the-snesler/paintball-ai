@@ -17,6 +17,7 @@
     "@dnd-kit/utilities": "^3.2.2",
     "@floating-ui/react": "^0.27.19",
     "@google/genai": "^1.35.0",
+    "@masonry-grid/react": "^1.1.1",
     "@number-flow/react": "^0.5.10",
     "@react-router/node": "7.12.0",
     "@react-router/serve": "7.12.0",
