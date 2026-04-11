@@ -15,15 +15,7 @@ function getAspectRatioValue(aspectRatio: AspectRatio | null): number {
     return 1;
   }
 
-  const ratios: Record<AspectRatio, number> = {
-    "1:1": 1,
-    "16:9": 16 / 9,
-    "9:16": 9 / 16,
-    "4:3": 4 / 3,
-    "3:4": 3 / 4,
-    "21:9": 21 / 9,
-  };
-  return ratios[aspectRatio] ?? 1;
+  return aspectRatio.split(":").reduce((acc, val) => acc / parseInt(val, 10), 1);
 }
 
 export function LoadingCard({ item }: LoadingCardProps) {
