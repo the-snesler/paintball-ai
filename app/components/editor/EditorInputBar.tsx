@@ -531,7 +531,7 @@ export function EditorInputBar({ onSourceFile }: EditorInputBarProps) {
                     ? "Describe your edit… (Ctrl+Enter to send)"
                     : "Select an image above, then describe your edit…"
               }
-              disabled={!hasSource || isGenerating}
+              disabled={isGenerating}
               rows={1}
               className="field-sizing-content max-h-48 min-h-11 w-full resize-none rounded-t-xl bg-transparent px-4 pt-3 pb-2 text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none disabled:cursor-not-allowed"
             />

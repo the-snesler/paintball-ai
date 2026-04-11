@@ -1,14 +1,16 @@
 import { useGalleryStore } from "~/stores/galleryStore";
 import { useEditorStore } from "~/stores/editorStore";
-import { getAllSessions } from "~/lib/db";
+import { getAllSessions, getReferenceImagesByIds } from "~/lib/db";
 import type { StoredEditorSession } from "~/types";
 import { Clock, ChevronDown, Plus } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { formatRelativeDate } from "~/lib/util";
 import { clsx } from "clsx";
 
 export function RecentSessions() {
   const [sessions, setSessions] = useState<StoredEditorSession[]>([]);
+  const [referenceThumbUrls, setReferenceThumbUrls] = useState<Record<string, string>>({});
+  const referenceThumbUrlsRef = useRef<Record<string, string>>({});
   const [expanded, setExpanded] = useState(false);
   const currentSessionId = useEditorStore((s) => s.currentSessionId);
   const restoreSession = useEditorStore((s) => s.restoreSession);
@@ -21,6 +23,63 @@ export function RecentSessions() {
       setSessions(all.sort((a, b) => b.savedAt - a.savedAt));
     });
   }, [currentSessionId]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const externalRefSessions = sessions.filter(
+      (session) => !session.sourceGalleryItemId && session.sourceReferenceId
+    );
+    const referenceIds = externalRefSessions
+      .map((session) => session.sourceReferenceId)
+      .filter((id): id is string => Boolean(id));
+
+    if (referenceIds.length === 0) {
+      const previous = referenceThumbUrlsRef.current;
+      Object.values(previous).forEach((url) => URL.revokeObjectURL(url));
+      referenceThumbUrlsRef.current = {};
+      setReferenceThumbUrls({});
+      return;
+    }
+
+    void getReferenceImagesByIds(referenceIds).then((references) => {
+      if (cancelled) {
+        references.forEach((reference) => URL.revokeObjectURL(reference.url));
+        return;
+      }
+
+      const urlByReferenceId = new Map(
+        references.map((reference) => [reference.id, reference.url])
+      );
+      const nextThumbUrls: Record<string, string> = {};
+
+      for (const session of externalRefSessions) {
+        const sourceReferenceId = session.sourceReferenceId;
+        if (!sourceReferenceId) continue;
+        const url = urlByReferenceId.get(sourceReferenceId);
+        if (url) nextThumbUrls[session.id] = url;
+      }
+
+      const previous = referenceThumbUrlsRef.current;
+      for (const [sessionId, url] of Object.entries(previous)) {
+        if (nextThumbUrls[sessionId] !== url) URL.revokeObjectURL(url);
+      }
+
+      referenceThumbUrlsRef.current = nextThumbUrls;
+      setReferenceThumbUrls(nextThumbUrls);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [sessions]);
+
+  useEffect(() => {
+    return () => {
+      Object.values(referenceThumbUrlsRef.current).forEach((url) => URL.revokeObjectURL(url));
+      referenceThumbUrlsRef.current = {};
+    };
+  }, []);
 
   const handleNewSession = () => {
     clearForSessionRestore();
@@ -63,14 +122,26 @@ export function RecentSessions() {
           className={clsx(
             "flex w-full items-center gap-2.5 rounded-lg p-2 text-left transition-colors",
             {
-              "cursor-default border border-purple-500/40 bg-purple-500/10":
-                isNewSession,
+              "cursor-default border border-purple-500/40 bg-purple-500/10": isNewSession,
               "border border-transparent hover:bg-zinc-800": !isNewSession,
             }
           )}
         >
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-md bg-zinc-800">
-            <Plus className="h-6 w-6 text-zinc-500" />
+          <div
+            className={clsx(
+              "flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-md",
+              {
+                "bg-zinc-800": !isNewSession,
+                "bg-purple-500/10": isNewSession,
+              }
+            )}
+          >
+            <Plus
+              className={clsx("h-6 w-6", {
+                "text-zinc-500": !isNewSession,
+                "text-purple-400": isNewSession,
+              })}
+            />
           </div>
 
           {/* Text */}
@@ -87,7 +158,10 @@ export function RecentSessions() {
                 (it) => it.id === session.sourceGalleryItemId && it.status === "completed"
               )
             : null;
-          const thumbUrl = galleryItem?.status === "completed" ? galleryItem.thumbnailUrl : null;
+          const thumbUrl =
+            galleryItem?.status === "completed"
+              ? galleryItem.thumbnailUrl
+              : (referenceThumbUrls[session.id] ?? null);
 
           return (
             <button

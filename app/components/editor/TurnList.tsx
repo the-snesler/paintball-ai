@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Check, Trash2, X } from "lucide-react";
+import { Check, X } from "lucide-react";
 import { useEditorStore } from "~/stores/editorStore";
 import { Turn } from "./Turn";
 import { useNavigate } from "react-router";
@@ -79,13 +79,6 @@ function SourceTurn({
   onSelect: () => void;
 }) {
   const [isLoaded, setIsLoaded] = useState(false);
-  const navigate = useNavigate();
-  const reset = useEditorStore((s) => s.reset);
-
-  const handleReset = () => {
-    navigate("/editor");
-    reset();
-  };
 
   // Get source item from gallery if available
   const sourceGalleryItemId = useEditorStore((s) => s.sourceGalleryItemId);
@@ -98,13 +91,6 @@ function SourceTurn({
     <div className="animate-fade-in relative flex max-w-3xl flex-col items-center">
       <div className="mb-3 flex items-center gap-2">
         <span className="text-xs font-medium tracking-wider text-zinc-600 uppercase">Source</span>
-        <button
-          onClick={handleReset}
-          className="rounded p-1 text-zinc-700 transition-colors hover:bg-red-500/10 hover:text-red-400"
-          title="Clear editor"
-        >
-          <Trash2 className="h-3 w-3" />
-        </button>
       </div>
 
       <button
