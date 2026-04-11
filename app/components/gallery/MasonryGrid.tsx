@@ -1,14 +1,22 @@
-import { BalancedMasonryGrid, Frame } from "@masonry-grid/react";
+import { Frame, useMasonryGrid } from "@masonry-grid/react";
+import { BalancedMasonryGrid } from "@masonry-grid/vanilla";
 
 interface MasonryGridProps {
   children: React.ReactNode;
 }
 
 export function MasonryGrid({ children }: MasonryGridProps) {
+  const containerRef = useMasonryGrid<HTMLDivElement>({
+    type: BalancedMasonryGrid,
+  });
+
   return (
-    <BalancedMasonryGrid frameWidth={200} gap={16} className="mt-1">
+    <div
+      ref={containerRef}
+      className="mt-1 grid grid-cols-[repeat(auto-fill,minmax(175px,1fr))] gap-2 overflow-hidden md:grid-cols-[repeat(auto-fill,minmax(200px,1fr))] md:gap-4"
+    >
       {children}
-    </BalancedMasonryGrid>
+    </div>
   );
 }
 

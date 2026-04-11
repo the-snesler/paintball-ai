@@ -29,6 +29,9 @@ importers:
       '@masonry-grid/react':
         specifier: ^1.1.1
         version: 1.1.1(react@19.2.3)
+      '@masonry-grid/vanilla':
+        specifier: ^1.1.0
+        version: 1.1.0
       '@number-flow/react':
         specifier: ^0.5.10
         version: 0.5.10(react-dom@19.2.3(react@19.2.3))(react@19.2.3)

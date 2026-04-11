@@ -34,7 +34,7 @@ export function Gallery() {
     <main className="relative flex h-full flex-1 flex-col overflow-hidden bg-zinc-950">
       <GalleryHeader count={totalCount} />
 
-      <div className={`flex-1 overflow-y-auto p-6 ${selectedCount > 0 ? "pb-28" : ""}`}>
+      <div className={`flex-1 overflow-y-auto p-2 md:p-6 ${selectedCount > 0 ? "pb-28" : ""}`}>
         {totalCount === 0 ? (
           <EmptyState />
         ) : viewMode === "grid" ? (
