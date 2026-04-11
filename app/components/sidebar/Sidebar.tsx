@@ -46,7 +46,7 @@ function SidebarContent() {
 function GallerySidebarContent() {
   return (
     <>
-      <div className="flex-1 space-y-6 overflow-y-auto p-4 [scrollbar-gutter:stable]">
+      <div className="flex-1 space-y-6 overflow-x-hidden overflow-y-auto p-4 [scrollbar-gutter:stable]">
         <PromptInput />
         <PromptVariationsToggle />
         <AvoidPastVariationsToggle />

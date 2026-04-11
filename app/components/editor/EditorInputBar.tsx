@@ -1,5 +1,21 @@
 import { ArrowUp, ImagePlus, Loader2, ScanSearch, Sparkles, Wand2, X } from "lucide-react";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  KeyboardSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  rectSortingStrategy,
+  sortableKeyboardCoordinates,
+  useSortable,
+} from "@dnd-kit/sortable";
+import { CSS as DndCSS } from "@dnd-kit/utilities";
 import { useEditorStore } from "~/stores/editorStore";
 import { useEditorGeneration } from "~/hooks/useEditorGeneration";
 import { useGalleryStore } from "~/stores/galleryStore";
@@ -12,6 +28,53 @@ import { IMPROVE_PROMPT_SYSTEM, REVERSE_PROMPT_SYSTEM } from "~/lib/prompts";
 import { saveReferenceImage } from "~/lib/db";
 import { generateContextBrief, getSourceTurnBrief } from "~/lib/contextBrief";
 import { Tooltip } from "../ui/Tooltip";
+
+function SortableReferenceImage({
+  img,
+  onRemove,
+  onOpen,
+}: {
+  img: { id: string; url: string; name: string };
+  onRemove: (id: string) => void;
+  onOpen: (img: { id: string; url: string; name: string }) => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: img.id,
+  });
+
+  const style = {
+    transform: DndCSS.Transform.toString(transform),
+    transition,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`group relative aspect-square ${isDragging ? "z-50 opacity-75" : ""}`}
+    >
+      <button
+        type="button"
+        onClick={() => onOpen(img)}
+        className="block h-full w-full cursor-zoom-in"
+        {...attributes}
+        {...listeners}
+      >
+        <img src={img.url} alt={img.name} className="h-full w-full rounded object-cover" />
+      </button>
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          onRemove(img.id);
+        }}
+        className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full border border-zinc-700 bg-zinc-900 opacity-0 transition-opacity group-hover:opacity-100"
+      >
+        <X className="h-3 w-3 text-zinc-400" />
+      </button>
+    </div>
+  );
+}
 
 interface EditorInputBarProps {
   /** Called when user pastes/drops an image and no source is set yet */
@@ -36,7 +99,23 @@ export function EditorInputBar({ onSourceFile }: EditorInputBarProps) {
   const referenceImages = useEditorStore((s) => s.referenceImages);
   const addReferenceImage = useEditorStore((s) => s.addReferenceImage);
   const removeReferenceImage = useEditorStore((s) => s.removeReferenceImage);
+  const reorderReferenceImages = useEditorStore((s) => s.reorderReferenceImages);
   const openLightbox = useLightboxStore((s) => s.openLightbox);
+
+  const refDndSensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+
+  const handleRefDragEnd = useCallback(
+    (event: DragEndEvent) => {
+      const { active, over } = event;
+      if (over && active.id !== over.id) {
+        reorderReferenceImages(active.id as string, over.id as string);
+      }
+    },
+    [reorderReferenceImages]
+  );
 
   const modelSelections = useGenerationStore((s) => s.currentModelSelections);
   const aspectRatio = useGenerationStore((s) => s.currentAspectRatio);
@@ -459,44 +538,38 @@ export function EditorInputBar({ onSourceFile }: EditorInputBarProps) {
             {/* Reference images */}
             {(referenceImages.length > 0 || (isDragOver && hasSource)) && (
               <div className="px-3 py-2">
-                <div className="grid max-w-full grid-cols-[repeat(auto-fill,minmax(80px,1fr))] gap-2">
-                  {referenceImages.map((img) => (
-                    <div key={img.id} className="group relative aspect-square">
-                      <button
-                        type="button"
-                        onClick={() =>
-                          openLightbox({
-                            kind: "reference",
-                            image: { id: img.id, url: img.url, name: img.name },
-                          })
-                        }
-                        className="block h-full w-full cursor-zoom-in"
-                      >
-                        <img
-                          src={img.url}
-                          alt={img.name}
-                          className="h-full w-full rounded object-cover"
+                <DndContext
+                  sensors={refDndSensors}
+                  collisionDetection={closestCenter}
+                  onDragEnd={handleRefDragEnd}
+                >
+                  <SortableContext
+                    items={referenceImages.map((img) => img.id)}
+                    strategy={rectSortingStrategy}
+                  >
+                    <div className="grid max-w-full grid-cols-[repeat(auto-fill,minmax(80px,1fr))] gap-2">
+                      {referenceImages.map((img) => (
+                        <SortableReferenceImage
+                          key={img.id}
+                          img={img}
+                          onRemove={removeReferenceImage}
+                          onOpen={(img) =>
+                            openLightbox({
+                              kind: "reference",
+                              image: { id: img.id, url: img.url, name: img.name },
+                            })
+                          }
                         />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          removeReferenceImage(img.id);
-                        }}
-                        className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full border border-zinc-700 bg-zinc-900 opacity-0 transition-opacity group-hover:opacity-100"
-                      >
-                        <X className="h-3 w-3 text-zinc-400" />
-                      </button>
-                    </div>
-                  ))}
+                      ))}
 
-                  {isDragOver && referenceImages.length === 0 && (
-                    <div className="col-span-full rounded-lg border-2 border-dashed border-zinc-600 py-8 text-center text-xs text-zinc-400">
-                      Drop images here
+                      {isDragOver && referenceImages.length === 0 && (
+                        <div className="col-span-full rounded-lg border-2 border-dashed border-zinc-600 py-8 text-center text-xs text-zinc-400">
+                          Drop images here
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
+                  </SortableContext>
+                </DndContext>
               </div>
             )}
 

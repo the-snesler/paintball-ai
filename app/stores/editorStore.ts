@@ -42,6 +42,7 @@ interface EditorState {
   setIsGenerating: (val: boolean) => void;
   addReferenceImage: (image: ReferenceImage) => void;
   removeReferenceImage: (id: string) => void;
+  reorderReferenceImages: (fromId: string, toId: string) => void;
   setTurnContextBrief: (turnId: string, brief: string) => void;
   clearReferenceImages: () => void;
   reset: () => void;
@@ -125,6 +126,17 @@ export const useEditorStore = create<EditorState>()((set, get) => ({
       return {
         referenceImages: state.referenceImages.filter((entry) => entry.id !== id),
       };
+    }),
+
+  reorderReferenceImages: (fromId, toId) =>
+    set((state) => {
+      const images = [...state.referenceImages];
+      const fromIndex = images.findIndex((img) => img.id === fromId);
+      const toIndex = images.findIndex((img) => img.id === toId);
+      if (fromIndex === -1 || toIndex === -1) return {};
+      const [moved] = images.splice(fromIndex, 1);
+      images.splice(toIndex, 0, moved);
+      return { referenceImages: images };
     }),
 
   clearReferenceImages: () =>

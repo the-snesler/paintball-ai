@@ -1,5 +1,21 @@
 import { ImagePlus, Loader2, Sparkles, X, Wand2 } from "lucide-react";
 import { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  KeyboardSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  rectSortingStrategy,
+  sortableKeyboardCoordinates,
+  useSortable,
+} from "@dnd-kit/sortable";
+import { CSS as DndCSS } from "@dnd-kit/utilities";
 import { anyModelSupportsReferenceImages } from "~/lib/models";
 import { IMPROVE_PROMPT_SYSTEM } from "~/lib/prompts";
 import { callTextModel, isTextModelAvailable } from "~/lib/textModel";
@@ -8,13 +24,79 @@ import { useGenerationStore } from "~/stores/generationStore";
 import { useLightboxStore } from "~/stores/lightboxStore";
 import { useSettingsStore } from "~/stores/settingsStore";
 
+function SortableReferenceImage({
+  img,
+  onRemove,
+  onOpen,
+  referenceEnabled,
+}: {
+  img: { id: string; url: string; name: string };
+  onRemove: (id: string) => void;
+  onOpen: (img: { id: string; url: string; name: string }) => void;
+  referenceEnabled: boolean;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: img.id,
+  });
+
+  const style = {
+    transform: DndCSS.Transform.toString(transform),
+    transition,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`group relative aspect-square ${isDragging ? "z-50 opacity-75" : ""}`}
+    >
+      <button
+        type="button"
+        onClick={() => onOpen(img)}
+        className="block h-full w-full cursor-zoom-in"
+        {...attributes}
+        {...listeners}
+      >
+        <img src={img.url} alt={img.name} className="h-full w-full rounded object-cover" />
+      </button>
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          onRemove(img.id);
+        }}
+        disabled={!referenceEnabled}
+        className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full border border-zinc-700 bg-zinc-900 opacity-0 transition-opacity group-hover:opacity-100"
+      >
+        <X className="h-3 w-3 text-zinc-400" />
+      </button>
+    </div>
+  );
+}
+
 export function PromptInput() {
   const prompt = useGenerationStore((s) => s.currentPrompt);
   const setPrompt = useGenerationStore((s) => s.setPrompt);
   const referenceImages = useGenerationStore((s) => s.currentReferenceImages);
   const addReferenceImage = useGenerationStore((s) => s.addReferenceImage);
   const removeReferenceImage = useGenerationStore((s) => s.removeReferenceImage);
+  const reorderReferenceImages = useGenerationStore((s) => s.reorderReferenceImages);
   const openLightbox = useLightboxStore((s) => s.openLightbox);
+
+  const refDndSensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+
+  const handleRefDragEnd = useCallback(
+    (event: DragEndEvent) => {
+      const { active, over } = event;
+      if (over && active.id !== over.id) {
+        reorderReferenceImages(active.id as string, over.id as string);
+      }
+    },
+    [reorderReferenceImages]
+  );
   const modelSelections = useGenerationStore((s) => s.currentModelSelections);
   const galleryItems = useGalleryStore((s) => s.items);
   const models = useSettingsStore((s) => s.models);
@@ -225,45 +307,40 @@ export function PromptInput() {
 
         {isExpanded && (
           <div className="px-3 py-2">
-            <div className="grid max-w-full grid-cols-3 gap-2">
-              {referenceImages.map((img) => (
-                <div key={img.id} className="group relative aspect-square">
-                  <button
-                    type="button"
-                    onClick={() =>
-                      openLightbox({
-                        kind: "reference",
-                        image: { id: img.id, url: img.url, name: img.name },
-                      })
-                    }
-                    className="block h-full w-full cursor-zoom-in"
-                  >
-                    <img
-                      src={img.url}
-                      alt={img.name}
-                      className="h-full w-full rounded object-cover"
+            <DndContext
+              sensors={refDndSensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleRefDragEnd}
+              autoScroll={false}
+            >
+              <SortableContext
+                items={referenceImages.map((img) => img.id)}
+                strategy={rectSortingStrategy}
+              >
+                <div className="grid max-w-full grid-cols-3 gap-2">
+                  {referenceImages.map((img) => (
+                    <SortableReferenceImage
+                      key={img.id}
+                      img={img}
+                      onRemove={removeReferenceImage}
+                      onOpen={(img) =>
+                        openLightbox({
+                          kind: "reference",
+                          image: { id: img.id, url: img.url, name: img.name },
+                        })
+                      }
+                      referenceEnabled={referenceEnabled}
                     />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      removeReferenceImage(img.id);
-                    }}
-                    disabled={!referenceEnabled}
-                    className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full border border-zinc-700 bg-zinc-900 opacity-0 transition-opacity group-hover:opacity-100"
-                  >
-                    <X className="h-3 w-3 text-zinc-400" />
-                  </button>
-                </div>
-              ))}
+                  ))}
 
-              {isDragOver && referenceImages.length === 0 && (
-                <div className="col-span-3 rounded-lg border-2 border-dashed border-zinc-600 py-4 text-center text-xs text-zinc-400">
-                  Drop images here
+                  {isDragOver && referenceImages.length === 0 && (
+                    <div className="col-span-3 rounded-lg border-2 border-dashed border-zinc-600 py-4 text-center text-xs text-zinc-400">
+                      Drop images here
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
+              </SortableContext>
+            </DndContext>
           </div>
         )}
 

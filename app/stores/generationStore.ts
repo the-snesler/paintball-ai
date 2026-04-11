@@ -25,6 +25,7 @@ interface GenerationState {
   addReferenceImage: (image: ReferenceImage) => void;
   addReferenceImages: (images: ReferenceImage[]) => void;
   removeReferenceImage: (id: string) => void;
+  reorderReferenceImages: (fromId: string, toId: string) => void;
   clearReferenceImages: () => void;
   startGeneration: (signature: string) => void;
   finishGeneration: (signature: string) => void;
@@ -88,6 +89,17 @@ export const useGenerationStore = create<GenerationState>()((set) => ({
       return {
         currentReferenceImages: state.currentReferenceImages.filter((entry) => entry.id !== id),
       };
+    }),
+
+  reorderReferenceImages: (fromId, toId) =>
+    set((state) => {
+      const images = [...state.currentReferenceImages];
+      const fromIndex = images.findIndex((img) => img.id === fromId);
+      const toIndex = images.findIndex((img) => img.id === toId);
+      if (fromIndex === -1 || toIndex === -1) return {};
+      const [moved] = images.splice(fromIndex, 1);
+      images.splice(toIndex, 0, moved);
+      return { currentReferenceImages: images };
     }),
 
   clearReferenceImages: () =>
