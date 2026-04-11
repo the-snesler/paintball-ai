@@ -79,6 +79,49 @@ export async function saveImage(image: StoredImageRecord): Promise<StoredImageRe
   return awaitTransaction(transaction, image);
 }
 
+export const PAGE_SIZE = 30;
+
+export async function getImagesPaginated(
+  limit: number,
+  offset: number
+): Promise<StoredImageRecord[]> {
+  const db = await initDB();
+
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(STORES.images, "readonly");
+    const store = transaction.objectStore(STORES.images);
+    const index = store.index("byCreatedAt");
+    const raw: Array<StoredImageRecord | LegacyStoredImageRecord> = [];
+    let skipped = 0;
+
+    const request = index.openCursor(null, "prev");
+    request.onerror = () => reject(request.error);
+    request.onsuccess = () => {
+      const cursor = request.result;
+      if (!cursor || raw.length >= limit) {
+        void (async () => {
+          try {
+            const normalized = await Promise.all(
+              raw.map((r) => normalizeStoredImageRecord(db, r))
+            );
+            resolve(normalized);
+          } catch (e) {
+            reject(e);
+          }
+        })();
+        return;
+      }
+      if (skipped < offset) {
+        skipped++;
+        cursor.continue();
+        return;
+      }
+      raw.push(cursor.value as StoredImageRecord | LegacyStoredImageRecord);
+      cursor.continue();
+    };
+  });
+}
+
 export async function getImages(
   limit: number = 50,
   offset: number = 0

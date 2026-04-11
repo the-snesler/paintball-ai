@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useGalleryStore } from "~/stores/galleryStore";
 import { GalleryHeader } from "./GalleryHeader";
 import { MasonryGrid, MasonryFrame } from "./MasonryGrid";
@@ -13,14 +13,30 @@ import NumberFlow from "@number-flow/react";
 import { useAttachSelectedItemsToGeneration } from "~/hooks/useAttachSelectedItemsToGeneration";
 import { useGalleryDerivedIndexes } from "~/hooks/useGalleryDerivedIndexes";
 
-export function Gallery() {
+export function Gallery({ viewMode }: { viewMode: "grid" | "timeline" }) {
   const items = useGalleryStore((s) => s.items);
-  const viewMode = useGalleryStore((s) => s.viewMode);
   const isLoading = useGalleryStore((s) => s.isLoading);
   const selectedCount = useGalleryStore((s) => s.selectedItemIds.length);
+  const hasMore = useGalleryStore((s) => s.hasMore);
+  const isLoadingMore = useGalleryStore((s) => s.isLoadingMore);
+  const loadMoreImages = useGalleryStore((s) => s.loadMoreImages);
+  const totalCount = useGalleryStore((s) => s.totalCount);
   const { itemsByPrompt } = useGalleryDerivedIndexes();
 
-  const totalCount = items.length;
+  const sentinelRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el || !hasMore) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) void loadMoreImages();
+      },
+      { rootMargin: "200px", scrollMargin: "400px" }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [hasMore, loadMoreImages]);
 
   if (isLoading) {
     return (
@@ -35,12 +51,17 @@ export function Gallery() {
       <GalleryHeader count={totalCount} />
 
       <div className={`flex-1 overflow-y-auto p-2 md:p-6 ${selectedCount > 0 ? "pb-28" : ""}`}>
-        {totalCount === 0 ? (
+        {items.length === 0 ? (
           <EmptyState />
         ) : viewMode === "grid" ? (
           <GridView items={items} />
         ) : (
           <TimelineView itemsByPrompt={itemsByPrompt} />
+        )}
+
+        <div ref={sentinelRef} className="h-1" />
+        {isLoadingMore && (
+          <div className="flex justify-center py-6 text-xs text-zinc-500">Loading more...</div>
         )}
       </div>
 
@@ -86,10 +107,7 @@ function SelectionActionPopup() {
     <div className="pointer-events-none absolute inset-x-0 bottom-5 z-20 flex justify-center px-6">
       <div className="animate-slide-up pointer-events-auto flex items-center gap-2 rounded-xl border border-zinc-700 bg-zinc-900/95 px-3 py-2 shadow-lg backdrop-blur-sm">
         <span className="mr-1 text-xs font-medium text-zinc-300">
-          <NumberFlow
-            value={selectedCount}
-            className="text-xs font-medium text-zinc-300"
-          />{" "}
+          <NumberFlow value={selectedCount} className="text-xs font-medium text-zinc-300" />{" "}
           selected
         </span>
 

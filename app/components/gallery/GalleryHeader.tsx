@@ -1,8 +1,6 @@
 import { LayoutDashboard, GalleryVertical, Settings, FilePenLine } from "lucide-react";
 import NumberFlow from "@number-flow/react";
 import { useLocation, useNavigate } from "react-router";
-import { useGalleryStore } from "~/stores/galleryStore";
-import type { ViewMode } from "~/types";
 
 interface GalleryHeaderProps {
   count?: number;
@@ -12,15 +10,9 @@ interface GalleryHeaderProps {
 export function GalleryHeader({ count = 0, title }: GalleryHeaderProps) {
   const location = useLocation();
   const navigate = useNavigate();
-  const viewMode = useGalleryStore((s) => s.viewMode);
-  const setViewMode = useGalleryStore((s) => s.setViewMode);
-  const isRoot = location.pathname === "/";
 
-  const handleViewModeSelect = (mode: ViewMode) => {
-    setViewMode(mode);
-    navigate("/");
-  };
-
+  const openGallery = () => navigate("/");
+  const openTimeline = () => navigate("/timeline");
   const openSettings = () => navigate("/settings");
   const openEditor = () => navigate("/editor");
 
@@ -49,14 +41,14 @@ export function GalleryHeader({ count = 0, title }: GalleryHeaderProps) {
       <div className="flex items-center gap-1">
         <div className="flex items-center gap-1 rounded-lg bg-zinc-900 p-1">
           <ViewModeButton
-            onClick={() => handleViewModeSelect("grid")}
-            isActive={isRoot && viewMode === "grid"}
+            onClick={openGallery}
+            isActive={location.pathname === "/"}
             icon={<LayoutDashboard className="h-4 w-4" />}
             label=""
           />
           <ViewModeButton
-            onClick={() => handleViewModeSelect("timeline")}
-            isActive={isRoot && viewMode === "timeline"}
+            onClick={openTimeline}
+            isActive={location.pathname === "/timeline"}
             icon={<GalleryVertical className="h-4 w-4" />}
             label=""
           />

@@ -143,8 +143,6 @@ export interface StoredImageRecord {
   metadata: Record<string, unknown>;
 }
 
-export type ViewMode = "grid" | "timeline";
-
 export interface AttachSelectedItemsResult {
   success: boolean;
   attachedCount: number;

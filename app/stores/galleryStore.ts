@@ -1,24 +1,33 @@
 import { create } from "zustand";
 import type {
   GalleryItem,
-  ViewMode,
   CompletedGalleryItem,
   CompletedGalleryItemFields,
   FailedGalleryItemFields,
   PendingGalleryItemFields,
 } from "~/types";
-import { getAllImages, deleteImage as dbDeleteImage, toDisplayImage } from "~/lib/db";
+import {
+  getImagesPaginated,
+  getImageCount,
+  PAGE_SIZE,
+  deleteImage as dbDeleteImage,
+  toDisplayImage,
+} from "~/lib/db";
 import { useLightboxStore } from "./lightboxStore";
 
 interface GalleryState {
   items: GalleryItem[];
-  viewMode: ViewMode;
   selectedItemIds: string[];
   lastSelectedId: string | null;
   isLoading: boolean;
   hasLoaded: boolean;
+  dbOffset: number;
+  hasMore: boolean;
+  isLoadingMore: boolean;
+  totalCount: number;
 
   loadImages: () => Promise<void>;
+  loadMoreImages: () => Promise<void>;
   addItem: (item: GalleryItem) => void;
   addItems: (items: GalleryItem[]) => void;
   updateItem: (
@@ -28,7 +37,6 @@ interface GalleryState {
   deleteItem: (id: string) => Promise<void>;
   dismissItem: (id: string) => void;
   getItem: (id: string) => GalleryItem | undefined;
-  setViewMode: (mode: ViewMode) => void;
   toggleItemSelection: (id: string) => void;
   selectItemRange: (id: string) => void;
   clearSelection: () => void;
@@ -38,22 +46,58 @@ interface GalleryState {
 
 export const useGalleryStore = create<GalleryState>()((set, get) => ({
   items: [],
-  viewMode: "grid",
   selectedItemIds: [],
   lastSelectedId: null,
   isLoading: false,
   hasLoaded: false,
+  dbOffset: 0,
+  hasMore: false,
+  isLoadingMore: false,
+  totalCount: 0,
 
   loadImages: async () => {
     set({ isLoading: true });
     try {
-      const storedImages = await getAllImages();
+      const [storedImages, total] = await Promise.all([
+        getImagesPaginated(PAGE_SIZE, 0),
+        getImageCount(),
+      ]);
       const items = storedImages.map((img) => toDisplayImage(img));
-      set({ items, hasLoaded: true });
+      set({
+        items,
+        hasLoaded: true,
+        dbOffset: PAGE_SIZE,
+        hasMore: storedImages.length >= PAGE_SIZE,
+        totalCount: total,
+      });
     } catch (error) {
       console.error("Failed to load images:", error);
     } finally {
       set({ isLoading: false });
+    }
+  },
+
+  loadMoreImages: async () => {
+    const { dbOffset, hasMore, isLoadingMore } = get();
+    if (!hasMore || isLoadingMore) return;
+
+    set({ isLoadingMore: true });
+    try {
+      const records = await getImagesPaginated(PAGE_SIZE, dbOffset);
+      const newItems = records.map(toDisplayImage);
+
+      const existingIds = new Set(get().items.map((i) => i.id));
+      const fresh = newItems.filter((item) => !existingIds.has(item.id));
+
+      set((state) => ({
+        items: [...state.items, ...fresh],
+        dbOffset: state.dbOffset + records.length,
+        hasMore: records.length >= PAGE_SIZE,
+      }));
+    } catch (error) {
+      console.error("Failed to load more images:", error);
+    } finally {
+      set({ isLoadingMore: false });
     }
   },
 
@@ -68,9 +112,15 @@ export const useGalleryStore = create<GalleryState>()((set, get) => ({
     })),
 
   updateItem: (id, updates) =>
-    set((state) => ({
-      items: state.items.map((item) => (item.id === id ? { ...item, ...updates } : item)),
-    })),
+    set((state) => {
+      const existing = state.items.find((item) => item.id === id);
+      const becomingCompleted =
+        updates.status === "completed" && existing?.status !== "completed";
+      return {
+        items: state.items.map((item) => (item.id === id ? { ...item, ...updates } : item)),
+        totalCount: becomingCompleted ? state.totalCount + 1 : state.totalCount,
+      };
+    }),
 
   deleteItem: async (id) => {
     const state = get();
@@ -86,9 +136,11 @@ export const useGalleryStore = create<GalleryState>()((set, get) => ({
       const shouldCloseLightbox =
         lightboxTarget?.kind === "gallery" && lightboxTarget.imageId === id;
 
+      const wasCompleted = item?.status === "completed";
       set((state) => ({
         items: state.items.filter((i) => i.id !== id),
         selectedItemIds: state.selectedItemIds.filter((selectedId) => selectedId !== id),
+        totalCount: wasCompleted ? state.totalCount - 1 : state.totalCount,
       }));
       if (shouldCloseLightbox) {
         useLightboxStore.getState().closeLightbox();
@@ -105,8 +157,6 @@ export const useGalleryStore = create<GalleryState>()((set, get) => ({
     })),
 
   getItem: (id) => get().items.find((i) => i.id === id),
-
-  setViewMode: (viewMode) => set({ viewMode }),
 
   toggleItemSelection: (id) =>
     set((state) => {
@@ -191,6 +241,7 @@ export const useGalleryStore = create<GalleryState>()((set, get) => ({
     set((currentState) => ({
       items: currentState.items.filter((item) => !selectedSet.has(item.id)),
       selectedItemIds: [],
+      totalCount: currentState.totalCount - selectedItems.length,
     }));
     if (shouldCloseLightbox) {
       useLightboxStore.getState().closeLightbox();

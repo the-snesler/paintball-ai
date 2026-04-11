@@ -1,5 +1,5 @@
 import { Gallery } from "~/components/gallery/Gallery";
 
 export default function GalleryRoute() {
-  return <Gallery />;
+  return <Gallery viewMode="grid" />;
 }
