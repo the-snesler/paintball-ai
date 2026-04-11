@@ -9,6 +9,8 @@ import {
   Wand2,
   FilePenLine,
   Expand,
+  Layers,
+  Layers2,
 } from "lucide-react";
 import { useNavigate } from "react-router";
 import { useGalleryStore } from "~/stores/galleryStore";
@@ -18,7 +20,10 @@ import { useEditorStore } from "~/stores/editorStore";
 import { GalleryImageCard } from "~/components/gallery/GalleryImageCard";
 import { useLightboxNavigation } from "~/hooks/useLightboxNavigation";
 import { useGalleryDerivedIndexes } from "~/hooks/useGalleryDerivedIndexes";
-import { useReuseGalleryItemPrompt } from "~/hooks/useReuseGalleryItemPrompt";
+import {
+  useReuseGalleryItemBasePrompt,
+  useReuseGalleryItemPrompt,
+} from "~/hooks/useReuseGalleryItemPrompt";
 import { useUpscale } from "~/hooks/useUpscale";
 import { UPSCALERS } from "~/lib/upscaling";
 import { IconButton } from "./IconButton";
@@ -31,6 +36,7 @@ export function Lightbox() {
   const closeLightbox = useLightboxStore((s) => s.closeLightbox);
   const deleteItem = useGalleryStore((s) => s.deleteItem);
   const reuseGalleryItemPrompt = useReuseGalleryItemPrompt();
+  const reuseGalleryItemBasePrompt = useReuseGalleryItemBasePrompt();
   const { lightboxTarget, galleryImage, referenceImage, showNavigation, navigateLightbox } =
     useLightboxNavigation();
 
@@ -72,6 +78,7 @@ export function Lightbox() {
     setShowUpscalePicker(false);
   }, [galleryImage?.id]);
 
+  const hasBasePrompt = Boolean(galleryImage?.basePrompt);
   const promptGroup = getPromptGroupForItem(galleryImage);
   const childItems = getChildItems(galleryImage?.id);
 
@@ -120,6 +127,35 @@ export function Lightbox() {
     await reuseGalleryItemPrompt(galleryImage);
     closeLightbox();
   }, [galleryImage, reuseGalleryItemPrompt, closeLightbox]);
+
+  const handleReuseBasePrompt = useCallback(async () => {
+    if (!galleryImage || !hasBasePrompt) return;
+    await reuseGalleryItemBasePrompt(galleryImage);
+    closeLightbox();
+  }, [galleryImage, hasBasePrompt, reuseGalleryItemBasePrompt, closeLightbox]);
+
+  const handleSendToEditor = useCallback(async () => {
+    if (!galleryImage || galleryImage.status !== "completed") return;
+    const refId = crypto.randomUUID();
+    try {
+      await saveReferenceImage({
+        id: refId,
+        blob: galleryImage.originalBlob,
+        name: `${galleryImage.modelName} - ${galleryImage.prompt.slice(0, 40)}`,
+        sourceGalleryItemId: galleryImage.id,
+      });
+    } catch {
+      // continue without saved reference
+    }
+    setEditorSource({
+      blob: galleryImage.originalBlob,
+      prompt: galleryImage.prompt,
+      galleryItemId: galleryImage.id,
+      referenceId: refId,
+    });
+    closeLightbox();
+    navigate("/editor");
+  }, [galleryImage, setEditorSource, closeLightbox, navigate]);
 
   const handleDelete = useCallback(async () => {
     if (!galleryImage) return;
@@ -193,34 +229,17 @@ export function Lightbox() {
                 {galleryImage.modelName}
               </h2>
               <div className="flex items-center gap-1">
-                <IconButton
+                <WideIconButton
                   icon={<FilePenLine className="h-4 w-4" />}
-                  title="Send to Editor"
-                  onClick={async () => {
-                    const refId = crypto.randomUUID();
-                    try {
-                      await saveReferenceImage({
-                        id: refId,
-                        blob: galleryImage.originalBlob,
-                        name: `${galleryImage.modelName} - ${galleryImage.prompt.slice(0, 40)}`,
-                        sourceGalleryItemId: galleryImage.id,
-                      });
-                    } catch {
-                      // continue without saved reference
-                    }
-                    setEditorSource({
-                      blob: galleryImage.originalBlob,
-                      prompt: galleryImage.prompt,
-                      galleryItemId: galleryImage.id,
-                      referenceId: refId,
-                    });
-                    closeLightbox();
-                    navigate("/editor");
-                  }}
+                  title="Editor"
+                  onClick={handleSendToEditor}
                 />
-                <IconButton
+                <WideIconButton
                   icon={<Expand className="h-4 w-4" />}
-                  title={replicateKey ? "Upscale" : "Upscale (add Replicate API key in Settings)"}
+                  title={"Upscale"}
+                  tooltip={
+                    !replicateKey ? "Upscaling requires a Replicate API key" : "Upscale this image"
+                  }
                   onClick={() => setShowUpscalePicker((v) => !v)}
                   disabled={
                     !replicateKey ||
@@ -283,18 +302,25 @@ export function Lightbox() {
               <div className="space-y-2">
                 <div className="space-y-2 rounded-lg bg-zinc-800/50 p-3">
                   <p className="text-sm text-zinc-300">{galleryImage.prompt}</p>
-                  <div className="flex items-center gap-1">
-                    <IconButton
-                      icon={<Copy className="h-4 w-4" />}
-                      title="Copy Prompt"
-                      onClick={handleCopyPrompt}
-                    />
+                </div>
+                <div className="flex items-center gap-1">
+                  <IconButton
+                    icon={<Copy className="h-4 w-4" />}
+                    title="Copy Prompt"
+                    onClick={handleCopyPrompt}
+                  />
+                  <IconButton
+                    icon={<Wand2 className="h-4 w-4" />}
+                    title="Re-use Prompt"
+                    onClick={handleReusePrompt}
+                  />
+                  {hasBasePrompt && (
                     <WideIconButton
-                      icon={<Wand2 className="h-4 w-4" />}
-                      title="Re-use Prompt"
-                      onClick={handleReusePrompt}
+                      icon={<Layers className="h-4 w-4" />}
+                      title="Re-use Base Prompt"
+                      onClick={handleReuseBasePrompt}
                     />
-                  </div>
+                  )}
                 </div>
               </div>
 

@@ -1,4 +1,5 @@
 import type React from "react";
+import clsx from "clsx";
 import { Tooltip } from "../ui/Tooltip";
 
 export function WideIconButton({
@@ -6,6 +7,7 @@ export function WideIconButton({
   title,
   tooltip,
   onClick,
+  textBreakpoint,
   disabled = false,
   variant = "default",
 }: {
@@ -13,6 +15,7 @@ export function WideIconButton({
   title: string;
   tooltip?: React.ReactNode;
   onClick: () => void;
+  textBreakpoint?: "sm" | "md" | "lg";
   disabled?: boolean;
   variant?: "default" | "danger";
 }) {
@@ -21,7 +24,7 @@ export function WideIconButton({
       onClick={onClick}
       disabled={disabled}
       aria-label={title}
-      className={`rounded-lg p-2 transition-colors flex items-center gap-1 ${
+      className={`flex items-center gap-1 rounded-lg p-2 transition-colors ${
         disabled
           ? "cursor-not-allowed text-zinc-600"
           : variant === "danger"
@@ -30,7 +33,16 @@ export function WideIconButton({
       }`}
     >
       {icon}
-      <span className="text-xs leading-none">{title}</span>
+      <span
+        className={clsx("text-xs leading-none", {
+          "sm:inline": textBreakpoint === "sm",
+          "md:inline": textBreakpoint === "md",
+          "lg:inline": textBreakpoint === "lg",
+          hidden: textBreakpoint,
+        })}
+      >
+        {title}
+      </span>
     </button>
   );
   if (!tooltip) return content;
