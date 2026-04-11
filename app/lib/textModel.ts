@@ -77,7 +77,7 @@ export async function callTextModel(
     if (provider === "google") {
       return callGoogleTextModel(apiKey, modelId, systemPrompt, userPrompt, images, prefill);
     }
-    return callReplicateTextModel(apiKey, modelId, systemPrompt, userPrompt);
+    return callReplicateTextModel(apiKey, modelId, systemPrompt, userPrompt, images, prefill);
   });
 
   logger.debug("Text model output:", output);
@@ -157,15 +157,22 @@ async function callReplicateTextModel(
   apiKey: string,
   modelId: string,
   systemPrompt: string,
-  userPrompt: string
+  userPrompt: string,
+  images?: Blob[],
+  prefill?: string
 ): Promise<string> {
   const baseUrl = new URL("/proxy/replicate/v1", window.location.origin).toString();
   const replicate = new Replicate({ auth: apiKey, baseUrl });
 
+  // Replicate doesn't support prefills, so we just concatenate it to the user prompt. The model should be able to handle this as long as the prefill is clearly separated from the user prompt (e.g. with a newline). true solution is to use resolveTextProvier() and not send prefill to replicate at all.
+  if (prefill) {
+    userPrompt = prefill + "\n" + userPrompt;
+  }
+
   let output;
   try {
     output = await replicate.run(modelId as `${string}/${string}`, {
-      input: { prompt: userPrompt, system_prompt: systemPrompt },
+      input: { prompt: userPrompt, system_instruction: systemPrompt, images },
     });
   } catch (error) {
     throw toRateLimitError(error, "replicate");
