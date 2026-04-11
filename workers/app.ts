@@ -2,6 +2,16 @@ interface Env {
   ASSETS: Fetcher;
 }
 
+function isHtmlNavigationRequest(request: Request): boolean {
+  const accepts = request.headers.get("accept") || "";
+  return (request.method === "GET" || request.method === "HEAD") && accepts.includes("text/html");
+}
+
+function hasFileExtension(pathname: string): boolean {
+  const lastSegment = pathname.split("/").pop() || "";
+  return lastSegment.includes(".");
+}
+
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
@@ -24,7 +34,18 @@ export default {
       });
     }
 
-    // Fall through to static assets
-    return env.ASSETS.fetch(request);
+    // Serve static assets first.
+    const assetResponse = await env.ASSETS.fetch(request);
+    if (assetResponse.status !== 404) {
+      return assetResponse;
+    }
+
+    // SPA fallback: serve index.html for browser route navigations.
+    if (isHtmlNavigationRequest(request) && !hasFileExtension(url.pathname)) {
+      const indexUrl = new URL("/index.html", url);
+      return env.ASSETS.fetch(new Request(indexUrl.toString(), request));
+    }
+
+    return assetResponse;
   },
 };
