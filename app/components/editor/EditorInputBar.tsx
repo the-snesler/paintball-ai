@@ -347,6 +347,7 @@ export function EditorInputBar({ onSourceFile }: EditorInputBarProps) {
         instruction: text,
         sourceItemId: selectedItemId,
         sourceBlob: canvasBlob,
+        sourceReferenceId: refId,
         createdAt: Date.now(),
       });
 

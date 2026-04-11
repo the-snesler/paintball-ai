@@ -1,4 +1,4 @@
-import { ChevronDown, Layers, Sparkles, X } from "lucide-react";
+import { Layers, X } from "lucide-react";
 import { useLocation } from "react-router";
 import { PromptInput } from "./PromptInput";
 import { ModelList } from "./ModelList";
@@ -28,6 +28,7 @@ import {
   verticalListSortingStrategy,
   sortableKeyboardCoordinates,
 } from "@dnd-kit/sortable";
+import { RecentSessions } from "./RecentSessions";
 
 export const SIDEBAR_POPOVER_ID = "sidebar-popover";
 
@@ -64,6 +65,7 @@ function GallerySidebarContent() {
 function EditorSidebarContent() {
   return (
     <div className="flex-1 space-y-6 overflow-y-auto p-4 [scrollbar-gutter:stable]">
+      <RecentSessions />
       <ModelList />
       <AspectRatioSection />
       <ResolutionSection />

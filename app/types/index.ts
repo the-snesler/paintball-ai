@@ -178,9 +178,33 @@ export interface EditorTurn {
   sourceItemId: string | null;
   /** Snapshot of reference blob at time of edit */
   sourceBlob: Blob;
+  /** references store ID for sourceBlob; populated at submit time for session persistence */
+  sourceReferenceId?: string;
   /** Gallery item IDs for all generated results in this turn */
   itemIds: string[];
   createdAt: number;
   /** AI-generated summary of editing lineage intent (style, character, constraints) */
   contextBrief?: string;
+}
+
+/** Blob-free version of EditorTurn for IndexedDB persistence */
+export interface StoredEditorTurn {
+  id: string;
+  instruction: string;
+  sourceItemId: string | null;
+  sourceReferenceId: string;
+  itemIds: string[];
+  createdAt: number;
+  contextBrief?: string;
+}
+
+export interface StoredEditorSession {
+  id: string;
+  sourceGalleryItemId: string | null;
+  sourceReferenceId: string | null;
+  sourcePrompt: string;
+  turns: StoredEditorTurn[];
+  selectedItemId: string | null;
+  additionalReferenceIds: string[];
+  savedAt: number;
 }

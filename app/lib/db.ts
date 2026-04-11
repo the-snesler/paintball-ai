@@ -1,12 +1,13 @@
-import type { CompletedGalleryItem, ReferenceImage, StoredImageRecord } from "~/types";
+import type { CompletedGalleryItem, ReferenceImage, StoredEditorSession, StoredImageRecord } from "~/types";
 import { createThumbnailBlob } from "./imageProcessing";
 
 const DB_NAME = "studio-image-gallery";
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 
 const STORES = {
   images: "images",
   references: "references",
+  sessions: "sessions",
 } as const;
 
 let dbInstance: IDBDatabase | null = null;
@@ -51,6 +52,12 @@ export async function initDB(): Promise<IDBDatabase> {
       // Reference images store
       if (!db.objectStoreNames.contains(STORES.references)) {
         db.createObjectStore(STORES.references, { keyPath: "id" });
+      }
+
+      // Editor sessions store (v3)
+      if (!db.objectStoreNames.contains(STORES.sessions)) {
+        const sessionStore = db.createObjectStore(STORES.sessions, { keyPath: "id" });
+        sessionStore.createIndex("by_gallery_item", "sourceGalleryItemId", { unique: false });
       }
     };
   });
@@ -367,4 +374,89 @@ async function persistMigratedImageRecord(
   store.put(record);
 
   await awaitTransaction(transaction, undefined);
+}
+
+// Editor session operations
+/**
+ * Upsert a session record. Returns the actual session ID used (which may differ
+ * from `session.id` if an existing record was found for the same source image).
+ * Callers should sync their local `currentSessionId` to the returned value.
+ */
+export async function upsertEditorSession(session: StoredEditorSession): Promise<string> {
+  const db = await initDB();
+
+  // Prefer reusing an existing session for the same source image to avoid
+  // accumulating duplicate sessions across page loads.
+  const existing = session.sourceGalleryItemId
+    ? await getSessionByGalleryItemId(session.sourceGalleryItemId)
+    : await getSessionById(session.id);
+
+  const record: StoredEditorSession = {
+    ...session,
+    id: existing?.id ?? session.id,
+    savedAt: Date.now(),
+  };
+
+  const transaction = db.transaction(STORES.sessions, "readwrite");
+  transaction.objectStore(STORES.sessions).put(record);
+  await awaitTransaction(transaction, undefined);
+  return record.id;
+}
+
+export async function getSessionByGalleryItemId(
+  galleryItemId: string
+): Promise<StoredEditorSession | null> {
+  const db = await initDB();
+
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(STORES.sessions, "readonly");
+    const index = transaction.objectStore(STORES.sessions).index("by_gallery_item");
+    const request = index.get(galleryItemId);
+    request.onerror = () => reject(request.error);
+    request.onsuccess = () => resolve((request.result as StoredEditorSession | undefined) ?? null);
+  });
+}
+
+export async function getSessionById(id: string): Promise<StoredEditorSession | null> {
+  const db = await initDB();
+
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(STORES.sessions, "readonly");
+    const request = transaction.objectStore(STORES.sessions).get(id);
+    request.onerror = () => reject(request.error);
+    request.onsuccess = () => resolve((request.result as StoredEditorSession | undefined) ?? null);
+  });
+}
+
+export async function deleteEditorSession(id: string): Promise<void> {
+  const db = await initDB();
+
+  const transaction = db.transaction(STORES.sessions, "readwrite");
+  transaction.objectStore(STORES.sessions).delete(id);
+  await awaitTransaction(transaction, undefined);
+}
+
+export async function getAllSessions(): Promise<StoredEditorSession[]> {
+  const db = await initDB();
+
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(STORES.sessions, "readonly");
+    const request = transaction.objectStore(STORES.sessions).getAll();
+    request.onerror = () => reject(request.error);
+    request.onsuccess = () => resolve(request.result as StoredEditorSession[]);
+  });
+}
+
+/** Find the first session that includes `imageId` as a source, turn reference, or turn output. */
+export async function findSessionForImage(
+  imageId: string
+): Promise<StoredEditorSession | null> {
+  const sessions = await getAllSessions();
+  return (
+    sessions.find(
+      (s) =>
+        s.sourceGalleryItemId === imageId ||
+        s.turns.some((t) => t.sourceItemId === imageId || t.itemIds.includes(imageId))
+    ) ?? null
+  );
 }

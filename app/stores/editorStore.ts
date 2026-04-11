@@ -1,5 +1,11 @@
 import { create } from "zustand";
-import type { EditorTurn, ReferenceImage } from "~/types";
+import {
+  deleteEditorSession,
+  getSessionById,
+  upsertEditorSession,
+} from "~/lib/db";
+import { hydrateStoredSession } from "~/lib/editorSession";
+import type { EditorTurn, ReferenceImage, StoredEditorSession } from "~/types";
 
 interface EditorState {
   // Source image
@@ -26,12 +32,26 @@ interface EditorState {
   // Generation state
   isGenerating: boolean;
 
+  // Session persistence
+  currentSessionId: string | null;
+
   // Actions
   setSource: (params: {
     blob: Blob;
     prompt: string;
     galleryItemId?: string;
     referenceId: string;
+  }) => void;
+  hydrateSession: (params: {
+    sessionId: string;
+    sourceBlob: Blob;
+    sourceUrl: string;
+    sourcePrompt: string;
+    sourceGalleryItemId: string | null;
+    sourceReferenceId: string | null;
+    turns: EditorTurn[];
+    selectedItemId: string | null;
+    referenceImages: ReferenceImage[];
   }) => void;
   addTurn: (turn: Omit<EditorTurn, "itemIds">) => void;
   addItemToTurn: (turnId: string, itemId: string) => void;
@@ -45,6 +65,17 @@ interface EditorState {
   reorderReferenceImages: (fromId: string, toId: string) => void;
   setTurnContextBrief: (turnId: string, brief: string) => void;
   clearReferenceImages: () => void;
+  /**
+   * Restore a session by ID while already on the editor page. Saves the current
+   * session first, then hydrates the target session in place.
+   */
+  restoreSession: (sessionId: string) => Promise<void>;
+  /**
+   * Save the current session (if any) and clear in-memory state without deleting
+   * the session from the DB. Call this before restoring a different session so the
+   * active session isn't lost and EditorView can start from a clean store.
+   */
+  clearForSessionRestore: () => void;
   reset: () => void;
 }
 
@@ -61,94 +92,226 @@ const INITIAL_STATE = {
   isAnalyzing: false,
   analysisResult: null,
   isGenerating: false,
+  currentSessionId: null,
 };
 
-export const useEditorStore = create<EditorState>()((set, get) => ({
-  ...INITIAL_STATE,
+export const useEditorStore = create<EditorState>()((set, get) => {
+  function buildStoredSession(state: EditorState, id: string): StoredEditorSession {
+    return {
+      id,
+      sourceGalleryItemId: state.sourceGalleryItemId,
+      sourceReferenceId: state.sourceReferenceId,
+      sourcePrompt: state.sourcePrompt,
+      turns: state.turns
+        .filter((t) => t.sourceReferenceId != null)
+        .map((t) => ({
+          id: t.id,
+          instruction: t.instruction,
+          sourceItemId: t.sourceItemId,
+          sourceReferenceId: t.sourceReferenceId!,
+          itemIds: t.itemIds,
+          createdAt: t.createdAt,
+          contextBrief: t.contextBrief,
+        })),
+      selectedItemId: state.selectedItemId,
+      additionalReferenceIds: state.referenceImages.map((r) => r.id),
+      savedAt: Date.now(),
+    };
+  }
 
-  setSource: ({ blob, prompt, galleryItemId, referenceId }) => {
-    const prev = get();
-    if (prev.sourceUrl) URL.revokeObjectURL(prev.sourceUrl);
-    prev.referenceImages.forEach((img) => URL.revokeObjectURL(img.url));
-    set({
-      sourceBlob: blob,
-      sourceUrl: URL.createObjectURL(blob),
-      sourcePrompt: prompt,
-      sourceGalleryItemId: galleryItemId ?? null,
-      sourceReferenceId: referenceId,
-      turns: [],
-      selectedItemId: null,
-      instruction: "",
-      referenceImages: [],
-      analysisResult: null,
-      isGenerating: false,
+  function persistSession() {
+    const s = get();
+    if (!s.sourceReferenceId && !s.sourceGalleryItemId) return;
+    const id = s.currentSessionId ?? crypto.randomUUID();
+    if (!s.currentSessionId) {
+      set({ currentSessionId: id });
+      localStorage.setItem("editorSessionId", id);
+    }
+    // Sync back the actual stored ID in case upsert reused an existing session's ID
+    // (e.g. when navigating to an image that already has a saved session).
+    void upsertEditorSession(buildStoredSession(get(), id)).then((actualId) => {
+      if (actualId !== get().currentSessionId) {
+        set({ currentSessionId: actualId });
+        localStorage.setItem("editorSessionId", actualId);
+      }
     });
-  },
+  }
 
-  addTurn: (turn) =>
-    set((state) => ({
-      turns: [...state.turns, { ...turn, itemIds: [] }],
-    })),
+  return {
+    ...INITIAL_STATE,
 
-  addItemToTurn: (turnId, itemId) =>
-    set((state) => ({
-      turns: state.turns.map((t) =>
-        t.id === turnId ? { ...t, itemIds: [...t.itemIds, itemId] } : t
-      ),
-    })),
+    setSource: ({ blob, prompt, galleryItemId, referenceId }) => {
+      const prev = get();
 
-  selectItem: (selectedItemId) => set({ selectedItemId }),
+      // Save previous session before wiping state
+      if (prev.sourceReferenceId ?? prev.sourceGalleryItemId) {
+        const prevId = prev.currentSessionId ?? crypto.randomUUID();
+        void upsertEditorSession(buildStoredSession(prev, prevId));
+      }
 
-  setTurnContextBrief: (turnId, brief) =>
-    set((state) => ({
-      turns: state.turns.map((t) =>
-        t.id === turnId ? { ...t, contextBrief: brief } : t
-      ),
-    })),
+      if (prev.sourceUrl) URL.revokeObjectURL(prev.sourceUrl);
+      prev.referenceImages.forEach((img) => URL.revokeObjectURL(img.url));
 
-  setInstruction: (instruction) => set({ instruction }),
+      const newSessionId = crypto.randomUUID();
+      set({
+        sourceBlob: blob,
+        sourceUrl: URL.createObjectURL(blob),
+        sourcePrompt: prompt,
+        sourceGalleryItemId: galleryItemId ?? null,
+        sourceReferenceId: referenceId,
+        turns: [],
+        selectedItemId: null,
+        instruction: "",
+        referenceImages: [],
+        analysisResult: null,
+        isGenerating: false,
+        currentSessionId: newSessionId,
+      });
+      localStorage.setItem("editorSessionId", newSessionId);
+      persistSession();
+    },
 
-  setAnalyzing: (isAnalyzing) => set({ isAnalyzing }),
+    hydrateSession: ({
+      sessionId,
+      sourceBlob,
+      sourceUrl,
+      sourcePrompt,
+      sourceGalleryItemId,
+      sourceReferenceId,
+      turns,
+      selectedItemId,
+      referenceImages,
+    }) => {
+      const prev = get();
+      if (prev.sourceUrl) URL.revokeObjectURL(prev.sourceUrl);
+      prev.referenceImages.forEach((img) => URL.revokeObjectURL(img.url));
 
-  setAnalysisResult: (analysisResult) => set({ analysisResult }),
+      set({
+        sourceBlob,
+        sourceUrl,
+        sourcePrompt,
+        sourceGalleryItemId,
+        sourceReferenceId,
+        turns,
+        selectedItemId,
+        referenceImages,
+        instruction: "",
+        analysisResult: null,
+        isGenerating: false,
+        isAnalyzing: false,
+        currentSessionId: sessionId,
+      });
+      localStorage.setItem("editorSessionId", sessionId);
+    },
 
-  setIsGenerating: (isGenerating) => set({ isGenerating }),
+    addTurn: (turn) => {
+      set((state) => ({
+        turns: [...state.turns, { ...turn, itemIds: [] }],
+      }));
+      persistSession();
+    },
 
-  addReferenceImage: (image) =>
-    set((state) => ({
-      referenceImages: [...state.referenceImages, image],
-    })),
+    addItemToTurn: (turnId, itemId) => {
+      set((state) => ({
+        turns: state.turns.map((t) =>
+          t.id === turnId ? { ...t, itemIds: [...t.itemIds, itemId] } : t
+        ),
+      }));
+      persistSession();
+    },
 
-  removeReferenceImage: (id) =>
-    set((state) => {
-      const image = state.referenceImages.find((entry) => entry.id === id);
-      if (image) URL.revokeObjectURL(image.url);
-      return {
-        referenceImages: state.referenceImages.filter((entry) => entry.id !== id),
-      };
-    }),
+    selectItem: (selectedItemId) => {
+      set({ selectedItemId });
+      persistSession();
+    },
 
-  reorderReferenceImages: (fromId, toId) =>
-    set((state) => {
-      const images = [...state.referenceImages];
-      const fromIndex = images.findIndex((img) => img.id === fromId);
-      const toIndex = images.findIndex((img) => img.id === toId);
-      if (fromIndex === -1 || toIndex === -1) return {};
-      const [moved] = images.splice(fromIndex, 1);
-      images.splice(toIndex, 0, moved);
-      return { referenceImages: images };
-    }),
+    setTurnContextBrief: (turnId, brief) => {
+      set((state) => ({
+        turns: state.turns.map((t) =>
+          t.id === turnId ? { ...t, contextBrief: brief } : t
+        ),
+      }));
+      persistSession();
+    },
 
-  clearReferenceImages: () =>
-    set((state) => {
-      state.referenceImages.forEach((image) => URL.revokeObjectURL(image.url));
-      return { referenceImages: [] };
-    }),
+    setInstruction: (instruction) => set({ instruction }),
 
-  reset: () => {
-    const prev = get();
-    if (prev.sourceUrl) URL.revokeObjectURL(prev.sourceUrl);
-    prev.referenceImages.forEach((img) => URL.revokeObjectURL(img.url));
-    set(INITIAL_STATE);
-  },
-}));
+    setAnalyzing: (isAnalyzing) => set({ isAnalyzing }),
+
+    setAnalysisResult: (analysisResult) => set({ analysisResult }),
+
+    setIsGenerating: (isGenerating) => set({ isGenerating }),
+
+    addReferenceImage: (image) => {
+      set((state) => ({
+        referenceImages: [...state.referenceImages, image],
+      }));
+      persistSession();
+    },
+
+    removeReferenceImage: (id) => {
+      set((state) => {
+        const image = state.referenceImages.find((entry) => entry.id === id);
+        if (image) URL.revokeObjectURL(image.url);
+        return {
+          referenceImages: state.referenceImages.filter((entry) => entry.id !== id),
+        };
+      });
+      persistSession();
+    },
+
+    reorderReferenceImages: (fromId, toId) =>
+      set((state) => {
+        const images = [...state.referenceImages];
+        const fromIndex = images.findIndex((img) => img.id === fromId);
+        const toIndex = images.findIndex((img) => img.id === toId);
+        if (fromIndex === -1 || toIndex === -1) return {};
+        const [moved] = images.splice(fromIndex, 1);
+        images.splice(toIndex, 0, moved);
+        return { referenceImages: images };
+      }),
+
+    clearReferenceImages: () =>
+      set((state) => {
+        state.referenceImages.forEach((image) => URL.revokeObjectURL(image.url));
+        return { referenceImages: [] };
+      }),
+
+    restoreSession: async (sessionId: string) => {
+      const session = await getSessionById(sessionId);
+      if (!session) return;
+      // Save outgoing session before replacing
+      const prev = get();
+      if (prev.sourceReferenceId ?? prev.sourceGalleryItemId) {
+        const id = prev.currentSessionId ?? crypto.randomUUID();
+        void upsertEditorSession(buildStoredSession(prev, id));
+      }
+      const hydrated = await hydrateStoredSession(session);
+      if (!hydrated) return;
+      get().hydrateSession(hydrated);
+    },
+
+    clearForSessionRestore: () => {
+      const prev = get();
+      // Save the outgoing session before clearing so it isn't lost
+      if (prev.sourceReferenceId ?? prev.sourceGalleryItemId) {
+        const id = prev.currentSessionId ?? crypto.randomUUID();
+        void upsertEditorSession(buildStoredSession(prev, id));
+      }
+      if (prev.sourceUrl) URL.revokeObjectURL(prev.sourceUrl);
+      prev.referenceImages.forEach((img) => URL.revokeObjectURL(img.url));
+      set(INITIAL_STATE);
+    },
+
+    reset: () => {
+      const prev = get();
+      if (prev.sourceUrl) URL.revokeObjectURL(prev.sourceUrl);
+      prev.referenceImages.forEach((img) => URL.revokeObjectURL(img.url));
+      if (prev.currentSessionId) {
+        void deleteEditorSession(prev.currentSessionId);
+        localStorage.removeItem("editorSessionId");
+      }
+      set(INITIAL_STATE);
+    },
+  };
+});

@@ -1,11 +1,12 @@
 import { useCallback, useMemo } from "react";
-import { useGalleryStore } from "~/stores/galleryStore";
 import { useLightboxStore } from "~/stores/lightboxStore";
 import { useGalleryDerivedIndexes } from "./useGalleryDerivedIndexes";
+import { useLocation } from "react-router";
 
 export function useLightboxNavigation() {
   const { completedItems, completedItemsByPrompt, getItemById } = useGalleryDerivedIndexes();
-  const viewMode = useGalleryStore((s) => s.viewMode);
+  const location = useLocation();
+  const viewMode = location.pathname === "/timeline" ? "timeline" : "grid";
   const lightboxTarget = useLightboxStore((s) => s.lightboxTarget);
   const setLightboxTarget = useLightboxStore((s) => s.setLightboxTarget);
 
@@ -22,8 +23,7 @@ export function useLightboxNavigation() {
     return item?.status === "completed" ? item : null;
   }, [getItemById, lightboxTarget]);
 
-  const showNavigation =
-    lightboxTarget?.kind === "gallery" && orderedItems.length > 1;
+  const showNavigation = lightboxTarget?.kind === "gallery" && orderedItems.length > 1;
 
   const navigateLightbox = useCallback(
     (direction: "prev" | "next") => {

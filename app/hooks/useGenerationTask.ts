@@ -55,7 +55,7 @@ export function useGenerationTask() {
           resolution: task.resolution,
           referenceImages: task.referenceImages,
         },
-        apiKey
+        apiKey || undefined
       );
     },
     [apiKeys]

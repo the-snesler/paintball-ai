@@ -28,8 +28,8 @@ import { useUpscale } from "~/hooks/useUpscale";
 import { UPSCALERS } from "~/lib/upscaling";
 import { IconButton } from "./IconButton";
 import { WideIconButton } from "./WideIconButton";
-import { getReferenceImagesByIds, saveReferenceImage } from "~/lib/db";
-import type { ReferenceImage } from "~/types";
+import { findSessionForImage, getReferenceImagesByIds, saveReferenceImage } from "~/lib/db";
+import type { ReferenceImage, StoredEditorSession } from "~/types";
 
 export function Lightbox() {
   const navigate = useNavigate();
@@ -43,8 +43,10 @@ export function Lightbox() {
   const openLightbox = useLightboxStore((s) => s.openLightbox);
   const { getPromptGroupForItem, getChildItems, getItemById } = useGalleryDerivedIndexes();
   const setEditorSource = useEditorStore((s) => s.setSource);
+  const clearForSessionRestore = useEditorStore((s) => s.clearForSessionRestore);
 
   const [referenceImages, setReferenceImages] = useState<ReferenceImage[]>([]);
+  const [linkedSession, setLinkedSession] = useState<StoredEditorSession | null>(null);
   const [showUpscalePicker, setShowUpscalePicker] = useState(false);
   const { status: upscaleStatus, error: upscaleError, upscale } = useUpscale();
   const replicateKey = useSettingsStore((s) => s.apiKeys.replicate);
@@ -76,6 +78,21 @@ export function Lightbox() {
 
   useEffect(() => {
     setShowUpscalePicker(false);
+  }, [galleryImage?.id]);
+
+  // Check whether this image is part of any editor session
+  useEffect(() => {
+    if (!galleryImage) {
+      setLinkedSession(null);
+      return;
+    }
+    let cancelled = false;
+    void findSessionForImage(galleryImage.id).then((session) => {
+      if (!cancelled) setLinkedSession(session);
+    });
+    return () => {
+      cancelled = true;
+    };
   }, [galleryImage?.id]);
 
   const hasBasePrompt = Boolean(galleryImage?.basePrompt);
@@ -136,6 +153,17 @@ export function Lightbox() {
 
   const handleSendToEditor = useCallback(async () => {
     if (!galleryImage || galleryImage.status !== "completed") return;
+
+    if (linkedSession) {
+      // Restore the existing session: save + clear current in-memory state, set the
+      // target session in localStorage, then let EditorView's restore effect handle it.
+      localStorage.setItem("editorSessionId", linkedSession.id);
+      clearForSessionRestore();
+      closeLightbox();
+      navigate("/editor");
+      return;
+    }
+
     const refId = crypto.randomUUID();
     try {
       await saveReferenceImage({
@@ -155,7 +183,7 @@ export function Lightbox() {
     });
     closeLightbox();
     navigate("/editor");
-  }, [galleryImage, setEditorSource, closeLightbox, navigate]);
+  }, [galleryImage, linkedSession, clearForSessionRestore, setEditorSource, closeLightbox, navigate]);
 
   const handleDelete = useCallback(async () => {
     if (!galleryImage) return;
@@ -230,8 +258,16 @@ export function Lightbox() {
               </h2>
               <div className="flex items-center gap-1">
                 <WideIconButton
-                  icon={<FilePenLine className="h-4 w-4" />}
+                  icon={
+                    <span className="relative">
+                      <FilePenLine className="h-4 w-4" />
+                      {linkedSession && (
+                        <span className="absolute -top-1 -right-1 h-1.5 w-1.5 rounded-full bg-purple-400" />
+                      )}
+                    </span>
+                  }
                   title="Editor"
+                  tooltip={linkedSession ? "Resume editing session" : undefined}
                   onClick={handleSendToEditor}
                 />
                 <WideIconButton
