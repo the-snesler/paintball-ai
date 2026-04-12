@@ -110,25 +110,44 @@ export default function ModelToggleItem({
 
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-medium text-zinc-100">{model.name}</p>
-        <div className="mt-0.5 flex items-center gap-1.5">
-          <span className="text-xs text-zinc-500 capitalize">{model.provider}</span>
-          <div className="flex items-center gap-1">
-            <CapabilityBadge
-              icon={RectangleHorizontal}
-              label="Aspect ratio"
-              enabled={capabilities.supportsAspectRatios}
-            />
-            <CapabilityBadge
-              icon={Maximize}
-              label="Resolution"
-              enabled={capabilities.supportsResolution}
-            />
-            <CapabilityBadge
-              icon={Image}
-              label={`Reference images (max ${capabilities.maxReferenceImages})`}
-              enabled={capabilities.supportsReferenceImages}
-            />
-          </div>
+        <div className="mt-0.5 flex items-center gap-1">
+          <Tooltip
+            content={
+              model.provider === "google"
+                ? "Google"
+                : model.provider === "replicate"
+                  ? "Replicate"
+                  : model.provider
+            }
+            placement="top"
+            delay={200}
+          >
+            <span className="text-zinc-40 inline-flex cursor-help items-center gap-1 rounded bg-purple-700/50 px-1.5 py-0.5 text-[10px] text-purple-400">
+              {model.provider === "google" || model.provider === "replicate" ? (
+                <SVG
+                  src={`/icons/${model.provider}.svg`}
+                  className="h-2.5 w-2.5 overflow-visible"
+                />
+              ) : (
+                <Box className="h-2.5 w-2.5" />
+              )}
+            </span>
+          </Tooltip>
+          <CapabilityBadge
+            icon={RectangleHorizontal}
+            label="Aspect ratio"
+            enabled={capabilities.supportsAspectRatios}
+          />
+          <CapabilityBadge
+            icon={Maximize}
+            label="Resolution"
+            enabled={capabilities.supportsResolution}
+          />
+          <CapabilityBadge
+            icon={Image}
+            label={`Reference images (max ${capabilities.maxReferenceImages})`}
+            enabled={capabilities.supportsReferenceImages}
+          />
         </div>
       </div>
 
@@ -146,7 +165,7 @@ export default function ModelToggleItem({
         </Tooltip>
       )}
 
-      {model.isCustom ? (
+      {model.isCustom && (
         <button
           onClick={() => removeCustomModel(model.id)}
           className="shrink-0 p-1 text-zinc-500 transition-colors hover:text-red-400"
@@ -154,14 +173,13 @@ export default function ModelToggleItem({
         >
           <Trash2 className="h-4 w-4" />
         </button>
-      ) : (
-        <Switch
-          checked={model.enabled}
-          onChange={(e) => setModelEnabled(model.id, e.target.checked)}
-          disabled={!hasApiKey}
-          aria-label={`Toggle ${model.name}`}
-        />
       )}
+      <Switch
+        checked={model.enabled}
+        onChange={(e) => setModelEnabled(model.id, e.target.checked)}
+        disabled={!hasApiKey}
+        aria-label={`Toggle ${model.name}`}
+      />
     </div>
   );
 }
