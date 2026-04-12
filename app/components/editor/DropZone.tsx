@@ -47,7 +47,7 @@ export function DropZone({ onFile }: DropZoneProps) {
 
   return (
     <div
-      className="flex flex-1 items-center justify-center p-8"
+      className="flex h-[calc(100%-7rem)] flex-1 items-center justify-center p-8"
       onDrop={handleDrop}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}

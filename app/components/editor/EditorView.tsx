@@ -79,9 +79,10 @@ export function EditorView() {
     <main className="relative flex h-full flex-1 flex-col overflow-hidden bg-zinc-950">
       <GalleryHeader title={editorTitle} />
 
-      {hasSource ? <TurnList /> : <DropZone onFile={(file) => void handleSourceFile(file)} />}
-
-      <EditorInputBar onSourceFile={(file) => void handleSourceFile(file)} />
+      <div className="relative max-h-full flex-1 overflow-hidden">
+        {hasSource ? <TurnList /> : <DropZone onFile={(file) => void handleSourceFile(file)} />}
+        <EditorInputBar onSourceFile={(file) => void handleSourceFile(file)} />
+      </div>
     </main>
   );
 }

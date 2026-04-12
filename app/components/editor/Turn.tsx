@@ -6,6 +6,7 @@ import { useLightboxStore } from "~/stores/lightboxStore";
 import type { EditorTurn } from "~/types";
 import { SineWaveGrid } from "~/components/gallery/SineWaveGrid";
 import { useGalleryDerivedIndexes } from "~/hooks/useGalleryDerivedIndexes";
+import { getAspectRatioValue } from "~/lib/util";
 
 interface TurnProps {
   turn: EditorTurn;
@@ -61,7 +62,7 @@ export function Turn({ turn, turnIndex, isFirst = false }: TurnProps) {
   return (
     <div className="animate-fade-in flex w-full flex-col items-center">
       {/* Turn header */}
-      <div className="mb-1 flex w-full max-w-3xl items-start gap-3">
+      <div className="mb-1 flex w-full max-w-4xl items-start gap-3">
         <div className="flex min-w-0 flex-1 items-center gap-2">
           <p className="text-sm leading-snug font-medium text-zinc-200">{turn.instruction}</p>
         </div>
@@ -78,7 +79,7 @@ export function Turn({ turn, turnIndex, isFirst = false }: TurnProps) {
       </div>
 
       {/* Image grid */}
-      <div className="grid w-full grid-cols-[repeat(auto-fill,minmax(250px,1fr))] gap-3 overflow-y-auto p-3">
+      <div className="grid w-full max-w-4xl grid-cols-[repeat(auto-fill,minmax(250px,1fr))] gap-3 p-3">
         {items.map((item) => {
           if (!item) return null;
 
@@ -187,7 +188,7 @@ function EditorLoadingCard({
   return (
     <div
       className="relative overflow-hidden rounded-lg bg-zinc-900 ring-1 ring-zinc-800"
-      style={{ aspectRatio: "1/1" }}
+      style={{ aspectRatio: getAspectRatioValue(item.aspectRatio) }}
     >
       {isGenerating && <SineWaveGrid />}
       {isWaiting && <SineWaveGrid frozen />}

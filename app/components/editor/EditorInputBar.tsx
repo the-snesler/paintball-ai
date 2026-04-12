@@ -490,9 +490,9 @@ export function EditorInputBar({ onSourceFile }: EditorInputBarProps) {
   const turnCount = turns.length;
 
   return (
-    <div className="shrink-0">
-      <div className="px-6 py-4">
-        <div className="mx-auto max-w-3xl">
+    <div className="absolute right-0 bottom-0 left-0">
+      <div className="bg-linear-to-t from-zinc-950 via-zinc-950/95 to-transparent px-6 pt-8 pb-4">
+        <div className="mx-auto max-w-4xl">
           {/* Textarea */}
           <div
             onDrop={handleDrop}

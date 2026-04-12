@@ -1,3 +1,5 @@
+import type { AspectRatio } from "~/types";
+
 export function blobToBase64(blob: Blob): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -34,4 +36,12 @@ export function formatRelativeDate(createdAt: number): string {
   }
 
   return new Date(createdAt).toLocaleDateString("en-US");
+}
+export function getAspectRatioValue(aspectRatio: AspectRatio | null): number {
+  if (!aspectRatio) {
+    return 1;
+  }
+
+  const [first, second] = aspectRatio.split(":");
+  return parseFloat(first) / parseFloat(second);
 }

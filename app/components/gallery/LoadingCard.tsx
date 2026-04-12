@@ -1,22 +1,14 @@
 import { useEffect, useState } from "react";
 import { AlertCircle, X, RotateCcw, Clock } from "lucide-react";
-import type { GalleryItem, AspectRatio } from "~/types";
+import type { GalleryItem } from "~/types";
 import { useGalleryStore } from "~/stores/galleryStore";
 import { useImageGeneration } from "~/hooks/useImageGeneration";
 import NumberFlow from "@number-flow/react";
 import { SineWaveGrid } from "./SineWaveGrid";
+import { getAspectRatioValue } from "~/lib/util";
 
 interface LoadingCardProps {
   item: GalleryItem;
-}
-
-function getAspectRatioValue(aspectRatio: AspectRatio | null): number {
-  if (!aspectRatio) {
-    return 1;
-  }
-
-  const [first, second] = aspectRatio.split(":");
-  return parseFloat(first) / parseFloat(second);
 }
 
 export function LoadingCard({ item }: LoadingCardProps) {
