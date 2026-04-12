@@ -92,7 +92,7 @@ export function Turn({ turn, turnIndex, isFirst = false }: TurnProps) {
                 thumbnailUrl={item.thumbnailUrl}
                 modelName={item.modelName}
                 isSelected={isSelected}
-                onClick={() => selectItem(isSelected ? null : item.id)}
+                onClick={() => selectItem(item.id)}
               />
             );
           }
