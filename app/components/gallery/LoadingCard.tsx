@@ -15,7 +15,8 @@ function getAspectRatioValue(aspectRatio: AspectRatio | null): number {
     return 1;
   }
 
-  return aspectRatio.split(":").reduce((acc, val) => acc / parseInt(val, 10), 1);
+  const [first, second] = aspectRatio.split(":");
+  return parseFloat(first) / parseFloat(second);
 }
 
 export function LoadingCard({ item }: LoadingCardProps) {
