@@ -1,7 +1,8 @@
-import { Check, Link2 } from "lucide-react";
+import { Check, Link2, Maximize2 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useGalleryStore } from "~/stores/galleryStore";
 import { useEditorStore } from "~/stores/editorStore";
+import { useLightboxStore } from "~/stores/lightboxStore";
 import type { EditorTurn } from "~/types";
 import { SineWaveGrid } from "~/components/gallery/SineWaveGrid";
 import { useGalleryDerivedIndexes } from "~/hooks/useGalleryDerivedIndexes";
@@ -21,7 +22,6 @@ export function Turn({ turn, turnIndex, isFirst = false }: TurnProps) {
 
   const selectedItemId = useEditorStore((s) => s.selectedItemId);
   const selectItem = useEditorStore((s) => s.selectItem);
-  const sourceBlob = useEditorStore((s) => s.sourceBlob);
   const turns = useEditorStore((s) => s.turns);
 
   // Source thumbnail URL: comes from the item used as reference, or source blob
@@ -56,6 +56,8 @@ export function Turn({ turn, turnIndex, isFirst = false }: TurnProps) {
     }
   }, [items, isLastTurn, selectedItemId, selectItem]);
 
+  if (items.filter(Boolean).length === 0) return null;
+
   return (
     <div className="animate-fade-in flex w-full flex-col items-center">
       {/* Turn header */}
@@ -85,6 +87,7 @@ export function Turn({ turn, turnIndex, isFirst = false }: TurnProps) {
             return (
               <EditorImageCard
                 key={item.id}
+                itemId={item.id}
                 thumbnailUrl={item.thumbnailUrl}
                 modelName={item.modelName}
                 isSelected={isSelected}
@@ -105,13 +108,16 @@ function EditorImageCard({
   modelName,
   isSelected,
   onClick,
+  itemId,
 }: {
   thumbnailUrl: string;
   modelName: string;
   isSelected: boolean;
   onClick: () => void;
+  itemId: string;
 }) {
   const [isLoaded, setIsLoaded] = useState(false);
+  const openLightbox = useLightboxStore((s) => s.openLightbox);
 
   return (
     <button
@@ -141,10 +147,23 @@ function EditorImageCard({
         {modelName}
       </div>
 
+      {/* Lightbox button */}
+      <div
+        className="absolute top-2 left-2 z-10 opacity-0 transition-opacity duration-150 group-hover:opacity-100"
+        onClick={(e) => {
+          e.stopPropagation();
+          openLightbox({ kind: "gallery", imageId: itemId });
+        }}
+      >
+        <div className="flex h-7 w-7 items-center justify-center rounded-md bg-black/60 backdrop-blur-sm">
+          <Maximize2 className="h-4 w-4 text-white/80" />
+        </div>
+      </div>
+
       {/* Selection checkmark */}
       {isSelected && (
-        <div className="absolute top-2 right-2 flex h-5 w-5 items-center justify-center rounded-full bg-purple-500">
-          <Check className="h-3 w-3 text-white" />
+        <div className="absolute top-2 left-2 flex h-7 w-7 items-center justify-center rounded-md bg-purple-500">
+          <Check className="h-4 w-4 text-white" />
         </div>
       )}
 

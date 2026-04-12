@@ -12,7 +12,7 @@ import {
   Layers,
   Layers2,
 } from "lucide-react";
-import { useNavigate } from "react-router";
+import { useLocation, useNavigate } from "react-router";
 import { useGalleryStore } from "~/stores/galleryStore";
 import { useLightboxStore } from "~/stores/lightboxStore";
 import { useSettingsStore } from "~/stores/settingsStore";
@@ -33,6 +33,7 @@ import type { ReferenceImage, StoredEditorSession } from "~/types";
 
 export function Lightbox() {
   const navigate = useNavigate();
+  const location = useLocation();
   const closeLightbox = useLightboxStore((s) => s.closeLightbox);
   const deleteItem = useGalleryStore((s) => s.deleteItem);
   const reuseGalleryItemPrompt = useReuseGalleryItemPrompt();
@@ -257,19 +258,21 @@ export function Lightbox() {
                 {galleryImage.modelName}
               </h2>
               <div className="flex items-center gap-1">
-                <WideIconButton
-                  icon={
-                    <span className="relative">
-                      <FilePenLine className="h-4 w-4" />
-                      {linkedSession && (
-                        <span className="absolute -top-1 -right-1 h-1.5 w-1.5 rounded-full bg-purple-400" />
-                      )}
-                    </span>
-                  }
-                  title="Editor"
-                  tooltip={linkedSession ? "Resume editing session" : undefined}
-                  onClick={handleSendToEditor}
-                />
+                {location.pathname !== "/editor" && (
+                  <WideIconButton
+                    icon={
+                      <span className="relative">
+                        <FilePenLine className="h-4 w-4" />
+                        {linkedSession && (
+                          <span className="absolute -top-1 -right-1 h-1.5 w-1.5 rounded-full bg-purple-400" />
+                        )}
+                      </span>
+                    }
+                    title="Editor"
+                    tooltip={linkedSession ? "Resume editing session" : undefined}
+                    onClick={handleSendToEditor}
+                  />
+                )}
                 <WideIconButton
                   icon={<Expand className="h-4 w-4" />}
                   title={"Upscale"}

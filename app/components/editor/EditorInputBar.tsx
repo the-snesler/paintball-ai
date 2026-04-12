@@ -194,7 +194,12 @@ export function EditorInputBar({ onSourceFile }: EditorInputBarProps) {
   const canAttachMore = referenceEnabled && referenceImages.length < referenceLimit;
 
   const hasSource = sourceBlob !== null;
-  const canSubmit = hasSource && instruction.trim().length > 0 && !isGenerating && !isAnalyzing;
+  const canSubmit =
+    hasSource &&
+    instruction.trim().length > 0 &&
+    !isGenerating &&
+    !isAnalyzing &&
+    selectedModelIds.length > 0;
 
   // Resolve current canvas blob
   const getCanvasBlob = useCallback((): Blob | null => {
