@@ -197,7 +197,6 @@ export function EditorInputBar({ onSourceFile }: EditorInputBarProps) {
   const canSubmit =
     hasSource &&
     instruction.trim().length > 0 &&
-    !isGenerating &&
     !isAnalyzing &&
     selectedModelIds.length > 0;
 
@@ -536,7 +535,6 @@ export function EditorInputBar({ onSourceFile }: EditorInputBarProps) {
                     ? "Describe your edit… (Ctrl+Enter to send)"
                     : "Select an image above, then describe your edit…"
               }
-              disabled={isGenerating}
               rows={1}
               className="field-sizing-content max-h-48 min-h-11 w-full resize-none rounded-t-xl bg-transparent px-4 pt-3 pb-2 text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none disabled:cursor-not-allowed"
             />
@@ -612,7 +610,7 @@ export function EditorInputBar({ onSourceFile }: EditorInputBarProps) {
                     type="button"
                     onClick={() => void handleImprove()}
                     disabled={
-                      !isTextModelAvailable() || !instruction.trim() || isImproving || isGenerating
+                      !isTextModelAvailable() || !instruction.trim() || isImproving
                     }
                     className="flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs text-zinc-500 transition-colors hover:bg-zinc-700/60 hover:text-zinc-300 disabled:cursor-not-allowed disabled:opacity-40"
                   >
