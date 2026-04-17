@@ -1,4 +1,5 @@
 import JSZip from "jszip";
+import mime from "mime/lite";
 import type { StoredImageRecord } from "~/types";
 import { getAllImages, getExistingImageIds, importImage } from "./db";
 import { createThumbnailBlob } from "./imageProcessing";
@@ -9,28 +10,6 @@ import { createThumbnailBlob } from "./imageProcessing";
 type ManifestEntry = Omit<StoredImageRecord, "originalBlob" | "thumbnailBlob"> & {
   filename: string;
 };
-
-function getBlobExtension(blob: Blob): string {
-  const type = blob.type.toLowerCase();
-  if (type.includes("png")) return "png";
-  if (type.includes("webp")) return "webp";
-  if (type.includes("jpeg") || type.includes("jpg")) return "jpg";
-  return "png";
-}
-
-function extensionToMimeType(ext: string): string {
-  switch (ext) {
-    case "png":
-      return "image/png";
-    case "webp":
-      return "image/webp";
-    case "jpg":
-    case "jpeg":
-      return "image/jpeg";
-    default:
-      return "image/png";
-  }
-}
 
 export async function exportAllImages(
   onProgress?: (current: number, total: number) => void
@@ -43,7 +22,7 @@ export async function exportAllImages(
 
   for (let i = 0; i < images.length; i++) {
     const image = images[i];
-    const ext = getBlobExtension(image.originalBlob);
+    const ext = mime.getExtension(image.originalBlob.type) || "png";
     const filename = `images/${image.id}.${ext}`;
 
     zip.file(filename, image.originalBlob);
@@ -113,7 +92,9 @@ export async function importFromZip(
 
       const ext = entry.filename.split(".").pop() || "png";
       const arrayBuffer = await imageFile.async("arraybuffer");
-      const originalBlob = new Blob([arrayBuffer], { type: extensionToMimeType(ext) });
+      const originalBlob = new Blob([arrayBuffer], {
+        type: mime.getType(ext) || "application/octet-stream",
+      });
       const thumbnailBlob = await createThumbnailBlob(originalBlob, 400);
 
       // Spread the manifest entry so any new fields added to StoredImageRecord
