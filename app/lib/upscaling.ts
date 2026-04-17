@@ -13,8 +13,18 @@ export interface UpscalerOption {
 export const UPSCALERS: UpscalerOption[] = [
   { id: "nightmareai/real-esrgan", label: "Real-ESRGAN 2x", scale: 2, scaleParam: "scale" },
   { id: "nightmareai/real-esrgan", label: "Real-ESRGAN 4x", scale: 4, scaleParam: "scale" },
-  { id: "zsxkib/aura-sr-v2", label: "AuraSR 4x", scale: null, scaleParam: null },
-  { id: "philz1337x/clarity-upscaler", label: "Clarity", scale: null, scaleParam: null },
+  {
+    id: "zsxkib/aura-sr-v2:5c137257cce8d5ce16e8a334b70e9e025106b5580affed0bc7d48940b594e74c",
+    label: "AuraSR 4x",
+    scale: null,
+    scaleParam: null,
+  },
+  {
+    id: "philz1337x/clarity-upscaler:dfad41707589d68ecdccd1dfa600d55a208f9310748e44bfe35b4a6291453d5e",
+    label: "Clarity",
+    scale: null,
+    scaleParam: null,
+  },
 ];
 
 export async function executeUpscale(
