@@ -290,6 +290,31 @@ export async function deleteReferenceImage(id: string): Promise<void> {
   await awaitTransaction(transaction, undefined);
 }
 
+export async function getAllReferenceImages(): Promise<Omit<ReferenceImage, "url">[]> {
+  const db = await initDB();
+
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(STORES.references, "readonly");
+    const request = transaction.objectStore(STORES.references).getAll();
+    request.onerror = () => reject(request.error);
+    request.onsuccess = () =>
+      resolve(
+        request.result as { id: string; blob: Blob; name: string; sourceGalleryItemId?: string }[]
+      );
+  });
+}
+
+export async function getExistingReferenceImageIds(): Promise<Set<string>> {
+  const db = await initDB();
+
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(STORES.references, "readonly");
+    const request = transaction.objectStore(STORES.references).getAllKeys();
+    request.onerror = () => reject(request.error);
+    request.onsuccess = () => resolve(new Set(request.result as string[]));
+  });
+}
+
 export async function importImage(record: StoredImageRecord): Promise<void> {
   const db = await initDB();
 

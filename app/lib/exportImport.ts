@@ -1,7 +1,14 @@
 import JSZip from "jszip";
 import mime from "mime/lite";
 import type { StoredImageRecord } from "~/types";
-import { getAllImages, getExistingImageIds, importImage } from "./db";
+import {
+  getAllImages,
+  getAllReferenceImages,
+  getExistingImageIds,
+  getExistingReferenceImageIds,
+  importImage,
+  saveReferenceImage,
+} from "./db";
 import { createThumbnailBlob } from "./imageProcessing";
 
 // Derived from StoredImageRecord so any new field added there is automatically
@@ -9,6 +16,13 @@ import { createThumbnailBlob } from "./imageProcessing";
 // live as separate files inside the zip).
 type ManifestEntry = Omit<StoredImageRecord, "originalBlob" | "thumbnailBlob"> & {
   filename: string;
+};
+
+type ReferencesManifestEntry = {
+  id: string;
+  name: string;
+  filename: string;
+  sourceGalleryItemId?: string;
 };
 
 export async function exportAllImages(
@@ -38,6 +52,18 @@ export async function exportAllImages(
   }
 
   zip.file("manifest.json", JSON.stringify(manifest, null, 2));
+
+  const referenceImages = await getAllReferenceImages();
+  const referencesManifest: ReferencesManifestEntry[] = [];
+  for (const ref of referenceImages) {
+    const ext = mime.getExtension(ref.blob.type) || "png";
+    const filename = `references/${ref.id}.${ext}`;
+    zip.file(filename, ref.blob);
+    const entry: ReferencesManifestEntry = { id: ref.id, name: ref.name, filename };
+    if (ref.sourceGalleryItemId) entry.sourceGalleryItemId = ref.sourceGalleryItemId;
+    referencesManifest.push(entry);
+  }
+  zip.file("references-manifest.json", JSON.stringify(referencesManifest, null, 2));
 
   const blob = await zip.generateAsync({ type: "blob" });
   const date = new Date().toISOString().slice(0, 10);
@@ -113,6 +139,42 @@ export async function importFromZip(
       result.imported++;
     } catch {
       result.failed++;
+    }
+  }
+
+  const referencesManifestFile = zip.file("references-manifest.json");
+  if (referencesManifestFile) {
+    const referencesManifest: ReferencesManifestEntry[] = JSON.parse(
+      await referencesManifestFile.async("text")
+    );
+    const existingRefIds = await getExistingReferenceImageIds();
+
+    for (const entry of referencesManifest) {
+      if (existingRefIds.has(entry.id)) {
+        result.skipped++;
+        continue;
+      }
+      try {
+        const refFile = zip.file(entry.filename);
+        if (!refFile) {
+          result.failed++;
+          continue;
+        }
+        const ext = entry.filename.split(".").pop() || "png";
+        const arrayBuffer = await refFile.async("arraybuffer");
+        const blob = new Blob([arrayBuffer], {
+          type: mime.getType(ext) || "application/octet-stream",
+        });
+        await saveReferenceImage({
+          id: entry.id,
+          name: entry.name,
+          blob,
+          sourceGalleryItemId: entry.sourceGalleryItemId,
+        });
+        result.imported++;
+      } catch {
+        result.failed++;
+      }
     }
   }
 
