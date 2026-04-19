@@ -41,8 +41,8 @@ export function TurnList() {
   }, [analysisResult]);
 
   return (
-    <div ref={scrollRef} className="max-h-full flex-1 overflow-x-hidden overflow-y-auto">
-      <div className="mx-auto flex flex-col items-center gap-8 px-6 pt-6 pb-48">
+    <div ref={scrollRef} className="max-h-full flex-1 overflow-x-hidden overflow-y-auto" style={{ scrollPaddingBottom: "var(--editor-input-height, 12rem)" }}>
+      <div className="mx-auto flex flex-col items-center gap-8 px-6 pt-6" style={{ paddingBottom: "var(--editor-input-height, 12rem)" }}>
         {/* Source image "turn zero" */}
         {sourceUrl && (
           <SourceTurn

@@ -488,8 +488,26 @@ export function EditorInputBar({ onSourceFile }: EditorInputBarProps) {
 
   const turnCount = turns.length;
 
+  const barRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = barRef.current;
+    if (!el) return;
+    const observer = new ResizeObserver(() => {
+      document.documentElement.style.setProperty(
+        "--editor-input-height",
+        `${el.offsetHeight}px`
+      );
+    });
+    observer.observe(el);
+    return () => {
+      observer.disconnect();
+      document.documentElement.style.removeProperty("--editor-input-height");
+    };
+  }, []);
+
   return (
-    <div className="absolute right-0 bottom-0 left-0">
+    <div ref={barRef} className="absolute right-0 bottom-0 left-0">
       <div className="bg-linear-to-t from-zinc-950 via-zinc-950/95 to-transparent px-6 pt-8 pb-4">
         <div className="mx-auto max-w-4xl">
           {/* Textarea */}
