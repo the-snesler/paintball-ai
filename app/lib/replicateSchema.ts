@@ -1,23 +1,7 @@
+import { dereferenceProperties, type OpenApiSchemaProperty } from "~/lib/openapi";
 import { SCHEMA_MAPPING_SYSTEM } from "~/lib/prompts";
 import { callTextModel } from "~/lib/textModel";
 import type { ModelCapabilities, SchemaMapping } from "~/types";
-
-interface SchemaMappingWithRatios extends SchemaMapping {
-  supportedAspectRatios?: string[];
-}
-
-interface SchemaProperty {
-  type?: string;
-  enum?: string[];
-  items?: { type: string; format?: string };
-  default?: unknown;
-  description?: string;
-  title?: string;
-  $ref?: string;
-  allOf?: Array<{ $ref?: string } & Partial<SchemaProperty>>;
-  anyOf?: Array<{ $ref?: string } & Partial<SchemaProperty>>;
-  oneOf?: Array<{ $ref?: string } & Partial<SchemaProperty>>;
-}
 
 interface ReplicateModelResponse {
   name: string;
@@ -25,10 +9,20 @@ interface ReplicateModelResponse {
   latest_version?: {
     openapi_schema?: {
       components?: {
-        schemas?: Record<string, SchemaProperty>;
+        schemas?: Record<string, OpenApiSchemaProperty>;
       };
     };
   };
+}
+
+interface HeuristicResult {
+  capabilities: ModelCapabilities;
+  detectedAspectRatioKey?: string;
+}
+
+interface SchemaAnalysis {
+  mapping: SchemaMapping;
+  supportedAspectRatios?: string[];
 }
 
 /**
@@ -46,63 +40,20 @@ export async function resolveModelCapabilities(
   icon: string | undefined;
 }> {
   onProgress?.("Fetching schema...");
-  const { name, capabilities, rawProperties, detectedAspectRatioKey } = await fetchModelRaw(
-    modelId,
-    apiKey
-  );
-  const icon = inferIcon(modelId);
+  const { name, properties } = await fetchReplicateModelSchema(modelId, apiKey);
+  const heuristic = inferCapabilitiesFromProperties(properties);
 
   onProgress?.("Analyzing parameters...");
-  const llmResult = (await generateSchemaMapping(rawProperties)) ?? undefined;
+  const analysis = await analyzeSchemaWithTextModel(properties);
 
-  // Separate supportedAspectRatios (goes into capabilities) from the rest (schemaMapping)
-  let supportedAspectRatios: string[] | undefined;
-  let schemaMapping: SchemaMapping | undefined;
-
-  if (llmResult) {
-    const { supportedAspectRatios: llmRatios, ...rest } = llmResult;
-    supportedAspectRatios = llmRatios;
-    schemaMapping = Object.keys(rest).length > 0 ? rest : undefined;
-  }
-
-  // If heuristic detected a non-standard aspect ratio key and LLM didn't, include it
-  if (detectedAspectRatioKey && detectedAspectRatioKey !== "aspect_ratio") {
-    if (!schemaMapping?.aspectRatioKey) {
-      schemaMapping = { ...(schemaMapping ?? {}), aspectRatioKey: detectedAspectRatioKey };
-    }
-  }
-
-  // Reconcile: LLM findings are authoritative over heuristic parseCapabilities
-  if (supportedAspectRatios !== undefined) {
-    capabilities.supportedAspectRatios = supportedAspectRatios;
-  }
-
-  if (schemaMapping) {
-    if (schemaMapping.imageInputKey && !capabilities.supportsReferenceImages) {
-      capabilities.supportsReferenceImages = true;
-      capabilities.maxReferenceImages =
-        schemaMapping.maxReferenceImages ??
-        (rawProperties[schemaMapping.imageInputKey]?.type === "array" ? 10 : 1);
-    } else if (schemaMapping.maxReferenceImages) {
-      capabilities.maxReferenceImages = schemaMapping.maxReferenceImages;
-    }
-    if (schemaMapping.resolution && !capabilities.supportsResolution) {
-      capabilities.supportsResolution = true;
-    }
-  }
-
-  return { name, capabilities, schemaMapping, icon };
+  const { capabilities, schemaMapping } = mergeAnalysis(heuristic, analysis, properties);
+  return { name, capabilities, schemaMapping, icon: inferIcon(modelId) };
 }
 
-async function fetchModelRaw(
+async function fetchReplicateModelSchema(
   modelId: string,
   apiKey: string
-): Promise<{
-  name: string;
-  capabilities: ModelCapabilities;
-  rawProperties: Record<string, SchemaProperty>;
-  detectedAspectRatioKey?: string;
-}> {
+): Promise<{ name: string; properties: Record<string, OpenApiSchemaProperty> }> {
   const response = await fetch(`/proxy/replicate/v1/models/${modelId}`, {
     headers: {
       Authorization: `Bearer ${apiKey}`,
@@ -115,36 +66,34 @@ async function fetchModelRaw(
 
   const data: ReplicateModelResponse = await response.json();
   const allSchemas = data.latest_version?.openapi_schema?.components?.schemas ?? {};
-  const inputSchema = allSchemas["Input"] as { properties?: Record<string, SchemaProperty> } | undefined;
+  const inputSchema = allSchemas["Input"] as
+    | { properties?: Record<string, OpenApiSchemaProperty> }
+    | undefined;
   const rawProperties = inputSchema?.properties ?? {};
   const properties = dereferenceProperties(rawProperties, allSchemas);
 
-  const { capabilities, detectedAspectRatioKey } = parseCapabilities(properties);
   const rawName = data.name || modelId.split("/").pop() || modelId;
-  const name = rawName.replace(/[-_]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()); // replace dashes/underscores with spaces and capitalize words
+  const name = rawName.replace(/[-_]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 
-  return { name, capabilities, rawProperties: properties, detectedAspectRatioKey };
+  return { name, properties };
 }
 
 /**
- * Parse schema properties into our ModelCapabilities format
+ * Heuristic capability detection from dereferenced schema properties.
  */
-function parseCapabilities(properties: Record<string, SchemaProperty>): {
-  capabilities: ModelCapabilities;
-  detectedAspectRatioKey?: string;
-} {
+function inferCapabilitiesFromProperties(
+  properties: Record<string, OpenApiSchemaProperty>
+): HeuristicResult {
   const aspectRatioKeys = ["aspect_ratio", "aspectRatio", "output_aspect_ratio"];
   const detectedAspectRatioKey = aspectRatioKeys.find((key) => properties[key]);
   const supportsAspectRatios = !!detectedAspectRatioKey;
 
-  // Check for resolution/megapixels support
   const supportsResolution = !!(
     properties.resolution ||
     properties.megapixels ||
     properties.output_resolution
   );
 
-  // Check for reference image support - various property names used
   const imageProps = [
     "image",
     "image_input",
@@ -154,18 +103,12 @@ function parseCapabilities(properties: Record<string, SchemaProperty>): {
     "init_image",
     "control_image",
   ];
-
   const imageProperty = imageProps.find((prop) => properties[prop]);
   const supportsReferenceImages = !!imageProperty;
 
-  // Infer max reference images
   let maxReferenceImages = 1;
-  if (imageProperty) {
-    const prop = properties[imageProperty];
-    // If it's an array type, allow multiple
-    if (prop.type === "array") {
-      maxReferenceImages = 10; // Default max for array inputs
-    }
+  if (imageProperty && properties[imageProperty].type === "array") {
+    maxReferenceImages = 10;
   }
 
   return {
@@ -179,55 +122,16 @@ function parseCapabilities(properties: Record<string, SchemaProperty>): {
   };
 }
 
-function resolveRef(
-  ref: string,
-  allSchemas: Record<string, SchemaProperty>
-): SchemaProperty | undefined {
-  const match = ref.match(/^#\/components\/schemas\/(.+)$/);
-  return match ? allSchemas[match[1]] : undefined;
-}
-
-function dereferenceProperties(
-  properties: Record<string, SchemaProperty>,
-  allSchemas: Record<string, SchemaProperty>
-): Record<string, SchemaProperty> {
-  const result: Record<string, SchemaProperty> = {};
-  for (const [key, prop] of Object.entries(properties)) {
-    const collected: Partial<SchemaProperty> = {};
-
-    for (const compositionKey of ["allOf", "anyOf", "oneOf"] as const) {
-      for (const item of prop[compositionKey] ?? []) {
-        if (item.$ref) {
-          const resolved = resolveRef(item.$ref, allSchemas);
-          if (resolved) Object.assign(collected, resolved);
-        } else {
-          const { $ref: _, ...rest } = item;
-          Object.assign(collected, rest);
-        }
-      }
-    }
-    if (prop.$ref) {
-      const resolved = resolveRef(prop.$ref, allSchemas);
-      if (resolved) Object.assign(collected, resolved);
-    }
-
-    const { $ref, allOf, anyOf, oneOf, ...ownFields } = prop;
-    result[key] = { ...collected, ...ownFields };
-  }
-  return result;
-}
-
 /**
- * Use text model to generate parameter mappings from a raw Replicate schema.
- * Returns null if the text model is unavailable or response can't be parsed.
+ * Ask the text model to produce parameter mappings and enumerate supported aspect ratios.
+ * Returns null if the text model is unavailable, response can't be parsed, or nothing useful was found.
  */
-async function generateSchemaMapping(
-  rawProperties: Record<string, SchemaProperty>
-): Promise<SchemaMappingWithRatios | null> {
+async function analyzeSchemaWithTextModel(
+  properties: Record<string, OpenApiSchemaProperty>
+): Promise<SchemaAnalysis | null> {
   try {
-    const response = await callTextModel(SCHEMA_MAPPING_SYSTEM, JSON.stringify(rawProperties));
+    const response = await callTextModel(SCHEMA_MAPPING_SYSTEM, JSON.stringify(properties));
 
-    // Extract JSON from response (handle markdown code blocks)
     const jsonMatch = response.match(/```(?:json)?\s*([\s\S]*?)```/) || [null, response];
     const jsonStr = (jsonMatch[1] ?? response).trim();
     const parsed = JSON.parse(jsonStr);
@@ -236,51 +140,80 @@ async function generateSchemaMapping(
       return null;
     }
 
-    // Validate and build a clean SchemaMapping + extracted aspect ratios
-    const mapping: SchemaMappingWithRatios = {};
+    const mapping: SchemaMapping = {};
+    let supportedAspectRatios: string[] | undefined;
 
     if (parsed.resolution && typeof parsed.resolution === "object") {
       mapping.resolution = parsed.resolution;
     }
-
     if (typeof parsed.aspectRatioKey === "string" && parsed.aspectRatioKey !== "aspect_ratio") {
       mapping.aspectRatioKey = parsed.aspectRatioKey;
     }
-
+    if (typeof parsed.imageInputKey === "string" && parsed.imageInputKey !== "image_input") {
+      mapping.imageInputKey = parsed.imageInputKey;
+    }
+    if (typeof parsed.maxReferenceImages === "number" && parsed.maxReferenceImages > 0) {
+      mapping.maxReferenceImages = parsed.maxReferenceImages;
+    }
+    if (parsed.extraDefaults && typeof parsed.extraDefaults === "object") {
+      mapping.extraDefaults = parsed.extraDefaults;
+    }
     if (Array.isArray(parsed.supportedAspectRatios)) {
-      mapping.supportedAspectRatios = parsed.supportedAspectRatios.filter(
+      supportedAspectRatios = parsed.supportedAspectRatios.filter(
         (v: unknown): v is string => typeof v === "string"
       );
     }
 
-    if (typeof parsed.imageInputKey === "string" && parsed.imageInputKey !== "image_input") {
-      mapping.imageInputKey = parsed.imageInputKey;
-    }
-
-    if (typeof parsed.maxReferenceImages === "number" && parsed.maxReferenceImages > 0) {
-      mapping.maxReferenceImages = parsed.maxReferenceImages;
-    }
-
-    if (parsed.extraDefaults && typeof parsed.extraDefaults === "object") {
-      mapping.extraDefaults = parsed.extraDefaults;
-    }
-
-    // Return null if no mapping is needed
-    if (
-      !mapping.resolution &&
-      !mapping.aspectRatioKey &&
-      !mapping.supportedAspectRatios &&
-      !mapping.imageInputKey &&
-      !mapping.maxReferenceImages &&
-      !mapping.extraDefaults
-    ) {
+    const hasMapping = Object.keys(mapping).length > 0;
+    if (!hasMapping && !supportedAspectRatios) {
       return null;
     }
 
-    return mapping;
+    return { mapping, supportedAspectRatios };
   } catch {
     return null;
   }
+}
+
+/**
+ * Merge heuristic and LLM analyses into final capabilities + schemaMapping.
+ * LLM findings are authoritative; heuristic fills gaps.
+ */
+function mergeAnalysis(
+  heuristic: HeuristicResult,
+  analysis: SchemaAnalysis | null,
+  properties: Record<string, OpenApiSchemaProperty>
+): { capabilities: ModelCapabilities; schemaMapping: SchemaMapping | undefined } {
+  const capabilities: ModelCapabilities = { ...heuristic.capabilities };
+  const mapping: SchemaMapping = { ...(analysis?.mapping ?? {}) };
+
+  if (analysis?.supportedAspectRatios !== undefined) {
+    capabilities.supportedAspectRatios = analysis.supportedAspectRatios;
+  }
+
+  if (
+    heuristic.detectedAspectRatioKey &&
+    heuristic.detectedAspectRatioKey !== "aspect_ratio" &&
+    !mapping.aspectRatioKey
+  ) {
+    mapping.aspectRatioKey = heuristic.detectedAspectRatioKey;
+  }
+
+  if (mapping.imageInputKey && !capabilities.supportsReferenceImages) {
+    capabilities.supportsReferenceImages = true;
+    capabilities.maxReferenceImages =
+      mapping.maxReferenceImages ??
+      (properties[mapping.imageInputKey]?.type === "array" ? 10 : 1);
+  } else if (mapping.maxReferenceImages) {
+    capabilities.maxReferenceImages = mapping.maxReferenceImages;
+  }
+
+  if (mapping.resolution && !capabilities.supportsResolution) {
+    capabilities.supportsResolution = true;
+  }
+
+  const schemaMapping = Object.keys(mapping).length > 0 ? mapping : undefined;
+  return { capabilities, schemaMapping };
 }
 
 const ICON_PATTERNS: [RegExp, string][] = [
@@ -290,7 +223,7 @@ const ICON_PATTERNS: [RegExp, string][] = [
   [/^bytedance\/|seedream/i, "/icons/bytedance.svg"],
 ];
 
-export function inferIcon(modelId: string): string | undefined {
+function inferIcon(modelId: string): string | undefined {
   for (const [pattern, icon] of ICON_PATTERNS) {
     if (pattern.test(modelId)) {
       return icon;
