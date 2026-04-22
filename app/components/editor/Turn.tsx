@@ -1,8 +1,9 @@
-import { Check, Link2, Maximize2 } from "lucide-react";
+import { Check, Layers2, Link2, Maximize2, Square } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useGalleryStore } from "~/stores/galleryStore";
 import { useEditorStore } from "~/stores/editorStore";
 import { useLightboxStore } from "~/stores/lightboxStore";
+import { useDiffStore } from "~/stores/diffStore";
 import type { EditorTurn } from "~/types";
 import { SineWaveGrid } from "~/components/gallery/SineWaveGrid";
 import { useGalleryDerivedIndexes } from "~/hooks/useGalleryDerivedIndexes";
@@ -42,6 +43,19 @@ export function Turn({ turn, turnIndex, isFirst = false }: TurnProps) {
         return () => URL.revokeObjectURL(url);
       }
     }
+  }, [getItemById, turn.sourceItemId, turn.sourceBlob]);
+
+  // Parent blob (for diff viewer): either the source gallery item's full-res blob,
+  // or the original source blob if this turn edits the original.
+  const { parentBlob, parentLabel } = useMemo(() => {
+    if (turn.sourceItemId) {
+      const item = getItemById(turn.sourceItemId);
+      if (item && item.status === "completed") {
+        return { parentBlob: item.originalBlob, parentLabel: item.modelName };
+      }
+      return { parentBlob: null, parentLabel: undefined };
+    }
+    return { parentBlob: turn.sourceBlob ?? null, parentLabel: "Source" };
   }, [getItemById, turn.sourceItemId, turn.sourceBlob]);
 
   // Auto-select the first completed item in the most recent turn (once only)
@@ -93,6 +107,9 @@ export function Turn({ turn, turnIndex, isFirst = false }: TurnProps) {
                 modelName={item.modelName}
                 isSelected={isSelected}
                 onClick={() => selectItem(item.id)}
+                childBlob={item.originalBlob}
+                parentBlob={parentBlob}
+                parentLabel={parentLabel}
               />
             );
           }
@@ -110,15 +127,22 @@ function EditorImageCard({
   isSelected,
   onClick,
   itemId,
+  childBlob,
+  parentBlob,
+  parentLabel,
 }: {
   thumbnailUrl: string;
   modelName: string;
   isSelected: boolean;
   onClick: () => void;
   itemId: string;
+  childBlob: Blob;
+  parentBlob: Blob | null;
+  parentLabel?: string;
 }) {
   const [isLoaded, setIsLoaded] = useState(false);
   const openLightbox = useLightboxStore((s) => s.openLightbox);
+  const openDiff = useDiffStore((s) => s.openDiff);
 
   return (
     <button
@@ -148,25 +172,55 @@ function EditorImageCard({
         {modelName}
       </div>
 
-      {/* Lightbox button */}
-      <div
-        className="absolute top-2 left-2 z-10 opacity-0 transition-opacity duration-150 group-hover:opacity-100"
-        onClick={(e) => {
-          e.stopPropagation();
-          openLightbox({ kind: "gallery", imageId: itemId });
-        }}
-      >
-        <div className="flex h-7 w-7 items-center justify-center rounded-md bg-black/60 backdrop-blur-sm">
-          <Maximize2 className="h-4 w-4 text-white/80" />
+      {/* Toolbar */}
+      <div className="absolute top-2 left-2 z-10 flex items-center gap-1.5">
+        {/* Selection indicator (always visible) */}
+        <div
+          className={`flex h-7 w-7 items-center justify-center rounded-md backdrop-blur-sm ${
+            isSelected ? "bg-purple-500" : "bg-black/60"
+          }`}
+        >
+          {isSelected ? (
+            <Check className="h-4 w-4 text-white" />
+          ) : (
+            <Square className="h-4 w-4 text-white/80" />
+          )}
         </div>
-      </div>
 
-      {/* Selection checkmark */}
-      {isSelected && (
-        <div className="absolute top-2 left-2 flex h-7 w-7 items-center justify-center rounded-md bg-purple-500">
-          <Check className="h-4 w-4 text-white" />
+        {/* Maximize button (hover only) */}
+        <div
+          className="opacity-0 transition-opacity duration-150 group-hover:opacity-100"
+          onClick={(e) => {
+            e.stopPropagation();
+            openLightbox({ kind: "gallery", imageId: itemId });
+          }}
+        >
+          <div className="flex h-7 w-7 items-center justify-center rounded-md bg-black/60 backdrop-blur-sm">
+            <Maximize2 className="h-4 w-4 text-white/80" />
+          </div>
         </div>
-      )}
+
+        {/* Diff button (hover only) */}
+        {parentBlob && (
+          <div
+            className="opacity-0 transition-opacity duration-150 group-hover:opacity-100"
+            onClick={(e) => {
+              e.stopPropagation();
+              openDiff({
+                parentBlob,
+                childBlob,
+                parentLabel,
+                childLabel: modelName,
+              });
+            }}
+            title="Compare with source"
+          >
+            <div className="flex h-7 w-7 items-center justify-center rounded-md bg-black/60 backdrop-blur-sm">
+              <Layers2 className="h-4 w-4 text-white/80" />
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* Hover overlay hint when not selected */}
       {!isSelected && (
