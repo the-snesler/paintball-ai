@@ -1,7 +1,71 @@
+import { distance } from "fastest-levenshtein";
+import Replicate from "replicate";
 import { dereferenceProperties, type OpenApiSchemaProperty } from "~/lib/openapi";
 import { SCHEMA_MAPPING_SYSTEM } from "~/lib/prompts";
 import { callTextModel } from "~/lib/textModel";
 import type { ModelCapabilities, SchemaMapping } from "~/types";
+
+export interface ReplicateSearchResult {
+  id: string;
+  name: string;
+  description?: string;
+  coverImageUrl?: string;
+}
+
+interface ReplicateSearchResponse {
+  results: Array<{
+    owner: string;
+    name: string;
+    description?: string;
+    cover_image_url?: string;
+    latest_version?: {
+      openapi_schema?: {
+        components?: {
+          schemas?: any;
+        };
+      };
+    };
+  }>;
+}
+
+export async function searchReplicateModels(
+  query: string,
+  apiKey: string
+): Promise<ReplicateSearchResult[]> {
+  const response = await fetch("/proxy/replicate/v1/models", {
+    method: "QUERY",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "text/plain",
+    },
+    body: query,
+  });
+
+  if (!response.ok) return [];
+
+  const data: ReplicateSearchResponse = await response.json();
+
+  const imageModels = data.results.filter((r) => {
+    const outputSchema = r.latest_version?.openapi_schema?.components?.schemas?.Output;
+    return outputSchema?.items?.format === "uri" || outputSchema?.format === "uri";
+  });
+
+  imageModels.map((r) => ({
+    ...r,
+    name: inferName(`${r.owner}/${r.name}`),
+  }));
+
+  imageModels.sort((a, b) => {
+    return distance(query, a.name) - distance(query, b.name);
+  });
+
+  return imageModels.slice(0, 6).map((r) => ({
+    id: `${r.owner}/${r.name}`,
+    name: inferName(`${r.owner}/${r.name}`),
+    description: r.description,
+    coverImageUrl: r.cover_image_url,
+  }));
+}
 
 interface ReplicateModelResponse {
   name: string;
@@ -217,32 +281,39 @@ const ICON_PATTERNS: [RegExp, string][] = [
   [/^black-forest-labs\/|flux/i, "/icons/bfl.svg"],
   [/^google\/|gemini/i, "/icons/google.svg"],
   [/^bytedance\/|seedream/i, "/icons/bytedance.svg"],
+  [/recraft/i, "/icons/recraft.svg"],
 ];
 
-function inferIcon(modelId: string): string | undefined {
+const DEFAULT_ICON = "/icons/box.svg";
+
+export function inferIcon(modelId: string): string | undefined {
   for (const [pattern, icon] of ICON_PATTERNS) {
     if (pattern.test(modelId)) {
       return icon;
     }
   }
-  return undefined;
+  return DEFAULT_ICON;
 }
 
 // things that should have more than just title-casing and symbol replacement in the name
 const NAME_PATTERNS: [RegExp, string][] = [
   [/gpt/i, "GPT"],
   [/svg/i, "SVG"],
-]
+  [/v(\d)/i, "v$1"], // preserve "v1" instead of "V1"
+];
 
 /**
  * Converts "owner/model-name" to "Model Name", with some special cases for common patterns.
  */
-function inferName(modelId: string): string {
+export function inferName(modelId: string): string {
   let rawName = modelId.split("/").pop() || modelId;
+
+  rawName = rawName
+    .replace(/[-_]/g, " ") // Replace dashes and underscores with spaces
+    .replace(/\b\w/g, (c) => c.toUpperCase()); // Title-case each word
+
   for (const [pattern, replacement] of NAME_PATTERNS) {
     rawName = rawName.replace(pattern, replacement);
   }
-  rawName = rawName.replace(/[-_]/g, " ") // Replace dashes and underscores with spaces
-    .replace(/\b\w/g, (c) => c.toUpperCase()); // Title-case each word
   return rawName;
 }
