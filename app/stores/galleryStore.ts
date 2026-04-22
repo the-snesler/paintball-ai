@@ -11,9 +11,20 @@ import {
   getImageCount,
   PAGE_SIZE,
   deleteImage as dbDeleteImage,
+  deleteReferenceImage,
   toDisplayImage,
 } from "~/lib/db";
 import { useLightboxStore } from "./lightboxStore";
+
+function getOrphanedReferenceIds(removingIds: Set<string>, allItems: GalleryItem[]): string[] {
+  const removingRefs = new Set(
+    allItems.filter((i) => removingIds.has(i.id)).flatMap((i) => i.referenceImageIds)
+  );
+  const remainingRefs = new Set(
+    allItems.filter((i) => !removingIds.has(i.id)).flatMap((i) => i.referenceImageIds)
+  );
+  return [...removingRefs].filter((id) => !remainingRefs.has(id));
+}
 
 interface GalleryState {
   items: GalleryItem[];
@@ -125,6 +136,7 @@ export const useGalleryStore = create<GalleryState>()((set, get) => ({
   deleteItem: async (id) => {
     const state = get();
     const item = state.items.find((i) => i.id === id);
+    const orphanedRefIds = getOrphanedReferenceIds(new Set([id]), state.items);
 
     try {
       await dbDeleteImage(id);
@@ -145,16 +157,19 @@ export const useGalleryStore = create<GalleryState>()((set, get) => ({
       if (shouldCloseLightbox) {
         useLightboxStore.getState().closeLightbox();
       }
+      await Promise.all(orphanedRefIds.map((refId) => deleteReferenceImage(refId)));
     } catch (error) {
       console.error("Failed to delete image:", error);
       throw error;
     }
   },
 
-  dismissItem: (id) =>
-    set((state) => ({
-      items: state.items.filter((i) => i.id !== id),
-    })),
+  dismissItem: (id) => {
+    const state = get();
+    const orphanedRefIds = getOrphanedReferenceIds(new Set([id]), state.items);
+    void Promise.all(orphanedRefIds.map((refId) => deleteReferenceImage(refId)));
+    set((s) => ({ items: s.items.filter((i) => i.id !== id) }));
+  },
 
   getItem: (id) => get().items.find((i) => i.id === id),
 
@@ -228,6 +243,8 @@ export const useGalleryStore = create<GalleryState>()((set, get) => ({
       return 0;
     }
 
+    const orphanedRefIds = getOrphanedReferenceIds(selectedSet, state.items);
+
     await Promise.all(selectedItems.map((item) => dbDeleteImage(item.id)));
     selectedItems.forEach((item) => {
       URL.revokeObjectURL(item.originalUrl);
@@ -246,6 +263,7 @@ export const useGalleryStore = create<GalleryState>()((set, get) => ({
     if (shouldCloseLightbox) {
       useLightboxStore.getState().closeLightbox();
     }
+    await Promise.all(orphanedRefIds.map((refId) => deleteReferenceImage(refId)));
 
     return selectedItems.length;
   },
