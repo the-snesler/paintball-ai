@@ -40,20 +40,20 @@ export async function resolveModelCapabilities(
   icon: string | undefined;
 }> {
   onProgress?.("Fetching schema...");
-  const { name, properties } = await fetchReplicateModelSchema(modelId, apiKey);
+  const { properties } = await fetchReplicateModelSchema(modelId, apiKey);
   const heuristic = inferCapabilitiesFromProperties(properties);
 
   onProgress?.("Analyzing parameters...");
   const analysis = await analyzeSchemaWithTextModel(properties);
 
   const { capabilities, schemaMapping } = mergeAnalysis(heuristic, analysis, properties);
-  return { name, capabilities, schemaMapping, icon: inferIcon(modelId) };
+  return { name: inferName(modelId), capabilities, schemaMapping, icon: inferIcon(modelId) };
 }
 
 async function fetchReplicateModelSchema(
   modelId: string,
   apiKey: string
-): Promise<{ name: string; properties: Record<string, OpenApiSchemaProperty> }> {
+): Promise<{ properties: Record<string, OpenApiSchemaProperty> }> {
   const response = await fetch(`/proxy/replicate/v1/models/${modelId}`, {
     headers: {
       Authorization: `Bearer ${apiKey}`,
@@ -72,10 +72,7 @@ async function fetchReplicateModelSchema(
   const rawProperties = inputSchema?.properties ?? {};
   const properties = dereferenceProperties(rawProperties, allSchemas);
 
-  const rawName = data.name || modelId.split("/").pop() || modelId;
-  const name = rawName.replace(/[-_]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
-
-  return { name, properties };
+  return { properties };
 }
 
 /**
@@ -202,8 +199,7 @@ function mergeAnalysis(
   if (mapping.imageInputKey && !capabilities.supportsReferenceImages) {
     capabilities.supportsReferenceImages = true;
     capabilities.maxReferenceImages =
-      mapping.maxReferenceImages ??
-      (properties[mapping.imageInputKey]?.type === "array" ? 10 : 1);
+      mapping.maxReferenceImages ?? (properties[mapping.imageInputKey]?.type === "array" ? 10 : 1);
   } else if (mapping.maxReferenceImages) {
     capabilities.maxReferenceImages = mapping.maxReferenceImages;
   }
@@ -230,4 +226,23 @@ function inferIcon(modelId: string): string | undefined {
     }
   }
   return undefined;
+}
+
+// things that should have more than just title-casing and symbol replacement in the name
+const NAME_PATTERNS: [RegExp, string][] = [
+  [/gpt/i, "GPT"],
+  [/svg/i, "SVG"],
+]
+
+/**
+ * Converts "owner/model-name" to "Model Name", with some special cases for common patterns.
+ */
+function inferName(modelId: string): string {
+  let rawName = modelId.split("/").pop() || modelId;
+  for (const [pattern, replacement] of NAME_PATTERNS) {
+    rawName = rawName.replace(pattern, replacement);
+  }
+  rawName = rawName.replace(/[-_]/g, " ") // Replace dashes and underscores with spaces
+    .replace(/\b\w/g, (c) => c.toUpperCase()); // Title-case each word
+  return rawName;
 }

@@ -160,7 +160,7 @@ const BASE_BUILT_IN_MODELS: StoredModel[] = [
   },
   {
     id: "replicate/bytedance/seedream-4.5",
-    name: "SeeDream 4.5",
+    name: "Seedream 4.5",
     provider: "replicate",
     enabled: true,
     icon: "/icons/bytedance.svg",
