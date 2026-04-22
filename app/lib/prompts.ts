@@ -93,7 +93,7 @@ The mapping object has this shape:
 
 Our application sends these parameters to Replicate models:
 - resolution: one of "1K", "2K", "4K"
-- aspect_ratio: one of "1:1", "16:9", "9:16", "4:3", "3:4", "21:9"
+- aspect_ratio: a string in "W:H" format (e.g. "1:1", "16:9", "9:16", "3:2"), if the model supports aspect ratios
 - image_input: array of base64 data URIs for reference images
 - output_format: "png"
 - prompt: string
@@ -101,10 +101,10 @@ Our application sends these parameters to Replicate models:
 Rules:
 - Only include "resolution" if the model uses a different format than "1K"/"2K"/"4K" (e.g. megapixels like "1 MP", or pixel dimensions)
 - Only include "aspectRatioKey" if the model uses a property name other than "aspect_ratio" (e.g. "aspectRatio", "output_aspect_ratio")
-- Always include "supportedAspectRatios" if the model has an aspect ratio parameter. List every accepted value as a string in "W:H" format (e.g. "1:1", "16:9", "9:16", "3:2"). Extract values from enum constraints, allowed values in descriptions, or oneOf schemas. If the model has no aspect ratio parameter at all, omit this field entirely.
+- Always include "supportedAspectRatios" if the model has an aspect ratio parameter. List every accepted value as a string in "W:H" format (e.g. "1:1", "16:9", "9:16", "3:2"). Extract values from enum constraints, allowed values in descriptions, or oneOf schemas. If the aspect ratio property exists but has no enum or list of accepted values (open-ended support), set "supportedAspectRatios" to [] — do NOT invent or guess values. If the model has no aspect ratio parameter at all, omit this field entirely.
 - Only include "imageInputKey" if the model uses a property name other than "image_input" for reference images (e.g. "input_images", "image", "init_image")
 - Include "maxReferenceImages" if the schema specifies a maximum number of input/reference images (look in field descriptions for phrases like "Maximum N images" or "up to N"). Omit if no limit is stated.
 - Only include "extraDefaults" for parameters with important non-obvious defaults our app doesn't set
 - If there are values in the schema relating to things like safety filters or content restrictions, set them to their most permissive values in "extraDefaults" (e.g. "safety_filter": "off").
-- If no mapping is needed (the model already uses our format) AND there is no aspect ratio parameter, return {}
+- You should return at least an empty object if all parameters already conform to our schema.
 - Return ONLY valid the JSON mapping object, no explanation or markdown`;

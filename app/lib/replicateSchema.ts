@@ -7,11 +7,16 @@ interface SchemaMappingWithRatios extends SchemaMapping {
 }
 
 interface SchemaProperty {
-  type: string;
+  type?: string;
   enum?: string[];
   items?: { type: string; format?: string };
   default?: unknown;
   description?: string;
+  title?: string;
+  $ref?: string;
+  allOf?: Array<{ $ref?: string } & Partial<SchemaProperty>>;
+  anyOf?: Array<{ $ref?: string } & Partial<SchemaProperty>>;
+  oneOf?: Array<{ $ref?: string } & Partial<SchemaProperty>>;
 }
 
 interface ReplicateModelResponse {
@@ -20,11 +25,7 @@ interface ReplicateModelResponse {
   latest_version?: {
     openapi_schema?: {
       components?: {
-        schemas?: {
-          Input?: {
-            properties?: Record<string, SchemaProperty>;
-          };
-        };
+        schemas?: Record<string, SchemaProperty>;
       };
     };
   };
@@ -72,7 +73,7 @@ export async function resolveModelCapabilities(
   }
 
   // Reconcile: LLM findings are authoritative over heuristic parseCapabilities
-  if (supportedAspectRatios && supportedAspectRatios.length > 0) {
+  if (supportedAspectRatios !== undefined) {
     capabilities.supportedAspectRatios = supportedAspectRatios;
   }
 
@@ -113,8 +114,10 @@ async function fetchModelRaw(
   }
 
   const data: ReplicateModelResponse = await response.json();
-  const schema = data.latest_version?.openapi_schema?.components?.schemas?.Input;
-  const properties = schema?.properties || {};
+  const allSchemas = data.latest_version?.openapi_schema?.components?.schemas ?? {};
+  const inputSchema = allSchemas["Input"] as { properties?: Record<string, SchemaProperty> } | undefined;
+  const rawProperties = inputSchema?.properties ?? {};
+  const properties = dereferenceProperties(rawProperties, allSchemas);
 
   const { capabilities, detectedAspectRatioKey } = parseCapabilities(properties);
   const rawName = data.name || modelId.split("/").pop() || modelId;
@@ -176,6 +179,44 @@ function parseCapabilities(properties: Record<string, SchemaProperty>): {
   };
 }
 
+function resolveRef(
+  ref: string,
+  allSchemas: Record<string, SchemaProperty>
+): SchemaProperty | undefined {
+  const match = ref.match(/^#\/components\/schemas\/(.+)$/);
+  return match ? allSchemas[match[1]] : undefined;
+}
+
+function dereferenceProperties(
+  properties: Record<string, SchemaProperty>,
+  allSchemas: Record<string, SchemaProperty>
+): Record<string, SchemaProperty> {
+  const result: Record<string, SchemaProperty> = {};
+  for (const [key, prop] of Object.entries(properties)) {
+    const collected: Partial<SchemaProperty> = {};
+
+    for (const compositionKey of ["allOf", "anyOf", "oneOf"] as const) {
+      for (const item of prop[compositionKey] ?? []) {
+        if (item.$ref) {
+          const resolved = resolveRef(item.$ref, allSchemas);
+          if (resolved) Object.assign(collected, resolved);
+        } else {
+          const { $ref: _, ...rest } = item;
+          Object.assign(collected, rest);
+        }
+      }
+    }
+    if (prop.$ref) {
+      const resolved = resolveRef(prop.$ref, allSchemas);
+      if (resolved) Object.assign(collected, resolved);
+    }
+
+    const { $ref, allOf, anyOf, oneOf, ...ownFields } = prop;
+    result[key] = { ...collected, ...ownFields };
+  }
+  return result;
+}
+
 /**
  * Use text model to generate parameter mappings from a raw Replicate schema.
  * Returns null if the text model is unavailable or response can't be parsed.
@@ -206,7 +247,7 @@ async function generateSchemaMapping(
       mapping.aspectRatioKey = parsed.aspectRatioKey;
     }
 
-    if (Array.isArray(parsed.supportedAspectRatios) && parsed.supportedAspectRatios.length > 0) {
+    if (Array.isArray(parsed.supportedAspectRatios)) {
       mapping.supportedAspectRatios = parsed.supportedAspectRatios.filter(
         (v: unknown): v is string => typeof v === "string"
       );
