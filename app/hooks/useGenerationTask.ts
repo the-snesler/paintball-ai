@@ -7,7 +7,7 @@ import { providerRequiresApiKey } from "~/lib/providers";
 import { retryWithBackoff } from "~/lib/retry";
 import { useGalleryStore } from "~/stores/galleryStore";
 import { useSettingsStore } from "~/stores/settingsStore";
-import type { AspectRatio, GalleryItem, Provider, Resolution } from "~/types";
+import type { AspectRatio, Provider, Resolution } from "~/types";
 
 export interface GenerationTask {
   id: string;
@@ -27,17 +27,10 @@ interface RunTaskOptions {
   getCanRetry?: (error: unknown, task: GenerationTask) => boolean;
 }
 
-interface RunTasksOptions extends RunTaskOptions {
-  onItemsCreated?: (itemIds: string[]) => void;
-  /** Set when the caller has already added the pending items to the gallery store. */
-  itemsAlreadyAdded?: boolean;
-}
-
 export function useGenerationTask() {
   const apiKeys = useSettingsStore((s) => s.apiKeys);
   const models = useSettingsStore((s) => s.models);
   const incrementRequestedOutputCount = useSettingsStore((s) => s.incrementRequestedOutputCount);
-  const addItems = useGalleryStore((s) => s.addItems);
   const updateItem = useGalleryStore((s) => s.updateItem);
   const getItem = useGalleryStore((s) => s.getItem);
 
@@ -154,16 +147,11 @@ export function useGenerationTask() {
   const runTasks = useCallback(
     async (
       tasks: GenerationTask[],
-      pendingItems: GalleryItem[],
-      options: RunTasksOptions = {}
+      options: RunTaskOptions = {}
     ): Promise<PromiseSettledResult<GenerationResult>[]> => {
       if (tasks.length === 0) return [];
 
       incrementRequestedOutputCount(tasks.length);
-      if (!options.itemsAlreadyAdded) {
-        addItems(pendingItems);
-      }
-      options.onItemsCreated?.(tasks.map((task) => task.id));
 
       return Promise.allSettled(
         tasks.map((task) =>
@@ -174,7 +162,7 @@ export function useGenerationTask() {
         )
       );
     },
-    [addItems, incrementRequestedOutputCount, runTask]
+    [incrementRequestedOutputCount, runTask]
   );
 
   const retryItem = useCallback(

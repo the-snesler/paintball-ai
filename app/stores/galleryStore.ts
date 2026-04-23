@@ -54,6 +54,7 @@ interface GalleryState {
       variationReplacements?: string[];
     }>
   ) => void;
+  updatePendingPhase: (ids: string[], pendingPhase?: "writing" | "variating") => void;
   deleteItem: (id: string) => Promise<void>;
   dismissItem: (id: string) => void;
   getItem: (id: string) => GalleryItem | undefined;
@@ -136,8 +137,7 @@ export const useGalleryStore = create<GalleryState>()((set, get) => ({
   updateItem: (id, updates) =>
     set((state) => {
       const existing = state.items.find((item) => item.id === id);
-      const becomingCompleted =
-        updates.status === "completed" && existing?.status !== "completed";
+      const becomingCompleted = updates.status === "completed" && existing?.status !== "completed";
       return {
         items: state.items.map((item) => (item.id === id ? { ...item, ...updates } : item)),
         totalCount: becomingCompleted ? state.totalCount + 1 : state.totalCount,
@@ -156,6 +156,21 @@ export const useGalleryStore = create<GalleryState>()((set, get) => ({
             prompt: u.prompt,
             basePrompt: u.basePrompt,
             variationReplacements: u.variationReplacements,
+          };
+        }),
+      };
+    }),
+
+  updatePendingPhase: (ids, pendingPhase) =>
+    set((state) => {
+      const idSet = new Set(ids);
+      return {
+        items: state.items.map((item) => {
+          if (!idSet.has(item.id)) return item;
+          if (item.status !== "pending") return item;
+          return {
+            ...item,
+            pendingPhase,
           };
         }),
       };

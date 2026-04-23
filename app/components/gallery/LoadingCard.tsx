@@ -20,6 +20,14 @@ export function LoadingCard({ item }: LoadingCardProps) {
   const isFailed = item.status === "failed";
   const isWaiting = item.status === "waiting";
   const isGenerating = item.status === "generating" || item.status === "pending";
+  const generationLabel =
+    item.status === "pending"
+      ? item.pendingPhase === "writing"
+        ? "Writing..."
+        : item.pendingPhase === "variating"
+          ? "Variating..."
+          : "Generating..."
+      : "Generating...";
   const aspectRatio = getAspectRatioValue(item.aspectRatio);
 
   // Countdown timer for waiting state
@@ -140,7 +148,7 @@ export function LoadingCard({ item }: LoadingCardProps) {
       {/* Generating text overlay */}
       {isGenerating && (
         <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-          <p className="text-sm font-medium text-white/80 drop-shadow-lg">Generating...</p>
+          <p className="text-sm font-medium text-white/80 drop-shadow-lg">{generationLabel}</p>
           {retryCount !== undefined && retryCount > 0 && (
             <p className="mt-1 text-xs text-white/60">Attempt {retryCount + 1}</p>
           )}

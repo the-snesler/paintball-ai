@@ -88,6 +88,7 @@ export interface BaseGalleryItem {
 
 export interface PendingGalleryItemFields {
   status: "pending" | "generating" | "waiting";
+  pendingPhase?: "writing" | "variating";
   retryCount?: number;
   waitingUntil?: number; // Timestamp when rate limit expires
   retryAfter?: number; // Seconds to wait (for display)

@@ -5,16 +5,8 @@ import { useSettingsStore } from "~/stores/settingsStore";
 import { saveReferenceImage } from "~/lib/db";
 import { buildGenerationSignature } from "~/lib/generationSignature";
 import { getModel } from "~/lib/models";
-import { IMPROVE_PROMPT_SYSTEM } from "~/lib/prompts";
-import { callTextModel, isTextModelAvailable } from "~/lib/textModel";
+import { preparePromptBatch } from "~/lib/promptPreparation";
 import type { GalleryItem } from "~/types";
-import {
-  parseVariationSections,
-  generateVariations,
-  buildVariedPrompts,
-  stripVariationSections,
-  collectAvoidList,
-} from "~/lib/promptVariations";
 import { useGenerationTask, type GenerationTask } from "~/hooks/useGenerationTask";
 
 export function useImageGeneration() {
@@ -29,6 +21,7 @@ export function useImageGeneration() {
   const finishGeneration = useGenerationStore((s) => s.finishGeneration);
   const addItems = useGalleryStore((s) => s.addItems);
   const updatePendingPromptFields = useGalleryStore((s) => s.updatePendingPromptFields);
+  const updatePendingPhase = useGalleryStore((s) => s.updatePendingPhase);
   const { runTasks, retryItem } = useGenerationTask();
 
   const persistReferences = useCallback(
@@ -45,8 +38,7 @@ export function useImageGeneration() {
 
   const generate = useCallback(async () => {
     const variationsEnabled = useGenerationStore.getState().variationsEnabled;
-    const alwaysImprovePromptEnabled =
-      useSettingsStore.getState().alwaysImprovePromptEnabled;
+    const alwaysImprovePromptEnabled = useSettingsStore.getState().alwaysImprovePromptEnabled;
 
     const signature = buildGenerationSignature({
       prompt,
@@ -120,6 +112,7 @@ export function useImageGeneration() {
     }
 
     if (taskSlots.length === 0) return;
+    const taskIds = taskSlots.map((slot) => slot.id);
 
     // Show loading cards immediately and register the generation. The prompt-prep
     // pipeline runs concurrently — by the time pending items become `generating`,
@@ -138,71 +131,27 @@ export function useImageGeneration() {
       );
 
       const imageBlobs = referenceImages.map((r) => r.blob);
+      const { avoidPastVariations } = useGenerationStore.getState();
+      const { items } = useGalleryStore.getState();
+      const preparedPrompts = await preparePromptBatch({
+        prompt: originalPrompt,
+        totalTasks,
+        images: imageBlobs.length > 0 ? imageBlobs : undefined,
+        improvePrompt: alwaysImprovePromptEnabled,
+        variationsEnabled,
+        avoidPastVariations,
+        galleryItemsForAvoid: items,
+        onStageChange: (stage) => {
+          updatePendingPhase(taskIds, stage);
+        },
+      });
 
-      // Step 1: optionally improve the prompt (variation brackets are preserved).
-      let workingPrompt = originalPrompt;
-      let improved = false;
-      if (alwaysImprovePromptEnabled && isTextModelAvailable()) {
-        try {
-          const result = await callTextModel(
-            IMPROVE_PROMPT_SYSTEM,
-            originalPrompt,
-            imageBlobs.length > 0 ? imageBlobs : undefined
-          );
-          const trimmed = result.trim();
-          if (trimmed) {
-            workingPrompt = trimmed;
-            improved = trimmed !== originalPrompt;
-          }
-        } catch {
-          // Fall back to the original prompt
-        }
-      }
-
-      // Step 2: optionally generate prompt variations
-      let variedPrompts: string[] | null = null;
-      let variationReplacements: string[][] | null = null;
-      if (variationsEnabled) {
-        const sections = parseVariationSections(workingPrompt);
-        if (sections.length > 0) {
-          try {
-            const { avoidPastVariations } = useGenerationStore.getState();
-            const { items } = useGalleryStore.getState();
-            const avoidPerSection = avoidPastVariations
-              ? (collectAvoidList(workingPrompt, items) ?? undefined)
-              : undefined;
-            const replacements = await generateVariations(
-              workingPrompt,
-              sections,
-              totalTasks,
-              imageBlobs.length > 0 ? imageBlobs : undefined,
-              avoidPerSection
-            );
-            variedPrompts = buildVariedPrompts(workingPrompt, sections, replacements);
-            variationReplacements = replacements;
-          } catch {
-            variedPrompts = null;
-            variationReplacements = null;
-          }
-        }
-      }
-
-      // Step 3: compute final per-task prompt + basePrompt + replacements.
-      // basePrompt is the user's original prompt whenever any transformation
-      // (improve and/or variations) was applied.
-      const fallbackPrompt =
-        variationsEnabled && !variedPrompts
-          ? stripVariationSections(workingPrompt)
-          : workingPrompt;
-
-      const anyTransformApplied = improved || Boolean(variedPrompts);
+      const anyTransformApplied = preparedPrompts.improved || preparedPrompts.usedVariations;
       const groupPrompt = anyTransformApplied ? originalPrompt : undefined;
 
       const tasks: GenerationTask[] = taskSlots.map((slot, taskIndex) => {
-        const taskPrompt = variedPrompts ? variedPrompts[taskIndex] : fallbackPrompt;
-        const taskReplacements = variationReplacements
-          ? variationReplacements.map((col) => col[taskIndex])
-          : undefined;
+        const taskPrompt = preparedPrompts.prompts[taskIndex] ?? originalPrompt;
+        const taskReplacements = preparedPrompts.variationReplacementsByTask?.[taskIndex];
 
         return {
           id: slot.id,
@@ -232,8 +181,9 @@ export function useImageGeneration() {
           variationReplacements: t.variationReplacements,
         }))
       );
+      updatePendingPhase(taskIds, undefined);
 
-      return await runTasks(tasks, pendingItems, { itemsAlreadyAdded: true });
+      return await runTasks(tasks);
     } finally {
       finishGeneration(signature);
     }
@@ -250,6 +200,7 @@ export function useImageGeneration() {
     runTasks,
     addItems,
     updatePendingPromptFields,
+    updatePendingPhase,
   ]);
 
   return { generate, retryItem };
