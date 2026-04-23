@@ -8,7 +8,7 @@ import {
 } from "~/lib/replicateSchema";
 import SVG from "react-inlinesvg";
 import { useSettingsStore } from "~/stores/settingsStore";
-import * as Combobox from "@base-ui/react/combobox";
+import { Combobox } from "@base-ui/react/combobox";
 
 export default function AddCustomModelButton({
   disabled,
