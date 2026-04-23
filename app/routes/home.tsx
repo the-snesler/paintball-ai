@@ -9,6 +9,7 @@ import { useGalleryStore } from "~/stores/galleryStore";
 import { useLightboxStore } from "~/stores/lightboxStore";
 import { useSettingsStore } from "~/stores/settingsStore";
 import { useGalleryDerivedIndexes } from "~/hooks/useGalleryDerivedIndexes";
+import { useLightboxUrlSync } from "~/hooks/useLightboxUrlSync";
 
 export function meta({}: Route.MetaArgs) {
   return [
@@ -23,6 +24,7 @@ export default function Home() {
   const isLightboxOpen = useLightboxStore((s) => s.isLightboxOpen);
   const desktopNotificationsEnabled = useSettingsStore((s) => s.desktopNotificationsEnabled);
   const { inFlightCount } = useGalleryDerivedIndexes();
+  useLightboxUrlSync();
   const previousInFlightCountRef = useRef(0);
 
   useEffect(() => {
