@@ -152,9 +152,14 @@ export interface AttachSelectedItemsResult {
 }
 
 // Text model types
-export interface TextModelConfig {
+export interface StoredTextModel {
+  id: string; // stable unique id, e.g. "google:gemini-3-flash-preview" or "replicate:google/gemini-3-flash"
+  name: string;
   provider: ApiKeyProvider;
-  modelId: string;
+  modelId: string; // SDK model identifier
+  enabled: boolean; // exactly one is true at a time
+  isCustom?: boolean;
+  icon?: string;
 }
 
 export interface SchemaMapping {

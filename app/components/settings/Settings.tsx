@@ -37,10 +37,8 @@ const providers: { id: ApiKeyProvider; name: string; description: string; link: 
 
 export function SettingsModal() {
   const apiKeys = useSettingsStore((s) => s.apiKeys);
-  const textModel = useSettingsStore((s) => s.textModel);
   const desktopNotificationsEnabled = useSettingsStore((s) => s.desktopNotificationsEnabled);
   const setApiKey = useSettingsStore((s) => s.setApiKey);
-  const setTextModel = useSettingsStore((s) => s.setTextModel);
   const editorContextInjectionEnabled = useSettingsStore((s) => s.editorContextInjectionEnabled);
   const alwaysImprovePromptEnabled = useSettingsStore((s) => s.alwaysImprovePromptEnabled);
   const setDesktopNotificationsEnabled = useSettingsStore((s) => s.setDesktopNotificationsEnabled);
@@ -190,12 +188,12 @@ export function SettingsModal() {
           </div>
         </details>
 
-        {/* Text Model Section */}
+        {/* Text Generation Section */}
         <details className="group space-y-3" open>
           <summary className="flex w-full cursor-pointer list-none items-center justify-between text-left [&::-webkit-details-marker]:hidden">
             <div className="flex items-center gap-2">
               <MessageSquareText className="h-4 w-4 text-purple-400" />
-              <span className="text-sm font-medium">Text model</span>
+              <span className="text-sm font-medium">Text generation</span>
               {(apiKeys.google || apiKeys.replicate) && (
                 <Check className="h-4 w-4 text-green-500" />
               )}
@@ -205,50 +203,10 @@ export function SettingsModal() {
 
           <div className="ml-6 space-y-3 rounded-lg border border-zinc-800 bg-zinc-900/60 p-3">
             <p className="text-xs text-zinc-500">
-              Used for prompt improvement, variations, editor context briefs, and smart model
-              configuration.
+              The active text model is chosen in the sidebar. These settings control how it's used.
             </p>
 
-            <div className="space-y-2">
-              <label className="block text-xs font-medium text-zinc-300">Provider</label>
-              <select
-                value={textModel.provider}
-                onChange={(e) =>
-                  setTextModel({
-                    ...textModel,
-                    provider: e.target.value as ApiKeyProvider,
-                    modelId:
-                      e.target.value === "google"
-                        ? "gemini-3-flash-preview"
-                        : "google/gemini-3-flash",
-                  })
-                }
-                className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-100 transition-colors focus:border-purple-500 focus:ring-1 focus:ring-purple-500 focus:outline-none"
-              >
-                <option value="google">Google AI</option>
-                <option value="replicate">Replicate</option>
-              </select>
-            </div>
-
-            <div className="space-y-2">
-              <label className="block text-xs font-medium text-zinc-300">Model ID</label>
-              <input
-                type="text"
-                value={textModel.modelId}
-                onChange={(e) => setTextModel({ ...textModel, modelId: e.target.value })}
-                className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-100 placeholder-zinc-500 transition-colors focus:border-purple-500 focus:ring-1 focus:ring-purple-500 focus:outline-none"
-              />
-            </div>
-
-            {!apiKeys[textModel.provider] && (
-              <p className="text-xs text-amber-400">
-                {apiKeys[textModel.provider === "google" ? "replicate" : "google"]
-                  ? `No ${textModel.provider === "google" ? "Google" : "Replicate"} key — will fall back to ${textModel.provider === "google" ? "Replicate" : "Google"}.`
-                  : "No API keys configured. Add one above to enable text model features."}
-              </p>
-            )}
-
-            <div className="space-y-3 border-t border-zinc-800 pt-3">
+            <div className="space-y-3">
               <label className="flex items-center justify-between gap-3">
                 <span className="text-sm text-zinc-200">Always improve prompt</span>
                 <Switch

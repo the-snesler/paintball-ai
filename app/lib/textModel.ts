@@ -16,19 +16,24 @@ interface ResolvedProvider {
 }
 
 function resolveProvider(): ResolvedProvider {
-  const { apiKeys, textModel } = useSettingsStore.getState();
+  const { apiKeys, textModels } = useSettingsStore.getState();
+  const selected = textModels.find((m) => m.enabled) ?? textModels[0];
 
-  // Try configured provider first
-  if (apiKeys[textModel.provider]) {
+  if (!selected) {
+    throw new Error("No text model configured");
+  }
+
+  // Try selected model's provider first
+  if (apiKeys[selected.provider]) {
     return {
-      provider: textModel.provider,
-      apiKey: apiKeys[textModel.provider]!,
-      modelId: textModel.modelId,
+      provider: selected.provider,
+      apiKey: apiKeys[selected.provider]!,
+      modelId: selected.modelId,
     };
   }
 
-  // Fallback to the other provider
-  const fallback: ApiKeyProvider = textModel.provider === "google" ? "replicate" : "google";
+  // Fallback to the other provider with its default model
+  const fallback: ApiKeyProvider = selected.provider === "google" ? "replicate" : "google";
   if (apiKeys[fallback]) {
     return {
       provider: fallback,
@@ -187,4 +192,23 @@ async function callReplicateTextModel(
   }
 
   throw new Error("Unexpected text model response format");
+}
+
+/**
+ * Validate that a text model can be called end-to-end. Used when adding a
+ * custom model so we fail fast on bad IDs or wrong providers. Bypasses the
+ * store and does NOT retry — a single fast attempt is what users expect here.
+ */
+export async function testTextModel(
+  provider: ApiKeyProvider,
+  apiKey: string,
+  modelId: string
+): Promise<void> {
+  const systemPrompt = "You are a connectivity test.";
+  const userPrompt = "Respond with the single word 'hi' and nothing else.";
+  if (provider === "google") {
+    await callGoogleTextModel(apiKey, modelId, systemPrompt, userPrompt);
+  } else {
+    await callReplicateTextModel(apiKey, modelId, systemPrompt, userPrompt);
+  }
 }
