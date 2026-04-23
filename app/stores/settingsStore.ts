@@ -1,6 +1,12 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { BUILT_IN_MODELS, isBuiltInModel, mergeWithBuiltInModels } from "~/lib/builtInModels";
+import {
+  BUILT_IN_MODELS,
+  BUILT_IN_TEXT_MODELS,
+  isBuiltInModel,
+  mergeWithBuiltInModels,
+  mergeWithBuiltInTextModels,
+} from "~/lib/builtInModels";
 import { hasProviderAccess } from "~/lib/providers";
 import type {
   ApiKeyProvider,
@@ -9,13 +15,13 @@ import type {
   Provider,
   SchemaMapping,
   StoredModel,
-  TextModelConfig,
+  StoredTextModel,
 } from "~/types";
 
 interface SettingsState {
   apiKeys: ApiKeys;
   models: StoredModel[];
-  textModel: TextModelConfig;
+  textModels: StoredTextModel[];
   desktopNotificationsEnabled: boolean;
   notificationPromptDismissed: boolean;
   requestedOutputCount: number;
@@ -45,7 +51,14 @@ interface SettingsState {
   updateModelSchemaMapping: (id: string, schemaMapping: SchemaMapping) => void;
 
   // Text model actions
-  setTextModel: (config: TextModelConfig) => void;
+  selectTextModel: (id: string) => void;
+  addCustomTextModel: (
+    provider: ApiKeyProvider,
+    modelId: string,
+    name: string,
+    icon?: string
+  ) => void;
+  removeCustomTextModel: (id: string) => void;
 
   // Notification actions
   setDesktopNotificationsEnabled: (enabled: boolean) => void;
@@ -67,7 +80,7 @@ export const useSettingsStore = create<SettingsState>()(
         replicate: null,
       },
       models: BUILT_IN_MODELS,
-      textModel: { provider: "google", modelId: "gemini-3-flash-preview" },
+      textModels: BUILT_IN_TEXT_MODELS,
       desktopNotificationsEnabled: false,
       notificationPromptDismissed: false,
       requestedOutputCount: 0,
@@ -139,7 +152,45 @@ export const useSettingsStore = create<SettingsState>()(
           models: state.models.map((m) => (m.id === id ? { ...m, schemaMapping } : m)),
         })),
 
-      setTextModel: (config) => set({ textModel: config }),
+      selectTextModel: (id) =>
+        set((state) => {
+          if (!state.textModels.some((m) => m.id === id)) return state;
+          return {
+            textModels: state.textModels.map((m) => ({ ...m, enabled: m.id === id })),
+          };
+        }),
+
+      addCustomTextModel: (provider, modelId, name, icon) =>
+        set((state) => {
+          const id = `${provider}:${modelId}`;
+          if (state.textModels.some((m) => m.id === id)) return state;
+          const newModel: StoredTextModel = {
+            id,
+            name,
+            provider,
+            modelId,
+            enabled: true,
+            isCustom: true,
+            ...(icon && { icon }),
+          };
+          return {
+            textModels: [
+              ...state.textModels.map((m) => ({ ...m, enabled: false })),
+              newModel,
+            ],
+          };
+        }),
+
+      removeCustomTextModel: (id) =>
+        set((state) => {
+          const target = state.textModels.find((m) => m.id === id);
+          if (!target || !target.isCustom) return state;
+          const remaining = state.textModels.filter((m) => m.id !== id);
+          if (target.enabled && remaining.length > 0) {
+            remaining[0] = { ...remaining[0], enabled: true };
+          }
+          return { textModels: remaining };
+        }),
 
       setDesktopNotificationsEnabled: (enabled) => set({ desktopNotificationsEnabled: enabled }),
 
@@ -158,11 +209,11 @@ export const useSettingsStore = create<SettingsState>()(
     }),
     {
       name: "studio-settings",
-      version: 10,
+      version: 11,
       partialize: (state) => ({
         apiKeys: state.apiKeys,
         models: state.models,
-        textModel: state.textModel,
+        textModels: state.textModels,
         desktopNotificationsEnabled: state.desktopNotificationsEnabled,
         notificationPromptDismissed: state.notificationPromptDismissed,
         requestedOutputCount: state.requestedOutputCount,
@@ -173,7 +224,8 @@ export const useSettingsStore = create<SettingsState>()(
         let state = persisted as {
           apiKeys?: ApiKeys;
           models?: StoredModel[];
-          textModel?: TextModelConfig;
+          textModel?: { provider: ApiKeyProvider; modelId: string };
+          textModels?: StoredTextModel[];
           desktopNotificationsEnabled?: boolean;
           notificationPromptDismissed?: boolean;
           requestedOutputCount?: number;
@@ -235,6 +287,38 @@ export const useSettingsStore = create<SettingsState>()(
             textModel: { provider: "google", modelId: "gemini-3-flash-preview" },
           };
         }
+
+        if (version < 11) {
+          // Convert scalar textModel into textModels list.
+          const prev = state.textModel;
+          const seed = BUILT_IN_TEXT_MODELS.map((m) => ({ ...m, enabled: false }));
+          if (prev) {
+            const prevId = `${prev.provider}:${prev.modelId}`;
+            const existing = seed.find((m) => m.id === prevId);
+            if (existing) {
+              existing.enabled = true;
+            } else {
+              seed.push({
+                id: prevId,
+                name: prev.modelId,
+                provider: prev.provider,
+                modelId: prev.modelId,
+                enabled: true,
+                isCustom: true,
+                ...(prev.provider === "google" ? { icon: "/icons/google.svg" } : {}),
+              });
+            }
+          } else {
+            seed[0] = { ...seed[0], enabled: true };
+          }
+          state = { ...state, textModels: seed, textModel: undefined };
+        }
+
+        // always update builtin text models
+        state = {
+          ...state,
+          textModels: mergeWithBuiltInTextModels(state.textModels),
+        };
 
         state = {
           ...state,

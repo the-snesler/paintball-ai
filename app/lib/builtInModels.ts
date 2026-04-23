@@ -1,4 +1,4 @@
-import type { StoredModel } from "~/types";
+import type { StoredModel, StoredTextModel } from "~/types";
 
 const BASE_BUILT_IN_MODELS: StoredModel[] = [
   {
@@ -234,4 +234,66 @@ export function mergeWithBuiltInModels(models?: StoredModel[]): StoredModel[] {
   const customModels = models.filter((model) => !isBuiltInModel(model.id));
 
   return [...mergedBuiltIns, ...customModels];
+}
+
+export const BUILT_IN_TEXT_MODELS: StoredTextModel[] = [
+  {
+    id: "google:gemini-3-flash-preview",
+    name: "Gemini 3 Flash Preview",
+    provider: "google",
+    modelId: "gemini-3-flash-preview",
+    enabled: true,
+    icon: "/icons/google.svg",
+  },
+  {
+    id: "replicate:google/gemini-3-flash",
+    name: "Gemini 3 Flash (Replicate)",
+    provider: "replicate",
+    modelId: "google/gemini-3-flash",
+    enabled: false,
+    icon: "/icons/google.svg",
+  },
+];
+
+const BUILT_IN_TEXT_MODEL_IDS = new Set(BUILT_IN_TEXT_MODELS.map((m) => m.id));
+
+export function isBuiltInTextModel(id: string): boolean {
+  return BUILT_IN_TEXT_MODEL_IDS.has(id);
+}
+
+export function mergeWithBuiltInTextModels(models?: StoredTextModel[]): StoredTextModel[] {
+  if (!models || models.length === 0) {
+    return BUILT_IN_TEXT_MODELS.map((m) => ({ ...m }));
+  }
+
+  const existingById = new Map(models.map((m) => [m.id, m]));
+
+  const mergedBuiltIns = BUILT_IN_TEXT_MODELS.map((builtIn) => {
+    const existing = existingById.get(builtIn.id);
+    if (!existing) return { ...builtIn };
+    return {
+      ...builtIn,
+      enabled: existing.enabled,
+    };
+  });
+
+  const customModels = models.filter((m) => !isBuiltInTextModel(m.id) && m.isCustom);
+
+  const merged = [...mergedBuiltIns, ...customModels];
+
+  // Ensure exactly one enabled: if zero, enable the first built-in; if multiple, keep first.
+  const enabledCount = merged.filter((m) => m.enabled).length;
+  if (enabledCount === 0 && merged.length > 0) {
+    merged[0] = { ...merged[0], enabled: true };
+  } else if (enabledCount > 1) {
+    let seenEnabled = false;
+    for (let i = 0; i < merged.length; i++) {
+      if (merged[i].enabled) {
+        if (seenEnabled) merged[i] = { ...merged[i], enabled: false };
+        else seenEnabled = true;
+      }
+    }
+  }
+
+  return merged;
 }

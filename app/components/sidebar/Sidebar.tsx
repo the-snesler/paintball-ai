@@ -1,4 +1,4 @@
-import { Layers, X } from "lucide-react";
+import { Layers, MessageSquareText, X } from "lucide-react";
 import { useLocation } from "react-router";
 import { PromptInput } from "./PromptInput";
 import { ModelList } from "./ModelList";
@@ -10,7 +10,9 @@ import { AvoidPastVariationsToggle } from "./AvoidPastVariationsToggle";
 import SVG from "react-inlinesvg";
 import drop from "~/drop.svg";
 import AddCustomModelButton from "../settings/AddCustomModelButton";
+import AddCustomTextModelButton from "../settings/AddCustomTextModelButton";
 import SortableModelItem from "../settings/SortableModelItem";
+import TextModelItem from "../settings/TextModelItem";
 import { hasProviderAccess } from "~/lib/providers";
 import { useSettingsStore } from "~/stores/settingsStore";
 import { useCallback } from "react";
@@ -75,6 +77,7 @@ function EditorSidebarContent() {
 
 function SettingsSidebarContent() {
   const models = useSettingsStore((s) => s.models);
+  const textModels = useSettingsStore((s) => s.textModels);
   const apiKeys = useSettingsStore((s) => s.apiKeys);
   const reorderModels = useSettingsStore((s) => s.reorderModels);
 
@@ -117,6 +120,25 @@ function SettingsSidebarContent() {
       </DndContext>
 
       <AddCustomModelButton disabled={!apiKeys.replicate} apiKey={apiKeys.replicate} />
+
+      <div className="flex items-center gap-2 pt-4">
+        <span className="text-zinc-500">
+          <MessageSquareText className="h-4 w-4" />
+        </span>
+        <h2 className="text-xs font-medium tracking-wide text-zinc-400 uppercase">Text Model</h2>
+      </div>
+
+      <div className="space-y-2">
+        {textModels.map((model) => (
+          <TextModelItem
+            key={model.id}
+            model={model}
+            hasApiKey={hasProviderAccess(apiKeys, model.provider)}
+          />
+        ))}
+      </div>
+
+      <AddCustomTextModelButton />
     </div>
   );
 }
