@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useGalleryStore } from "~/stores/galleryStore";
 import { GalleryHeader } from "./GalleryHeader";
 import { MasonryGrid, MasonryFrame } from "./MasonryGrid";
@@ -7,7 +7,7 @@ import { TimelineDivider } from "./TimelineDivider";
 import { ImageOff, Download, Trash2, X, ImagePlus } from "lucide-react";
 import type { GalleryItem } from "~/types";
 import { formatRelativeDate } from "~/lib/util";
-import { getFirstCreatedAt } from "~/lib/galleryGrouping";
+import { getFirstCreatedAt, groupItemsByPrompt } from "~/lib/galleryGrouping";
 import { stripVariationSections } from "~/lib/promptVariations";
 import NumberFlow from "@number-flow/react";
 import { useAttachSelectedItemsToGeneration } from "~/hooks/useAttachSelectedItemsToGeneration";
@@ -21,7 +21,25 @@ export function Gallery({ viewMode }: { viewMode: "grid" | "timeline" }) {
   const isLoadingMore = useGalleryStore((s) => s.isLoadingMore);
   const loadMoreImages = useGalleryStore((s) => s.loadMoreImages);
   const totalCount = useGalleryStore((s) => s.totalCount);
+  const searchQuery = useGalleryStore((s) => s.searchQuery);
+  const setSearchQuery = useGalleryStore((s) => s.setSearchQuery);
   const { itemsByPrompt } = useGalleryDerivedIndexes();
+
+  const filteredItems = useMemo(() => {
+    if (!searchQuery.trim()) return items;
+    const q = searchQuery.trim().toLowerCase();
+    return items.filter(
+      (item) =>
+        item.prompt.toLowerCase().includes(q) ||
+        (item.basePrompt?.toLowerCase().includes(q) ?? false) ||
+        item.modelName.toLowerCase().includes(q)
+    );
+  }, [items, searchQuery]);
+
+  const filteredItemsByPrompt = useMemo(
+    () => (searchQuery.trim() ? groupItemsByPrompt(filteredItems) : itemsByPrompt),
+    [filteredItems, itemsByPrompt, searchQuery]
+  );
 
   const sentinelRef = useRef<HTMLDivElement>(null);
 
@@ -48,15 +66,19 @@ export function Gallery({ viewMode }: { viewMode: "grid" | "timeline" }) {
 
   return (
     <main className="relative flex h-full flex-1 flex-col overflow-hidden bg-zinc-950">
-      <GalleryHeader count={totalCount} />
+      <GalleryHeader
+        count={searchQuery.trim() ? filteredItems.length : totalCount}
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+      />
 
       <div className={`flex-1 overflow-y-auto p-2 md:p-6 ${selectedCount > 0 ? "pb-28" : ""}`}>
-        {items.length === 0 ? (
-          <EmptyState />
+        {filteredItems.length === 0 ? (
+          searchQuery.trim() ? <NoSearchResults /> : <EmptyState />
         ) : viewMode === "grid" ? (
-          <GridView items={items} />
+          <GridView items={filteredItems} />
         ) : (
-          <TimelineView itemsByPrompt={itemsByPrompt} />
+          <TimelineView itemsByPrompt={filteredItemsByPrompt} />
         )}
 
         <div ref={sentinelRef} className="h-1" />
@@ -163,6 +185,20 @@ function PopupActionButton({
       {icon}
       {label}
     </button>
+  );
+}
+
+function NoSearchResults() {
+  return (
+    <div className="flex h-full flex-col items-center justify-center text-center">
+      <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-zinc-900">
+        <ImageOff className="h-8 w-8 text-zinc-600" />
+      </div>
+      <h3 className="mb-2 text-lg font-medium text-zinc-300">No results</h3>
+      <p className="max-w-xs text-sm text-zinc-500">
+        No images match your search. Try a different prompt or model name.
+      </p>
+    </div>
   );
 }
 
