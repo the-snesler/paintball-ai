@@ -1,14 +1,14 @@
 import { Plus, Loader2 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   inferIcon,
-  inferName,
   resolveModelCapabilities,
   searchReplicateModels,
   type ReplicateSearchResult,
 } from "~/lib/replicateSchema";
 import SVG from "react-inlinesvg";
 import { useSettingsStore } from "~/stores/settingsStore";
+import * as Combobox from "@base-ui/react/combobox";
 
 export default function AddCustomModelButton({
   disabled,
@@ -24,8 +24,7 @@ export default function AddCustomModelButton({
   const [error, setError] = useState<string | null>(null);
   const [suggestions, setSuggestions] = useState<ReplicateSearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
-  const [showSuggestions, setShowSuggestions] = useState(false);
-  const blurTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [open, setOpen] = useState(false);
 
   const addCustomModel = useSettingsStore((s) => s.addCustomModel);
   const models = useSettingsStore((s) => s.models);
@@ -33,7 +32,7 @@ export default function AddCustomModelButton({
   useEffect(() => {
     if (!modelId.trim() || modelId.length < 2 || !apiKey || loading) {
       setSuggestions([]);
-      setShowSuggestions(false);
+      setOpen(false);
       return;
     }
     const timer = setTimeout(async () => {
@@ -41,7 +40,7 @@ export default function AddCustomModelButton({
       try {
         const results = await searchReplicateModels(modelId, apiKey);
         setSuggestions(results);
-        setShowSuggestions(results.length > 0);
+        setOpen(results.length > 0);
       } catch {
         // suggestions are best-effort
       } finally {
@@ -54,7 +53,7 @@ export default function AddCustomModelButton({
   const handleAdd = async (altModelID?: string) => {
     const idToAdd = altModelID ?? modelId;
     if (!idToAdd.trim()) return;
-    setShowSuggestions(false);
+    setOpen(false);
 
     if (!idToAdd.includes("/")) {
       setError("Format: owner/model-name");
@@ -88,21 +87,6 @@ export default function AddCustomModelButton({
     }
   };
 
-  const handleSelectSuggestion = (result: ReplicateSearchResult) => {
-    setModelId(result.id);
-    setShowSuggestions(false);
-    setError(null);
-    handleAdd(result.id);
-  };
-
-  const handleBlur = () => {
-    blurTimerRef.current = setTimeout(() => setShowSuggestions(false), 150);
-  };
-
-  const handleSuggestionMouseDown = (e: React.MouseEvent) => {
-    e.preventDefault(); // prevent input blur before click fires
-  };
-
   if (!isAdding) {
     return (
       <button
@@ -117,43 +101,49 @@ export default function AddCustomModelButton({
       </button>
     );
   }
-  // TODO: this is a combobox, and we have floating-ui installed, but instead we have shipped the world's least accessible dropdown. We should fix this at some point.
+
   return (
     <div className="space-y-2 rounded-lg border border-zinc-700 bg-zinc-800/50 p-3">
-      <div className="relative">
-        <input
-          type="text"
-          value={modelId}
-          onChange={(e) => {
-            setModelId(e.target.value);
-            setError(null);
-          }}
-          onFocus={() => {
-            if (suggestions.length > 0) setShowSuggestions(true);
-          }}
-          onBlur={handleBlur}
-          placeholder="Type to search..."
-          className="w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 placeholder-zinc-500 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 focus:outline-none"
-          onKeyDown={(e) => e.key === "Enter" && handleAdd()}
-          autoFocus
-        />
-        {isSearching && (
-          <Loader2 className="absolute top-2.5 right-2.5 h-4 w-4 animate-spin text-zinc-500" />
-        )}
-        {showSuggestions && suggestions.length > 0 && (
-          <ul
-            onMouseDown={handleSuggestionMouseDown}
-            className="absolute z-50 mt-1 max-h-72 w-full overflow-y-auto rounded-lg border border-zinc-700 bg-zinc-900 py-1 shadow-xl"
-          >
-            {suggestions.map((result) => {
-              const icon = inferIcon(result.id);
-              const owner = result.id.split("/")[0];
-              return (
-                <li key={result.id}>
-                  <button
-                    type="button"
-                    onClick={() => handleSelectSuggestion(result)}
-                    className="flex w-full items-center gap-2.5 px-3 py-2 text-left hover:bg-zinc-800"
+      <Combobox.Root
+        open={open}
+        onOpenChange={setOpen}
+        inputValue={modelId}
+        onInputValueChange={(val) => {
+          setModelId(val);
+          setError(null);
+        }}
+        onValueChange={(id) => {
+          if (id && !loading) handleAdd(id as string);
+        }}
+        filter={null}
+      >
+        <div className="relative">
+          <Combobox.Input
+            placeholder="Type to search..."
+            className="w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 placeholder-zinc-500 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 focus:outline-none"
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !open && !loading) handleAdd();
+            }}
+            autoFocus
+          />
+          {isSearching && (
+            <Loader2 className="absolute top-2.5 right-2.5 h-4 w-4 animate-spin text-zinc-500" />
+          )}
+        </div>
+        <Combobox.Portal>
+          <Combobox.Positioner sideOffset={4} align="start">
+            <Combobox.Popup
+              className="z-50 max-h-72 overflow-y-auto rounded-lg border border-zinc-700 bg-zinc-900 py-1 shadow-xl"
+              style={{ width: "var(--anchor-width)" }}
+            >
+              {suggestions.map((result) => {
+                const icon = inferIcon(result.id);
+                const owner = result.id.split("/")[0];
+                return (
+                  <Combobox.Item
+                    key={result.id}
+                    value={result.id}
+                    className="flex w-full cursor-default items-center gap-2.5 px-3 py-2 text-left outline-none data-[highlighted]:bg-zinc-800"
                   >
                     {icon ? (
                       <SVG src={icon} className="h-5 w-5 shrink-0" />
@@ -169,16 +159,16 @@ export default function AddCustomModelButton({
                         <p className="truncate text-xs text-zinc-400">{result.description}</p>
                       )}
                     </div>
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </div>
+                  </Combobox.Item>
+                );
+              })}
+            </Combobox.Popup>
+          </Combobox.Positioner>
+        </Combobox.Portal>
+      </Combobox.Root>
       <div className="grid grid-cols-2 gap-2">
         <button
-          onClick={handleAdd}
+          onClick={() => handleAdd()}
           disabled={loading || !modelId.trim()}
           className="flex items-center justify-center gap-1.5 rounded-lg bg-purple-600 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-purple-500 disabled:bg-zinc-700 disabled:text-zinc-500"
         >
@@ -191,7 +181,7 @@ export default function AddCustomModelButton({
             setModelId("");
             setError(null);
             setSuggestions([]);
-            setShowSuggestions(false);
+            setOpen(false);
           }}
           className="rounded-lg bg-zinc-700 px-3 py-2 text-sm font-medium text-zinc-300 transition-colors hover:bg-zinc-600"
         >
