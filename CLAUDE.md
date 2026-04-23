@@ -19,6 +19,11 @@
 - **Icons**: Lucide React
 - **AI**: Google GenAI SDK (`@google/genai`), Replicate SDK
 
+## Commit Message Style
+
+- "feat:", "fix:", "docs:", "refactor:", "style:", "perf:", "test:", "chore:" prefixes
+- include relevant issue number in commit body for tracking (e.g., "Closes #123")
+
 ## Architecture
 
 ```
