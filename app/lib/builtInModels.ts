@@ -1,4 +1,4 @@
-import type { StoredModel, StoredTextModel } from "~/types";
+import type { StoredModel, StoredTextModel, StoredUpscaler } from "~/types";
 
 const BASE_BUILT_IN_MODELS: StoredModel[] = [
   {
@@ -296,4 +296,65 @@ export function mergeWithBuiltInTextModels(models?: StoredTextModel[]): StoredTe
   }
 
   return merged;
+}
+
+export const BUILT_IN_UPSCALERS: StoredUpscaler[] = [
+  {
+    id: "real-esrgan-2x",
+    name: "Real-ESRGAN 2x",
+    replicateId: "nightmareai/real-esrgan",
+    scale: 2,
+    scaleParam: "scale",
+    enabled: true,
+  },
+  {
+    id: "real-esrgan-4x",
+    name: "Real-ESRGAN 4x",
+    replicateId: "nightmareai/real-esrgan",
+    scale: 4,
+    scaleParam: "scale",
+    enabled: true,
+  },
+  {
+    id: "aura-sr-v2",
+    name: "AuraSR 4x",
+    replicateId:
+      "zsxkib/aura-sr-v2:5c137257cce8d5ce16e8a334b70e9e025106b5580affed0bc7d48940b594e74c",
+    scale: null,
+    scaleParam: null,
+    enabled: true,
+  },
+  {
+    id: "clarity",
+    name: "Clarity",
+    replicateId:
+      "philz1337x/clarity-upscaler:dfad41707589d68ecdccd1dfa600d55a208f9310748e44bfe35b4a6291453d5e",
+    scale: null,
+    scaleParam: null,
+    enabled: true,
+  },
+];
+
+const BUILT_IN_UPSCALER_IDS = new Set(BUILT_IN_UPSCALERS.map((u) => u.id));
+
+export function isBuiltInUpscaler(id: string): boolean {
+  return BUILT_IN_UPSCALER_IDS.has(id);
+}
+
+export function mergeWithBuiltInUpscalers(upscalers?: StoredUpscaler[]): StoredUpscaler[] {
+  if (!upscalers || upscalers.length === 0) {
+    return BUILT_IN_UPSCALERS.map((u) => ({ ...u }));
+  }
+
+  const existingById = new Map(upscalers.map((u) => [u.id, u]));
+
+  const mergedBuiltIns = BUILT_IN_UPSCALERS.map((builtIn) => {
+    const existing = existingById.get(builtIn.id);
+    if (!existing) return { ...builtIn };
+    return { ...builtIn, enabled: existing.enabled };
+  });
+
+  const customUpscalers = upscalers.filter((u) => !isBuiltInUpscaler(u.id));
+
+  return [...mergedBuiltIns, ...customUpscalers];
 }

@@ -3,9 +3,11 @@ import { persist } from "zustand/middleware";
 import {
   BUILT_IN_MODELS,
   BUILT_IN_TEXT_MODELS,
+  BUILT_IN_UPSCALERS,
   isBuiltInModel,
   mergeWithBuiltInModels,
   mergeWithBuiltInTextModels,
+  mergeWithBuiltInUpscalers,
 } from "~/lib/builtInModels";
 import { hasProviderAccess } from "~/lib/providers";
 import type {
@@ -16,12 +18,14 @@ import type {
   SchemaMapping,
   StoredModel,
   StoredTextModel,
+  StoredUpscaler,
 } from "~/types";
 
 interface SettingsState {
   apiKeys: ApiKeys;
   models: StoredModel[];
   textModels: StoredTextModel[];
+  upscalers: StoredUpscaler[];
   desktopNotificationsEnabled: boolean;
   notificationPromptDismissed: boolean;
   requestedOutputCount: number;
@@ -49,6 +53,12 @@ interface SettingsState {
     schemaFetched?: boolean
   ) => void;
   updateModelSchemaMapping: (id: string, schemaMapping: SchemaMapping) => void;
+
+  // Upscaler actions
+  setUpscalerEnabled: (id: string, enabled: boolean) => void;
+  addCustomUpscaler: (replicateId: string, name: string, icon?: string) => void;
+  removeCustomUpscaler: (id: string) => void;
+  reorderUpscalers: (activeId: string, overId: string) => void;
 
   // Text model actions
   selectTextModel: (id: string) => void;
@@ -81,6 +91,7 @@ export const useSettingsStore = create<SettingsState>()(
       },
       models: BUILT_IN_MODELS,
       textModels: BUILT_IN_TEXT_MODELS,
+      upscalers: BUILT_IN_UPSCALERS,
       desktopNotificationsEnabled: false,
       notificationPromptDismissed: false,
       requestedOutputCount: 0,
@@ -192,6 +203,50 @@ export const useSettingsStore = create<SettingsState>()(
           return { textModels: remaining };
         }),
 
+      setUpscalerEnabled: (id, enabled) =>
+        set((state) => ({
+          upscalers: state.upscalers.map((u) => (u.id === id ? { ...u, enabled } : u)),
+        })),
+
+      addCustomUpscaler: (replicateId, name, icon) =>
+        set((state) => {
+          const id = `replicate/${replicateId}`;
+          if (state.upscalers.some((u) => u.id === id)) return state;
+          return {
+            upscalers: [
+              ...state.upscalers,
+              {
+                id,
+                name,
+                replicateId,
+                scale: null,
+                scaleParam: null,
+                enabled: true,
+                isCustom: true,
+                ...(icon && { icon }),
+              },
+            ],
+          };
+        }),
+
+      removeCustomUpscaler: (id) =>
+        set((state) => ({
+          upscalers: state.upscalers.some((u) => u.id === id && u.isCustom)
+            ? state.upscalers.filter((u) => u.id !== id)
+            : state.upscalers,
+        })),
+
+      reorderUpscalers: (activeId, overId) =>
+        set((state) => {
+          const oldIndex = state.upscalers.findIndex((u) => u.id === activeId);
+          const newIndex = state.upscalers.findIndex((u) => u.id === overId);
+          if (oldIndex === -1 || newIndex === -1) return state;
+          const newUpscalers = [...state.upscalers];
+          const [moved] = newUpscalers.splice(oldIndex, 1);
+          newUpscalers.splice(newIndex, 0, moved);
+          return { upscalers: newUpscalers };
+        }),
+
       setDesktopNotificationsEnabled: (enabled) => set({ desktopNotificationsEnabled: enabled }),
 
       dismissNotificationPrompt: () => set({ notificationPromptDismissed: true }),
@@ -214,18 +269,21 @@ export const useSettingsStore = create<SettingsState>()(
         apiKeys: state.apiKeys,
         models: state.models,
         textModels: state.textModels,
+        upscalers: state.upscalers,
         desktopNotificationsEnabled: state.desktopNotificationsEnabled,
         notificationPromptDismissed: state.notificationPromptDismissed,
         requestedOutputCount: state.requestedOutputCount,
         editorContextInjectionEnabled: state.editorContextInjectionEnabled,
         alwaysImprovePromptEnabled: state.alwaysImprovePromptEnabled,
       }),
+      version: 12,
       migrate: (persisted, version) => {
         let state = persisted as {
           apiKeys?: ApiKeys;
           models?: StoredModel[];
           textModel?: { provider: ApiKeyProvider; modelId: string };
           textModels?: StoredTextModel[];
+          upscalers?: StoredUpscaler[];
           desktopNotificationsEnabled?: boolean;
           notificationPromptDismissed?: boolean;
           requestedOutputCount?: number;
@@ -320,6 +378,12 @@ export const useSettingsStore = create<SettingsState>()(
           textModels: mergeWithBuiltInTextModels(state.textModels),
         };
 
+        // always update builtin upscalers
+        state = {
+          ...state,
+          upscalers: mergeWithBuiltInUpscalers(state.upscalers),
+        };
+
         state = {
           ...state,
           models: state.models?.map((model) =>
@@ -364,4 +428,9 @@ export const useSettingsStore = create<SettingsState>()(
 // Helper to get enabled models that have API keys
 export function getEnabledModels(state: SettingsState): StoredModel[] {
   return state.models.filter((m) => m.enabled && hasProviderAccess(state.apiKeys, m.provider));
+}
+
+// Helper to get enabled upscalers (requires Replicate key)
+export function getEnabledUpscalers(state: SettingsState): StoredUpscaler[] {
+  return state.upscalers.filter((u) => u.enabled && hasProviderAccess(state.apiKeys, "replicate"));
 }
