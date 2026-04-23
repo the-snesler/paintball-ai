@@ -3,9 +3,11 @@ import { persist } from "zustand/middleware";
 import {
   BUILT_IN_MODELS,
   BUILT_IN_TEXT_MODELS,
+  BUILT_IN_UPSCALERS,
   isBuiltInModel,
   mergeWithBuiltInModels,
   mergeWithBuiltInTextModels,
+  mergeWithBuiltInUpscalers,
 } from "~/lib/builtInModels";
 import { hasProviderAccess } from "~/lib/providers";
 import type {
@@ -16,12 +18,14 @@ import type {
   SchemaMapping,
   StoredModel,
   StoredTextModel,
+  StoredUpscaler,
 } from "~/types";
 
 interface SettingsState {
   apiKeys: ApiKeys;
   models: StoredModel[];
   textModels: StoredTextModel[];
+  upscalers: StoredUpscaler[];
   desktopNotificationsEnabled: boolean;
   notificationPromptDismissed: boolean;
   requestedOutputCount: number;
@@ -49,6 +53,12 @@ interface SettingsState {
     schemaFetched?: boolean
   ) => void;
   updateModelSchemaMapping: (id: string, schemaMapping: SchemaMapping) => void;
+
+  // Upscaler actions
+  setUpscalerEnabled: (id: string, enabled: boolean) => void;
+  addCustomUpscaler: (replicateId: string, name: string, icon?: string) => void;
+  removeCustomUpscaler: (id: string) => void;
+  reorderUpscalers: (activeId: string, overId: string) => void;
 
   // Text model actions
   selectTextModel: (id: string) => void;
@@ -81,6 +91,7 @@ export const useSettingsStore = create<SettingsState>()(
       },
       models: BUILT_IN_MODELS,
       textModels: BUILT_IN_TEXT_MODELS,
+      upscalers: BUILT_IN_UPSCALERS,
       desktopNotificationsEnabled: false,
       notificationPromptDismissed: false,
       requestedOutputCount: 0,
@@ -174,10 +185,7 @@ export const useSettingsStore = create<SettingsState>()(
             ...(icon && { icon }),
           };
           return {
-            textModels: [
-              ...state.textModels.map((m) => ({ ...m, enabled: false })),
-              newModel,
-            ],
+            textModels: [...state.textModels.map((m) => ({ ...m, enabled: false })), newModel],
           };
         }),
 
@@ -192,6 +200,50 @@ export const useSettingsStore = create<SettingsState>()(
           return { textModels: remaining };
         }),
 
+      setUpscalerEnabled: (id, enabled) =>
+        set((state) => ({
+          upscalers: state.upscalers.map((u) => (u.id === id ? { ...u, enabled } : u)),
+        })),
+
+      addCustomUpscaler: (replicateId, name, icon) =>
+        set((state) => {
+          const id = `replicate/${replicateId}`;
+          if (state.upscalers.some((u) => u.id === id)) return state;
+          return {
+            upscalers: [
+              ...state.upscalers,
+              {
+                id,
+                name,
+                replicateId,
+                scale: null,
+                scaleParam: null,
+                enabled: true,
+                isCustom: true,
+                ...(icon && { icon }),
+              },
+            ],
+          };
+        }),
+
+      removeCustomUpscaler: (id) =>
+        set((state) => ({
+          upscalers: state.upscalers.some((u) => u.id === id && u.isCustom)
+            ? state.upscalers.filter((u) => u.id !== id)
+            : state.upscalers,
+        })),
+
+      reorderUpscalers: (activeId, overId) =>
+        set((state) => {
+          const oldIndex = state.upscalers.findIndex((u) => u.id === activeId);
+          const newIndex = state.upscalers.findIndex((u) => u.id === overId);
+          if (oldIndex === -1 || newIndex === -1) return state;
+          const newUpscalers = [...state.upscalers];
+          const [moved] = newUpscalers.splice(oldIndex, 1);
+          newUpscalers.splice(newIndex, 0, moved);
+          return { upscalers: newUpscalers };
+        }),
+
       setDesktopNotificationsEnabled: (enabled) => set({ desktopNotificationsEnabled: enabled }),
 
       dismissNotificationPrompt: () => set({ notificationPromptDismissed: true }),
@@ -199,8 +251,7 @@ export const useSettingsStore = create<SettingsState>()(
       setEditorContextInjectionEnabled: (enabled) =>
         set({ editorContextInjectionEnabled: enabled }),
 
-      setAlwaysImprovePromptEnabled: (enabled) =>
-        set({ alwaysImprovePromptEnabled: enabled }),
+      setAlwaysImprovePromptEnabled: (enabled) => set({ alwaysImprovePromptEnabled: enabled }),
 
       incrementRequestedOutputCount: (count = 1) =>
         set((state) => ({
@@ -209,11 +260,12 @@ export const useSettingsStore = create<SettingsState>()(
     }),
     {
       name: "studio-settings",
-      version: 11,
+      version: 12,
       partialize: (state) => ({
         apiKeys: state.apiKeys,
         models: state.models,
         textModels: state.textModels,
+        upscalers: state.upscalers,
         desktopNotificationsEnabled: state.desktopNotificationsEnabled,
         notificationPromptDismissed: state.notificationPromptDismissed,
         requestedOutputCount: state.requestedOutputCount,
@@ -226,29 +278,13 @@ export const useSettingsStore = create<SettingsState>()(
           models?: StoredModel[];
           textModel?: { provider: ApiKeyProvider; modelId: string };
           textModels?: StoredTextModel[];
+          upscalers?: StoredUpscaler[];
           desktopNotificationsEnabled?: boolean;
           notificationPromptDismissed?: boolean;
           requestedOutputCount?: number;
           editorContextInjectionEnabled?: boolean;
           alwaysImprovePromptEnabled?: boolean;
         };
-
-        // always update builtin models
-        state = {
-          ...state,
-          models: mergeWithBuiltInModels(state.models),
-        };
-
-        if (version < 2) {
-          // Migration from v1: add models array
-          state = {
-            apiKeys: {
-              google: state.apiKeys?.google ?? null,
-              replicate: state.apiKeys?.replicate ?? null,
-            },
-            models: BUILT_IN_MODELS,
-          };
-        }
 
         if (version < 3) {
           // Migration from v2: add icons to built-in models
@@ -272,19 +308,27 @@ export const useSettingsStore = create<SettingsState>()(
           };
         }
 
-        if (version < 5) {
-          state = {
-            ...state,
-            desktopNotificationsEnabled: false,
-            notificationPromptDismissed: false,
-            requestedOutputCount: 0,
-          };
-        }
-
         if (version < 6) {
           state = {
             ...state,
             textModel: { provider: "google", modelId: "gemini-3-flash-preview" },
+            models: state.models?.map((model) =>
+              isBuiltInModel(model.id) ? { ...model, isCustom: undefined } : model
+            ),
+            desktopNotificationsEnabled: state.desktopNotificationsEnabled ?? false,
+            notificationPromptDismissed: state.notificationPromptDismissed ?? false,
+            requestedOutputCount: state.requestedOutputCount ?? 0,
+          };
+        }
+
+        if (version < 8) {
+          state = {
+            ...state,
+            models: state.models?.map((model) =>
+              model.provider === "replicate" && model.isCustom
+                ? { ...model, schemaFetched: false }
+                : model
+            ),
           };
         }
 
@@ -314,48 +358,22 @@ export const useSettingsStore = create<SettingsState>()(
           state = { ...state, textModels: seed, textModel: undefined };
         }
 
-        // always update builtin text models
-        state = {
-          ...state,
-          textModels: mergeWithBuiltInTextModels(state.textModels),
-        };
-
-        state = {
-          ...state,
-          models: state.models?.map((model) =>
-            isBuiltInModel(model.id) ? { ...model, isCustom: undefined } : model
-          ),
+        // kinda duplicating our default state here but ensures all fields are populated correctly after migration
+        return {
+          apiKeys: {
+            google: state.apiKeys?.google ?? null,
+            replicate: state.apiKeys?.replicate ?? null,
+          },
+          // always merge with built-in
+          models: mergeWithBuiltInModels(state.models) ?? BUILT_IN_MODELS,
+          textModels: mergeWithBuiltInTextModels(state.textModels) ?? BUILT_IN_TEXT_MODELS,
+          upscalers: mergeWithBuiltInUpscalers(state.upscalers) ?? BUILT_IN_UPSCALERS,
           desktopNotificationsEnabled: state.desktopNotificationsEnabled ?? false,
           notificationPromptDismissed: state.notificationPromptDismissed ?? false,
           requestedOutputCount: state.requestedOutputCount ?? 0,
+          editorContextInjectionEnabled: state.editorContextInjectionEnabled ?? true,
+          alwaysImprovePromptEnabled: state.alwaysImprovePromptEnabled ?? false,
         };
-
-        if (version < 8) {
-          state = {
-            ...state,
-            models: state.models?.map((model) =>
-              model.provider === "replicate" && model.isCustom
-                ? { ...model, schemaFetched: false }
-                : model
-            ),
-          };
-        }
-
-        if (version < 9) {
-          state = {
-            ...state,
-            editorContextInjectionEnabled: state.editorContextInjectionEnabled ?? true,
-          };
-        }
-
-        if (version < 10) {
-          state = {
-            ...state,
-            alwaysImprovePromptEnabled: state.alwaysImprovePromptEnabled ?? false,
-          };
-        }
-
-        return state;
       },
     }
   )
@@ -364,4 +382,9 @@ export const useSettingsStore = create<SettingsState>()(
 // Helper to get enabled models that have API keys
 export function getEnabledModels(state: SettingsState): StoredModel[] {
   return state.models.filter((m) => m.enabled && hasProviderAccess(state.apiKeys, m.provider));
+}
+
+// Helper to get enabled upscalers (requires Replicate key)
+export function getEnabledUpscalers(state: SettingsState): StoredUpscaler[] {
+  return state.upscalers.filter((u) => u.enabled && hasProviderAccess(state.apiKeys, "replicate"));
 }

@@ -1,4 +1,4 @@
-import { Layers, MessageSquareText, X } from "lucide-react";
+import { Expand, Layers, MessageSquareText, X } from "lucide-react";
 import { useLocation } from "react-router";
 import { PromptInput } from "./PromptInput";
 import { ModelList } from "./ModelList";
@@ -11,7 +11,9 @@ import SVG from "react-inlinesvg";
 import drop from "~/drop.svg";
 import AddCustomModelButton from "../settings/AddCustomModelButton";
 import AddCustomTextModelButton from "../settings/AddCustomTextModelButton";
+import AddCustomUpscalerButton from "../settings/AddCustomUpscalerButton";
 import SortableModelItem from "../settings/SortableModelItem";
+import SortableUpscalerItem from "../settings/SortableUpscalerItem";
 import TextModelItem from "../settings/TextModelItem";
 import { hasProviderAccess } from "~/lib/providers";
 import { useSettingsStore } from "~/stores/settingsStore";
@@ -78,8 +80,10 @@ function EditorSidebarContent() {
 function SettingsSidebarContent() {
   const models = useSettingsStore((s) => s.models);
   const textModels = useSettingsStore((s) => s.textModels);
+  const upscalers = useSettingsStore((s) => s.upscalers);
   const apiKeys = useSettingsStore((s) => s.apiKeys);
   const reorderModels = useSettingsStore((s) => s.reorderModels);
+  const reorderUpscalers = useSettingsStore((s) => s.reorderUpscalers);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -94,6 +98,16 @@ function SettingsSidebarContent() {
       }
     },
     [reorderModels]
+  );
+
+  const handleUpscalerDragEnd = useCallback(
+    (event: DragEndEvent) => {
+      const { active, over } = event;
+      if (over && active.id !== over.id) {
+        reorderUpscalers(active.id as string, over.id as string);
+      }
+    },
+    [reorderUpscalers]
   );
 
   return (
@@ -139,6 +153,36 @@ function SettingsSidebarContent() {
       </div>
 
       <AddCustomTextModelButton />
+
+      <div className="flex items-center gap-2 pt-4">
+        <span className="text-zinc-500">
+          <Expand className="h-4 w-4" />
+        </span>
+        <h2 className="text-xs font-medium tracking-wide text-zinc-400 uppercase">Upscalers</h2>
+      </div>
+
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragEnd={handleUpscalerDragEnd}
+      >
+        <SortableContext
+          items={upscalers.map((u) => u.id)}
+          strategy={verticalListSortingStrategy}
+        >
+          <div className="space-y-2">
+            {upscalers.map((u) => (
+              <SortableUpscalerItem
+                key={u.id}
+                upscaler={u}
+                hasApiKey={!!apiKeys.replicate}
+              />
+            ))}
+          </div>
+        </SortableContext>
+      </DndContext>
+
+      <AddCustomUpscalerButton disabled={!apiKeys.replicate} apiKey={apiKeys.replicate} />
     </div>
   );
 }

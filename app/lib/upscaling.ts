@@ -2,34 +2,11 @@ import Replicate from "replicate";
 import { blobToBase64 } from "./util";
 import { getImageDimensions } from "./imageProcessing";
 import type { GenerationResult } from "./generation";
-
-export interface UpscalerOption {
-  id: string;
-  label: string;
-  scale: number | null;
-  scaleParam: string | null;
-}
-
-export const UPSCALERS: UpscalerOption[] = [
-  { id: "nightmareai/real-esrgan", label: "Real-ESRGAN 2x", scale: 2, scaleParam: "scale" },
-  { id: "nightmareai/real-esrgan", label: "Real-ESRGAN 4x", scale: 4, scaleParam: "scale" },
-  {
-    id: "zsxkib/aura-sr-v2:5c137257cce8d5ce16e8a334b70e9e025106b5580affed0bc7d48940b594e74c",
-    label: "AuraSR 4x",
-    scale: null,
-    scaleParam: null,
-  },
-  {
-    id: "philz1337x/clarity-upscaler:dfad41707589d68ecdccd1dfa600d55a208f9310748e44bfe35b4a6291453d5e",
-    label: "Clarity",
-    scale: null,
-    scaleParam: null,
-  },
-];
+import type { StoredUpscaler } from "~/types";
 
 export async function executeUpscale(
   sourceBlob: Blob,
-  upscaler: UpscalerOption,
+  upscaler: StoredUpscaler,
   apiKey: string
 ): Promise<GenerationResult> {
   const baseUrl = new URL("/proxy/replicate/v1", window.location.origin).toString();
@@ -42,12 +19,7 @@ export async function executeUpscale(
     input[upscaler.scaleParam] = upscaler.scale;
   }
 
-  let output;
-  try {
-    output = await replicate.run(upscaler.id as `${string}/${string}`, { input });
-  } catch (error) {
-    throw error;
-  }
+  const output = await replicate.run(upscaler.replicateId as `${string}/${string}`, { input });
 
   const imageUrl =
     typeof output === "object" && output !== null && "url" in output

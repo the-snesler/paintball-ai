@@ -151,6 +151,18 @@ export interface AttachSelectedItemsResult {
   reason?: string;
 }
 
+// Upscaler types
+export interface StoredUpscaler {
+  id: string; // synthetic unique id, e.g. "real-esrgan-2x" or "replicate/owner/model"
+  name: string; // "Real-ESRGAN 2x"
+  replicateId: string; // "nightmareai/real-esrgan" or "owner/model:versionHash"
+  scale: number | null;
+  scaleParam: string | null;
+  enabled: boolean;
+  isCustom?: boolean;
+  icon?: string;
+}
+
 // Text model types
 export interface StoredTextModel {
   id: string; // stable unique id, e.g. "google:gemini-3-flash-preview" or "replicate:google/gemini-3-flash"

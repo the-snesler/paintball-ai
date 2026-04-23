@@ -27,7 +27,6 @@ import {
   useReuseGalleryItemPrompt,
 } from "~/hooks/useReuseGalleryItemPrompt";
 import { useUpscale } from "~/hooks/useUpscale";
-import { UPSCALERS } from "~/lib/upscaling";
 import { IconButton } from "./IconButton";
 import { WideIconButton } from "./WideIconButton";
 import { findSessionForImage, getReferenceImagesByIds, saveReferenceImage } from "~/lib/db";
@@ -54,6 +53,8 @@ export function Lightbox() {
   const [showUpscalePicker, setShowUpscalePicker] = useState(false);
   const { status: upscaleStatus, error: upscaleError, upscale } = useUpscale();
   const replicateKey = useSettingsStore((s) => s.apiKeys.replicate);
+  const upscalers = useSettingsStore((s) => s.upscalers);
+  const enabledUpscalers = replicateKey ? upscalers.filter((u) => u.enabled) : [];
 
   useEffect(() => {
     if (!galleryImage || galleryImage.referenceImageIds.length === 0) {
@@ -315,19 +316,25 @@ export function Lightbox() {
                 <div className="space-y-2 rounded-lg border border-zinc-700 bg-zinc-800/50 p-3">
                   <p className="text-xs font-medium text-zinc-400">Upscale with</p>
                   <div className="flex flex-wrap gap-1.5">
-                    {UPSCALERS.map((u) => (
-                      <button
-                        key={u.label}
-                        disabled={upscaleStatus === "running"}
-                        onClick={() => {
-                          upscale(galleryImage, u);
-                          setShowUpscalePicker(false);
-                        }}
-                        className="rounded-md bg-zinc-700 px-2.5 py-1 text-xs text-zinc-300 transition-colors hover:bg-zinc-600 disabled:cursor-not-allowed disabled:bg-zinc-700/50 disabled:text-zinc-600"
-                      >
-                        {u.label}
-                      </button>
-                    ))}
+                    {enabledUpscalers.length === 0 ? (
+                      <p className="text-xs text-zinc-500">
+                        No upscalers enabled. Enable or add one in Settings.
+                      </p>
+                    ) : (
+                      enabledUpscalers.map((u) => (
+                        <button
+                          key={u.id}
+                          disabled={upscaleStatus === "running"}
+                          onClick={() => {
+                            upscale(galleryImage, u);
+                            setShowUpscalePicker(false);
+                          }}
+                          className="rounded-md bg-zinc-700 px-2.5 py-1 text-xs text-zinc-300 transition-colors hover:bg-zinc-600 disabled:cursor-not-allowed disabled:bg-zinc-700/50 disabled:text-zinc-600"
+                        >
+                          {u.name}
+                        </button>
+                      ))
+                    )}
                   </div>
                   {upscaleStatus === "running" && (
                     <p className="text-xs text-zinc-500">Upscaling…</p>

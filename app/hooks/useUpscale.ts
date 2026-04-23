@@ -3,15 +3,15 @@ import { useGalleryStore } from "~/stores/galleryStore";
 import { useSettingsStore } from "~/stores/settingsStore";
 import { saveImage } from "~/lib/db";
 import { createThumbnailBlob } from "~/lib/imageProcessing";
-import { executeUpscale, type UpscalerOption } from "~/lib/upscaling";
-import type { CompletedGalleryItem } from "~/types";
+import { executeUpscale } from "~/lib/upscaling";
+import type { CompletedGalleryItem, StoredUpscaler } from "~/types";
 
 export type UpscaleStatus = "idle" | "running" | "done" | "error";
 
 export function useUpscale(): {
   status: UpscaleStatus;
   error: string | null;
-  upscale: (source: CompletedGalleryItem, upscaler: UpscalerOption) => Promise<void>;
+  upscale: (source: CompletedGalleryItem, upscaler: StoredUpscaler) => Promise<void>;
 } {
   const [status, setStatus] = useState<UpscaleStatus>("idle");
   const [error, setError] = useState<string | null>(null);
@@ -21,7 +21,7 @@ export function useUpscale(): {
   const updateItem = useGalleryStore((s) => s.updateItem);
 
   const upscale = useCallback(
-    async (source: CompletedGalleryItem, upscaler: UpscalerOption) => {
+    async (source: CompletedGalleryItem, upscaler: StoredUpscaler) => {
       if (!apiKey) return;
 
       setStatus("running");
@@ -34,7 +34,7 @@ export function useUpscale(): {
           id: newId,
           status: "generating",
           modelId: source.modelId,
-          modelName: `${upscaler.label} ↑`,
+          modelName: `${upscaler.name} ↑`,
           prompt: source.prompt,
           basePrompt: source.basePrompt,
           variationReplacements: source.variationReplacements,
@@ -52,7 +52,7 @@ export function useUpscale(): {
         const metadata = {
           upscaledFrom: source.id,
           upscaler: upscaler.id,
-          upscaleLabel: upscaler.label,
+          upscaleLabel: upscaler.name,
         };
 
         await saveImage({
@@ -63,7 +63,7 @@ export function useUpscale(): {
           basePrompt: source.basePrompt,
           variationReplacements: source.variationReplacements,
           modelId: source.modelId,
-          modelName: `${upscaler.label} ↑`,
+          modelName: `${upscaler.name} ↑`,
           aspectRatio: source.aspectRatio,
           resolution: source.resolution,
           width: result.width,
