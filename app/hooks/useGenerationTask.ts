@@ -29,6 +29,8 @@ interface RunTaskOptions {
 
 interface RunTasksOptions extends RunTaskOptions {
   onItemsCreated?: (itemIds: string[]) => void;
+  /** Set when the caller has already added the pending items to the gallery store. */
+  itemsAlreadyAdded?: boolean;
 }
 
 export function useGenerationTask() {
@@ -158,7 +160,9 @@ export function useGenerationTask() {
       if (tasks.length === 0) return [];
 
       incrementRequestedOutputCount(tasks.length);
-      addItems(pendingItems);
+      if (!options.itemsAlreadyAdded) {
+        addItems(pendingItems);
+      }
       options.onItemsCreated?.(tasks.map((task) => task.id));
 
       return Promise.allSettled(

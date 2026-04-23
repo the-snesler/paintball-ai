@@ -5,6 +5,8 @@ import { useSettingsStore } from "~/stores/settingsStore";
 import { saveReferenceImage } from "~/lib/db";
 import { buildGenerationSignature } from "~/lib/generationSignature";
 import { getModel } from "~/lib/models";
+import { IMPROVE_PROMPT_SYSTEM } from "~/lib/prompts";
+import { callTextModel, isTextModelAvailable } from "~/lib/textModel";
 import type { GalleryItem } from "~/types";
 import {
   parseVariationSections,
@@ -25,6 +27,8 @@ export function useImageGeneration() {
   const referenceImages = useGenerationStore((s) => s.currentReferenceImages);
   const startGeneration = useGenerationStore((s) => s.startGeneration);
   const finishGeneration = useGenerationStore((s) => s.finishGeneration);
+  const addItems = useGalleryStore((s) => s.addItems);
+  const updatePendingPromptFields = useGalleryStore((s) => s.updatePendingPromptFields);
   const { runTasks, retryItem } = useGenerationTask();
 
   const persistReferences = useCallback(
@@ -41,6 +45,8 @@ export function useImageGeneration() {
 
   const generate = useCallback(async () => {
     const variationsEnabled = useGenerationStore.getState().variationsEnabled;
+    const alwaysImprovePromptEnabled =
+      useSettingsStore.getState().alwaysImprovePromptEnabled;
 
     const signature = buildGenerationSignature({
       prompt,
@@ -50,7 +56,7 @@ export function useImageGeneration() {
       referenceImages,
     });
 
-    // Count total tasks to know how many variations we need
+    // Count total tasks synchronously (everything except final prompt text is known upfront)
     let totalTasks = 0;
     for (const [modelId, count] of Object.entries(modelSelections)) {
       if (count === 0) continue;
@@ -59,54 +65,21 @@ export function useImageGeneration() {
     }
     if (totalTasks === 0) return;
 
-    // Generate prompt variations if enabled
-    let variedPrompts: string[] | null = null;
-    let variationReplacements: string[][] | null = null;
-    if (variationsEnabled) {
-      const sections = parseVariationSections(prompt);
-      if (sections.length > 0) {
-        try {
-          useGenerationStore.getState().setIsPreparingVariations(true);
-          const imageBlobs = referenceImages.map((r) => r.blob);
-          const { avoidPastVariations } = useGenerationStore.getState();
-          const { items } = useGalleryStore.getState();
-          const avoidPerSection = avoidPastVariations
-            ? (collectAvoidList(prompt, items) ?? undefined)
-            : undefined;
-          const replacements = await generateVariations(
-            prompt,
-            sections,
-            totalTasks,
-            imageBlobs.length > 0 ? imageBlobs : undefined,
-            avoidPerSection
-          );
-          variedPrompts = buildVariedPrompts(prompt, sections, replacements);
-          variationReplacements = replacements;
-        } catch {
-          // Fall back to stripping variation brackets and using the example text
-          variedPrompts = null;
-          variationReplacements = null;
-        } finally {
-          useGenerationStore.getState().setIsPreparingVariations(false);
-        }
-      }
-    }
-
-    // If variations were requested but failed/no sections, strip brackets from prompt
-    const basePromptText =
-      variationsEnabled && !variedPrompts ? stripVariationSections(prompt) : prompt;
-
-    // When variations were applied, all sibling tasks share this group key (the original template).
-    const groupPrompt = variedPrompts ? prompt : undefined;
-
-    // Build tasks for each model/count
-    const tasks: GenerationTask[] = [];
+    // Build pending items + task skeletons using the user's original prompt.
+    // Final prompts will be patched in once the improve/variation pipeline completes.
+    const originalPrompt = prompt;
+    const taskSlots: Array<{
+      id: string;
+      modelId: string;
+      modelName: string;
+      provider: GenerationTask["provider"];
+      aspectRatio: GenerationTask["aspectRatio"];
+      resolution: GenerationTask["resolution"];
+    }> = [];
     const pendingItems: GalleryItem[] = [];
-    let taskIndex = 0;
 
     for (const [modelId, count] of Object.entries(modelSelections)) {
       if (count === 0) continue;
-
       const model = getModel(models, modelId);
       if (!model) continue;
 
@@ -122,22 +95,14 @@ export function useImageGeneration() {
             : model.capabilities.supportsAspectRatios
               ? aspectRatio
               : null;
-        const taskPrompt = variedPrompts ? variedPrompts[taskIndex] : basePromptText;
-        const taskReplacements = variationReplacements
-          ? variationReplacements.map((col) => col[taskIndex])
-          : undefined;
 
-        tasks.push({
+        taskSlots.push({
           id: taskId,
           modelId,
           modelName: model.name,
           provider: model.provider,
-          prompt: taskPrompt,
-          basePrompt: groupPrompt,
-          variationReplacements: taskReplacements,
           aspectRatio: taskAspectRatio,
           resolution: taskResolution,
-          referenceImages: referenceImages.map((r) => ({ id: r.id, blob: r.blob, sourceGalleryItemId: r.sourceGalleryItemId })),
         });
 
         pendingItems.push({
@@ -145,35 +110,130 @@ export function useImageGeneration() {
           status: "pending",
           modelId,
           modelName: model.name,
-          prompt: taskPrompt,
-          basePrompt: groupPrompt,
-          variationReplacements: taskReplacements,
+          prompt: originalPrompt,
           aspectRatio: taskAspectRatio,
           resolution: taskResolution,
           referenceImageIds: referenceImages.map((r) => r.id),
           retryCount: 0,
         });
-
-        taskIndex++;
       }
     }
 
-    if (tasks.length === 0) return;
+    if (taskSlots.length === 0) return;
 
-    await persistReferences(
-      referenceImages.map((image) => ({
-        id: image.id,
-        blob: image.blob,
-        name: image.name,
-        sourceGalleryItemId: image.sourceGalleryItemId,
-      }))
-    );
-
-    // Add pending items to gallery immediately
+    // Show loading cards immediately and register the generation. The prompt-prep
+    // pipeline runs concurrently — by the time pending items become `generating`,
+    // their prompts have already been patched with the final text.
+    addItems(pendingItems);
     startGeneration(signature);
 
     try {
-      return await runTasks(tasks, pendingItems);
+      await persistReferences(
+        referenceImages.map((image) => ({
+          id: image.id,
+          blob: image.blob,
+          name: image.name,
+          sourceGalleryItemId: image.sourceGalleryItemId,
+        }))
+      );
+
+      const imageBlobs = referenceImages.map((r) => r.blob);
+
+      // Step 1: optionally improve the prompt (variation brackets are preserved).
+      let workingPrompt = originalPrompt;
+      let improved = false;
+      if (alwaysImprovePromptEnabled && isTextModelAvailable()) {
+        try {
+          const result = await callTextModel(
+            IMPROVE_PROMPT_SYSTEM,
+            originalPrompt,
+            imageBlobs.length > 0 ? imageBlobs : undefined
+          );
+          const trimmed = result.trim();
+          if (trimmed) {
+            workingPrompt = trimmed;
+            improved = trimmed !== originalPrompt;
+          }
+        } catch {
+          // Fall back to the original prompt
+        }
+      }
+
+      // Step 2: optionally generate prompt variations
+      let variedPrompts: string[] | null = null;
+      let variationReplacements: string[][] | null = null;
+      if (variationsEnabled) {
+        const sections = parseVariationSections(workingPrompt);
+        if (sections.length > 0) {
+          try {
+            const { avoidPastVariations } = useGenerationStore.getState();
+            const { items } = useGalleryStore.getState();
+            const avoidPerSection = avoidPastVariations
+              ? (collectAvoidList(workingPrompt, items) ?? undefined)
+              : undefined;
+            const replacements = await generateVariations(
+              workingPrompt,
+              sections,
+              totalTasks,
+              imageBlobs.length > 0 ? imageBlobs : undefined,
+              avoidPerSection
+            );
+            variedPrompts = buildVariedPrompts(workingPrompt, sections, replacements);
+            variationReplacements = replacements;
+          } catch {
+            variedPrompts = null;
+            variationReplacements = null;
+          }
+        }
+      }
+
+      // Step 3: compute final per-task prompt + basePrompt + replacements.
+      // basePrompt is the user's original prompt whenever any transformation
+      // (improve and/or variations) was applied.
+      const fallbackPrompt =
+        variationsEnabled && !variedPrompts
+          ? stripVariationSections(workingPrompt)
+          : workingPrompt;
+
+      const anyTransformApplied = improved || Boolean(variedPrompts);
+      const groupPrompt = anyTransformApplied ? originalPrompt : undefined;
+
+      const tasks: GenerationTask[] = taskSlots.map((slot, taskIndex) => {
+        const taskPrompt = variedPrompts ? variedPrompts[taskIndex] : fallbackPrompt;
+        const taskReplacements = variationReplacements
+          ? variationReplacements.map((col) => col[taskIndex])
+          : undefined;
+
+        return {
+          id: slot.id,
+          modelId: slot.modelId,
+          modelName: slot.modelName,
+          provider: slot.provider,
+          prompt: taskPrompt,
+          basePrompt: groupPrompt,
+          variationReplacements: taskReplacements,
+          aspectRatio: slot.aspectRatio,
+          resolution: slot.resolution,
+          referenceImages: referenceImages.map((r) => ({
+            id: r.id,
+            blob: r.blob,
+            sourceGalleryItemId: r.sourceGalleryItemId,
+          })),
+        };
+      });
+
+      // Patch the already-visible pending items with their final prompt data so
+      // the gallery records match what gets sent to the model.
+      updatePendingPromptFields(
+        tasks.map((t) => ({
+          id: t.id,
+          prompt: t.prompt,
+          basePrompt: t.basePrompt,
+          variationReplacements: t.variationReplacements,
+        }))
+      );
+
+      return await runTasks(tasks, pendingItems, { itemsAlreadyAdded: true });
     } finally {
       finishGeneration(signature);
     }
@@ -188,6 +248,8 @@ export function useImageGeneration() {
     finishGeneration,
     persistReferences,
     runTasks,
+    addItems,
+    updatePendingPromptFields,
   ]);
 
   return { generate, retryItem };

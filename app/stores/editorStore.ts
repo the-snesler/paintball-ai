@@ -64,6 +64,7 @@ interface EditorState {
   removeReferenceImage: (id: string) => void;
   reorderReferenceImages: (fromId: string, toId: string) => void;
   setTurnContextBrief: (turnId: string, brief: string) => void;
+  setTurnSentInstruction: (turnId: string, sentInstruction: string) => void;
   clearReferenceImages: () => void;
   /**
    * Restore a session by ID while already on the editor page. Saves the current
@@ -107,6 +108,7 @@ export const useEditorStore = create<EditorState>()((set, get) => {
         .map((t) => ({
           id: t.id,
           instruction: t.instruction,
+          sentInstruction: t.sentInstruction,
           sourceItemId: t.sourceItemId,
           sourceReferenceId: t.sourceReferenceId!,
           itemIds: t.itemIds,
@@ -229,6 +231,15 @@ export const useEditorStore = create<EditorState>()((set, get) => {
       set((state) => ({
         turns: state.turns.map((t) =>
           t.id === turnId ? { ...t, contextBrief: brief } : t
+        ),
+      }));
+      persistSession();
+    },
+
+    setTurnSentInstruction: (turnId, sentInstruction) => {
+      set((state) => ({
+        turns: state.turns.map((t) =>
+          t.id === turnId ? { ...t, sentInstruction } : t
         ),
       }));
       persistSession();

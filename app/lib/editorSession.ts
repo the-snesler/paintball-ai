@@ -80,6 +80,7 @@ export async function hydrateStoredSession(
     hydratedTurns.push({
       id: t.id,
       instruction: t.instruction,
+      sentInstruction: t.sentInstruction,
       sourceItemId: t.sourceItemId,
       sourceBlob: ref.blob,
       sourceReferenceId: t.sourceReferenceId,

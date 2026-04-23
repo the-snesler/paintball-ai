@@ -78,7 +78,7 @@ app/
    - **Current input state** (for UI controls):
      - `currentPrompt`, `currentModelSelections`, `currentAspectRatio`, `currentResolution`
      - `currentReferenceImages: ReferenceImage[]`
-     - `variationsEnabled`, `avoidPastVariations`, `isPreparingVariations`
+     - `variationsEnabled`, `avoidPastVariations`
    - **Generation tracking**: `isGenerating`, `activeGenerationCount`, `activeGenerationSignatures`
    - **View state**: `viewMode`, `isLightboxOpen`, `lightboxTarget`, `selectedItemIds`
 

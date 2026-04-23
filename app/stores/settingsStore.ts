@@ -20,6 +20,7 @@ interface SettingsState {
   notificationPromptDismissed: boolean;
   requestedOutputCount: number;
   editorContextInjectionEnabled: boolean;
+  alwaysImprovePromptEnabled: boolean;
 
   // API key actions
   setApiKey: (provider: ApiKeyProvider, key: string | null) => void;
@@ -53,6 +54,9 @@ interface SettingsState {
 
   // Editor context injection
   setEditorContextInjectionEnabled: (enabled: boolean) => void;
+
+  // Always improve prompt
+  setAlwaysImprovePromptEnabled: (enabled: boolean) => void;
 }
 
 export const useSettingsStore = create<SettingsState>()(
@@ -68,6 +72,7 @@ export const useSettingsStore = create<SettingsState>()(
       notificationPromptDismissed: false,
       requestedOutputCount: 0,
       editorContextInjectionEnabled: true,
+      alwaysImprovePromptEnabled: false,
 
       setApiKey: (provider, key) =>
         set((state) => ({
@@ -143,6 +148,9 @@ export const useSettingsStore = create<SettingsState>()(
       setEditorContextInjectionEnabled: (enabled) =>
         set({ editorContextInjectionEnabled: enabled }),
 
+      setAlwaysImprovePromptEnabled: (enabled) =>
+        set({ alwaysImprovePromptEnabled: enabled }),
+
       incrementRequestedOutputCount: (count = 1) =>
         set((state) => ({
           requestedOutputCount: state.requestedOutputCount + Math.max(0, count),
@@ -150,7 +158,7 @@ export const useSettingsStore = create<SettingsState>()(
     }),
     {
       name: "studio-settings",
-      version: 9,
+      version: 10,
       partialize: (state) => ({
         apiKeys: state.apiKeys,
         models: state.models,
@@ -159,6 +167,7 @@ export const useSettingsStore = create<SettingsState>()(
         notificationPromptDismissed: state.notificationPromptDismissed,
         requestedOutputCount: state.requestedOutputCount,
         editorContextInjectionEnabled: state.editorContextInjectionEnabled,
+        alwaysImprovePromptEnabled: state.alwaysImprovePromptEnabled,
       }),
       migrate: (persisted, version) => {
         let state = persisted as {
@@ -169,6 +178,7 @@ export const useSettingsStore = create<SettingsState>()(
           notificationPromptDismissed?: boolean;
           requestedOutputCount?: number;
           editorContextInjectionEnabled?: boolean;
+          alwaysImprovePromptEnabled?: boolean;
         };
 
         // always update builtin models
@@ -251,6 +261,13 @@ export const useSettingsStore = create<SettingsState>()(
           state = {
             ...state,
             editorContextInjectionEnabled: state.editorContextInjectionEnabled ?? true,
+          };
+        }
+
+        if (version < 10) {
+          state = {
+            ...state,
+            alwaysImprovePromptEnabled: state.alwaysImprovePromptEnabled ?? false,
           };
         }
 

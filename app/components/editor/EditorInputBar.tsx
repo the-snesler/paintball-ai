@@ -125,6 +125,8 @@ export function EditorInputBar({ onSourceFile }: EditorInputBarProps) {
   const sourcePrompt = useEditorStore((s) => s.sourcePrompt);
   const sourceGalleryItemId = useEditorStore((s) => s.sourceGalleryItemId);
   const contextInjectionEnabled = useSettingsStore((s) => s.editorContextInjectionEnabled);
+  const alwaysImprovePromptEnabled = useSettingsStore((s) => s.alwaysImprovePromptEnabled);
+  const setTurnSentInstruction = useEditorStore((s) => s.setTurnSentInstruction);
 
   const { generateEdit } = useEditorGeneration();
 
@@ -374,6 +376,29 @@ export function EditorInputBar({ onSourceFile }: EditorInputBarProps) {
         }
       }
 
+      // Auto-improve the instruction before it's sent to the model. The turn is
+      // already on screen (via the skeleton in Turn.tsx), so this delay is
+      // invisible to the user.
+      let sentInstruction = finalInstruction;
+      if (alwaysImprovePromptEnabled && isTextModelAvailable()) {
+        const improveInputs = [canvasBlob, ...referenceImages.map((r) => r.blob)];
+        try {
+          const improved = await callTextModel(
+            IMPROVE_PROMPT_SYSTEM,
+            finalInstruction,
+            improveInputs
+          );
+          const trimmed = improved.trim();
+          if (trimmed) sentInstruction = trimmed;
+        } catch {
+          // Leave the instruction untouched on failure
+        }
+      }
+
+      if (sentInstruction !== text) {
+        setTurnSentInstruction(turnId, sentInstruction);
+      }
+
       const additionalRefs = referenceImages.map((r) => ({
         id: r.id,
         blob: r.blob,
@@ -382,7 +407,8 @@ export function EditorInputBar({ onSourceFile }: EditorInputBarProps) {
       }));
 
       await generateEdit({
-        instruction: finalInstruction,
+        instruction: sentInstruction,
+        basePrompt: sentInstruction !== text ? text : undefined,
         referenceBlob: canvasBlob,
         referenceId: refId,
         sourceGalleryItemId: canvasSourceGalleryItemId,
@@ -421,6 +447,8 @@ export function EditorInputBar({ onSourceFile }: EditorInputBarProps) {
     turns,
     sourcePrompt,
     sourceGalleryItemId,
+    alwaysImprovePromptEnabled,
+    setTurnSentInstruction,
   ]);
 
   const handleImprove = useCallback(async () => {

@@ -19,6 +19,9 @@ export function useEditorGeneration() {
   const generateEdit = useCallback(
     async (params: {
       instruction: string;
+      /** Original user-typed instruction before any improvement. When set, stored as
+       *  basePrompt on resulting gallery items so the lightbox can show it. */
+      basePrompt?: string;
       referenceBlob: Blob;
       referenceId: string;
       /** Gallery item ID that the source blob was derived from, if any */
@@ -31,6 +34,7 @@ export function useEditorGeneration() {
     }): Promise<void> => {
       const {
         instruction,
+        basePrompt,
         referenceBlob,
         referenceId,
         sourceGalleryItemId,
@@ -85,6 +89,7 @@ export function useEditorGeneration() {
             modelName: model.name,
             provider: model.provider,
             prompt: instruction,
+            basePrompt,
             aspectRatio: taskAspectRatio,
             resolution: taskResolution,
             referenceImages: allReferences,
@@ -96,6 +101,7 @@ export function useEditorGeneration() {
             modelId,
             modelName: model.name,
             prompt: instruction,
+            basePrompt,
             aspectRatio: taskAspectRatio,
             resolution: taskResolution,
             referenceImageIds: allReferenceIds,

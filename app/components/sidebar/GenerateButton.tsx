@@ -49,15 +49,13 @@ export function GenerateButton() {
     isLastSubmittedActive && lastSubmittedSignature === currentSignature;
 
   const variationsEnabled = useGenerationStore((s) => s.variationsEnabled);
-  const isPreparingVariations = useGenerationStore((s) => s.isPreparingVariations);
   const variationsBlocking = variationsEnabled && !hasVariationSections(prompt);
 
   const canGenerate =
     prompt.trim().length > 0 &&
     totalImages > 0 &&
     !isLockedForCurrentParams &&
-    !variationsBlocking &&
-    !isPreparingVariations;
+    !variationsBlocking;
 
   const canClear = prompt.trim().length !== 0 || totalImages > 0;
 
@@ -88,12 +86,7 @@ export function GenerateButton() {
               : "translate-y-0 cursor-not-allowed border-zinc-700 bg-zinc-800 text-zinc-500"
           }`}
         >
-          {isPreparingVariations ? (
-            <>
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Creating variations...
-            </>
-          ) : isLockedForCurrentParams ? (
+          {isLockedForCurrentParams ? (
             <>
               <Loader2 className="h-4 w-4 animate-spin" />
               Generating...

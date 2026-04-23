@@ -46,6 +46,14 @@ interface GalleryState {
     id: string,
     updates: PendingGalleryItemFields | CompletedGalleryItemFields | FailedGalleryItemFields
   ) => void;
+  updatePendingPromptFields: (
+    updates: Array<{
+      id: string;
+      prompt: string;
+      basePrompt?: string;
+      variationReplacements?: string[];
+    }>
+  ) => void;
   deleteItem: (id: string) => Promise<void>;
   dismissItem: (id: string) => void;
   getItem: (id: string) => GalleryItem | undefined;
@@ -133,6 +141,23 @@ export const useGalleryStore = create<GalleryState>()((set, get) => ({
       return {
         items: state.items.map((item) => (item.id === id ? { ...item, ...updates } : item)),
         totalCount: becomingCompleted ? state.totalCount + 1 : state.totalCount,
+      };
+    }),
+
+  updatePendingPromptFields: (updates) =>
+    set((state) => {
+      const byId = new Map(updates.map((u) => [u.id, u]));
+      return {
+        items: state.items.map((item) => {
+          const u = byId.get(item.id);
+          if (!u) return item;
+          return {
+            ...item,
+            prompt: u.prompt,
+            basePrompt: u.basePrompt,
+            variationReplacements: u.variationReplacements,
+          };
+        }),
       };
     }),
 
