@@ -1,13 +1,16 @@
 import { LayoutDashboard, GalleryVertical, Settings, FilePenLine } from "lucide-react";
 import NumberFlow from "@number-flow/react";
 import { useLocation, useNavigate } from "react-router";
+import { SearchBar } from "./SearchBar";
 
 interface GalleryHeaderProps {
   count?: number;
   title?: string;
+  searchQuery?: string;
+  onSearchChange?: (query: string) => void;
 }
 
-export function GalleryHeader({ count = 0, title }: GalleryHeaderProps) {
+export function GalleryHeader({ count = 0, title, searchQuery, onSearchChange }: GalleryHeaderProps) {
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -36,7 +39,15 @@ export function GalleryHeader({ count = 0, title }: GalleryHeaderProps) {
         )}
       </h2>
 
-      <div className="flex-1" />
+      {onSearchChange ? (
+        <div className="flex-1 px-4">
+          <div className="mx-auto max-w-sm">
+            <SearchBar value={searchQuery ?? ""} onChange={onSearchChange} />
+          </div>
+        </div>
+      ) : (
+        <div className="flex-1" />
+      )}
 
       <div className="flex items-center gap-1">
         <div className="flex items-center gap-1 rounded-lg bg-zinc-900 p-1">

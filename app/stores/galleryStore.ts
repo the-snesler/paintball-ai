@@ -25,6 +25,7 @@ interface GalleryState {
   hasMore: boolean;
   isLoadingMore: boolean;
   totalCount: number;
+  searchQuery: string;
 
   loadImages: () => Promise<void>;
   loadMoreImages: () => Promise<void>;
@@ -42,6 +43,7 @@ interface GalleryState {
   clearSelection: () => void;
   deleteSelectedItems: () => Promise<number>;
   downloadSelectedItems: () => number;
+  setSearchQuery: (query: string) => void;
 }
 
 export const useGalleryStore = create<GalleryState>()((set, get) => ({
@@ -54,6 +56,7 @@ export const useGalleryStore = create<GalleryState>()((set, get) => ({
   hasMore: false,
   isLoadingMore: false,
   totalCount: 0,
+  searchQuery: "",
 
   loadImages: async () => {
     set({ isLoading: true });
@@ -215,6 +218,8 @@ export const useGalleryStore = create<GalleryState>()((set, get) => ({
     }),
 
   clearSelection: () => set({ selectedItemIds: [], lastSelectedId: null }),
+
+  setSearchQuery: (query) => set({ searchQuery: query }),
 
   deleteSelectedItems: async () => {
     const state = get();
