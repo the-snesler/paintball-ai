@@ -1,11 +1,13 @@
 import { useEffect, useCallback, useState } from "react";
 import {
   X,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
   Download,
   Trash2,
   Copy,
+  ClipboardCopy,
   Wand2,
   FilePenLine,
   Expand,
@@ -30,6 +32,7 @@ import { IconButton } from "./IconButton";
 import { WideIconButton } from "./WideIconButton";
 import { findSessionForImage, getReferenceImagesByIds, saveReferenceImage } from "~/lib/db";
 import type { ReferenceImage, StoredEditorSession } from "~/types";
+import { Accordion } from "@base-ui/react/accordion";
 
 export function Lightbox() {
   const navigate = useNavigate();
@@ -136,6 +139,11 @@ export function Lightbox() {
   }, [galleryImage]);
 
   const handleCopyPrompt = useCallback(() => {
+    if (!galleryImage) return;
+    navigator.clipboard.writeText(galleryImage.basePrompt ?? galleryImage.prompt);
+  }, [galleryImage]);
+
+  const handleCopyRawPrompt = useCallback(() => {
     if (!galleryImage) return;
     navigator.clipboard.writeText(galleryImage.prompt);
   }, [galleryImage]);
@@ -340,7 +348,26 @@ export function Lightbox() {
               {/* Prompt */}
               <div className="space-y-2">
                 <div className="space-y-2 rounded-lg bg-zinc-800/50 p-3">
-                  <p className="text-sm text-zinc-300">{galleryImage.prompt}</p>
+                  <p className="text-sm whitespace-pre-wrap text-zinc-300">
+                    {galleryImage.basePrompt ?? galleryImage.prompt}
+                  </p>
+                  {hasBasePrompt && (
+                    <Accordion.Root className="border-t border-zinc-700/60 pt-2">
+                      <Accordion.Item>
+                        <Accordion.Header>
+                          <Accordion.Trigger className="group inline-flex cursor-pointer list-none items-center gap-1 text-xs text-zinc-500 hover:text-zinc-400 [&::-webkit-details-marker]:hidden">
+                            <span>Show sent prompt</span>
+                            <ChevronDown className="h-4 w-4 -rotate-90 text-zinc-500 transition-transform duration-200 group-hover:text-zinc-400 group-data-panel-open:rotate-0" />
+                          </Accordion.Trigger>
+                        </Accordion.Header>
+                        <Accordion.Panel className="h-(--accordion-panel-height) overflow-hidden transition-[height] data-ending-style:h-0 data-starting-style:h-0">
+                          <p className="mt-2 text-xs leading-snug whitespace-pre-wrap text-zinc-400">
+                            {galleryImage.prompt}
+                          </p>
+                        </Accordion.Panel>
+                      </Accordion.Item>
+                    </Accordion.Root>
+                  )}
                 </div>
                 <div className="flex items-center gap-1">
                   <IconButton
@@ -355,9 +382,10 @@ export function Lightbox() {
                   />
                   {hasBasePrompt && (
                     <WideIconButton
-                      icon={<Layers className="h-4 w-4" />}
-                      title="Re-use Base Prompt"
-                      onClick={handleReuseBasePrompt}
+                      icon={<ClipboardCopy className="h-4 w-4" />}
+                      title="Copy sent prompt"
+                      tooltip="Copy the actual prompt that was sent to the model"
+                      onClick={handleCopyRawPrompt}
                     />
                   )}
                 </div>

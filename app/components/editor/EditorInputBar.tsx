@@ -125,6 +125,7 @@ export function EditorInputBar({ onSourceFile }: EditorInputBarProps) {
   const sourcePrompt = useEditorStore((s) => s.sourcePrompt);
   const sourceGalleryItemId = useEditorStore((s) => s.sourceGalleryItemId);
   const contextInjectionEnabled = useSettingsStore((s) => s.editorContextInjectionEnabled);
+  const setTurnSentInstruction = useEditorStore((s) => s.setTurnSentInstruction);
 
   const { generateEdit } = useEditorGeneration();
 
@@ -343,7 +344,12 @@ export function EditorInputBar({ onSourceFile }: EditorInputBarProps) {
       // Save the canvas blob as a reference image for retry support
       const refId = crypto.randomUUID();
       const canvasSourceGalleryItemId = selectedItemId ?? sourceGalleryItemId ?? undefined;
-      await saveReferenceImage({ id: refId, blob: canvasBlob, name: "editor-source", sourceGalleryItemId: canvasSourceGalleryItemId });
+      await saveReferenceImage({
+        id: refId,
+        blob: canvasBlob,
+        name: "editor-source",
+        sourceGalleryItemId: canvasSourceGalleryItemId,
+      });
 
       const turnId = crypto.randomUUID();
       addTurn({
@@ -383,6 +389,7 @@ export function EditorInputBar({ onSourceFile }: EditorInputBarProps) {
 
       await generateEdit({
         instruction: finalInstruction,
+        basePrompt: text,
         referenceBlob: canvasBlob,
         referenceId: refId,
         sourceGalleryItemId: canvasSourceGalleryItemId,
@@ -396,6 +403,11 @@ export function EditorInputBar({ onSourceFile }: EditorInputBarProps) {
           }
           // Deselect source while generating
           selectItem(null);
+        },
+        onPromptPrepared: (sentPrompt) => {
+          if (sentPrompt !== text) {
+            setTurnSentInstruction(turnId, sentPrompt);
+          }
         },
       });
     } finally {
@@ -421,6 +433,7 @@ export function EditorInputBar({ onSourceFile }: EditorInputBarProps) {
     turns,
     sourcePrompt,
     sourceGalleryItemId,
+    setTurnSentInstruction,
   ]);
 
   const handleImprove = useCallback(async () => {

@@ -88,6 +88,7 @@ export interface BaseGalleryItem {
 
 export interface PendingGalleryItemFields {
   status: "pending" | "generating" | "waiting";
+  pendingPhase?: "writing" | "variating";
   retryCount?: number;
   waitingUntil?: number; // Timestamp when rate limit expires
   retryAfter?: number; // Seconds to wait (for display)
@@ -174,6 +175,9 @@ export interface ApiKeys {
 export interface EditorTurn {
   id: string;
   instruction: string;
+  /** The actual prompt sent to the model, populated when auto-improve modified the
+   *  user's instruction. Displayed secondarily via a dropdown. */
+  sentInstruction?: string;
   /** Gallery item ID used as reference (null = original source image) */
   sourceItemId: string | null;
   /** Snapshot of reference blob at time of edit */
@@ -191,6 +195,7 @@ export interface EditorTurn {
 export interface StoredEditorTurn {
   id: string;
   instruction: string;
+  sentInstruction?: string;
   sourceItemId: string | null;
   sourceReferenceId: string;
   itemIds: string[];

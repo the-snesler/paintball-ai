@@ -1,5 +1,6 @@
 import { useCallback } from "react";
 import { getReferenceImagesByIds } from "~/lib/db";
+import { hasVariationSections } from "~/lib/promptVariations";
 import { useGenerationStore } from "~/stores/generationStore";
 import type { CompletedGalleryItem } from "~/types";
 
@@ -34,7 +35,7 @@ export function useReuseGalleryItemBasePrompt() {
       const references = await getReferenceImagesByIds(item.referenceImageIds);
       addReferenceImages(references);
       setPrompt(item.basePrompt);
-      setVariationsEnabled(Boolean(item.basePrompt));
+      setVariationsEnabled(hasVariationSections(item.basePrompt));
     },
     [addReferenceImages, clearReferenceImages, setPrompt, setVariationsEnabled]
   );

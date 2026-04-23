@@ -25,6 +25,7 @@ export function Turn({ turn, turnIndex, isFirst = false }: TurnProps) {
   const selectedItemId = useEditorStore((s) => s.selectedItemId);
   const selectItem = useEditorStore((s) => s.selectItem);
   const turns = useEditorStore((s) => s.turns);
+  const isGeneratingEdit = useEditorStore((s) => s.isGenerating);
 
   // Source thumbnail URL: comes from the item used as reference, or source blob
   const [sourceThumbUrl, setSourceThumbUrl] = useState<string | null>(null);
@@ -71,14 +72,35 @@ export function Turn({ turn, turnIndex, isFirst = false }: TurnProps) {
     }
   }, [items, isLastTurn, selectedItemId, selectItem]);
 
-  if (items.filter(Boolean).length === 0) return null;
+  // Show a placeholder skeleton for the latest turn while an edit is in flight
+  // but before the prompt-prep pipeline has created pending items.
+  const isPendingFirstItems =
+    items.filter(Boolean).length === 0 &&
+    turn.itemIds.length === 0 &&
+    isLastTurn &&
+    isGeneratingEdit;
+
+  if (items.filter(Boolean).length === 0 && !isPendingFirstItems) return null;
+
+  const showSentInstruction =
+    turn.sentInstruction && turn.sentInstruction !== turn.instruction;
 
   return (
     <div className="animate-fade-in flex w-full flex-col items-center">
       {/* Turn header */}
       <div className="mb-1 flex w-full max-w-4xl items-start gap-3">
-        <div className="flex min-w-0 flex-1 items-center gap-2">
+        <div className="flex min-w-0 flex-1 flex-col gap-1">
           <p className="text-sm leading-snug font-medium text-zinc-200">{turn.instruction}</p>
+          {showSentInstruction && (
+            <details className="group/sent">
+              <summary className="cursor-pointer list-none text-xs text-zinc-500 hover:text-zinc-400 [&::-webkit-details-marker]:hidden">
+                Show sent prompt
+              </summary>
+              <p className="mt-1 rounded bg-zinc-800/50 p-2 text-xs leading-snug whitespace-pre-wrap text-zinc-400">
+                {turn.sentInstruction}
+              </p>
+            </details>
+          )}
         </div>
 
         {/* Source thumbnail */}
@@ -94,28 +116,46 @@ export function Turn({ turn, turnIndex, isFirst = false }: TurnProps) {
 
       {/* Image grid */}
       <div className="grid w-full max-w-4xl grid-cols-[repeat(auto-fill,minmax(250px,1fr))] gap-3 p-3">
-        {items.map((item) => {
-          if (!item) return null;
+        {isPendingFirstItems ? (
+          <EditorPendingSkeleton />
+        ) : (
+          items.map((item) => {
+            if (!item) return null;
 
-          if (item.status === "completed") {
-            const isSelected = selectedItemId === item.id;
-            return (
-              <EditorImageCard
-                key={item.id}
-                itemId={item.id}
-                thumbnailUrl={item.thumbnailUrl}
-                modelName={item.modelName}
-                isSelected={isSelected}
-                onClick={() => selectItem(item.id)}
-                childBlob={item.originalBlob}
-                parentBlob={parentBlob}
-                parentLabel={parentLabel}
-              />
-            );
-          }
+            if (item.status === "completed") {
+              const isSelected = selectedItemId === item.id;
+              return (
+                <EditorImageCard
+                  key={item.id}
+                  itemId={item.id}
+                  thumbnailUrl={item.thumbnailUrl}
+                  modelName={item.modelName}
+                  isSelected={isSelected}
+                  onClick={() => selectItem(item.id)}
+                  childBlob={item.originalBlob}
+                  parentBlob={parentBlob}
+                  parentLabel={parentLabel}
+                />
+              );
+            }
 
-          return <EditorLoadingCard key={item.id} item={item} />;
-        })}
+            return <EditorLoadingCard key={item.id} item={item} />;
+          })
+        )}
+      </div>
+    </div>
+  );
+}
+
+function EditorPendingSkeleton() {
+  return (
+    <div
+      className="relative overflow-hidden rounded-lg bg-zinc-900 ring-1 ring-zinc-800"
+      style={{ aspectRatio: "1/1" }}
+    >
+      <SineWaveGrid />
+      <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+        <p className="text-xs font-medium text-white/80 drop-shadow-lg">Generating...</p>
       </div>
     </div>
   );

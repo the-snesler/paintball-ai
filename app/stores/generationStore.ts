@@ -9,7 +9,6 @@ interface GenerationState {
   currentReferenceImages: ReferenceImage[];
   variationsEnabled: boolean;
   avoidPastVariations: boolean;
-  isPreparingVariations: boolean;
   activeGenerationCount: number;
   activeGenerationSignatures: Record<string, number>;
   lastSubmittedSignature: string | null;
@@ -21,7 +20,6 @@ interface GenerationState {
   setResolution: (resolution: Resolution) => void;
   setVariationsEnabled: (enabled: boolean) => void;
   setAvoidPastVariations: (enabled: boolean) => void;
-  setIsPreparingVariations: (enabled: boolean) => void;
   addReferenceImage: (image: ReferenceImage) => void;
   addReferenceImages: (images: ReferenceImage[]) => void;
   removeReferenceImage: (id: string) => void;
@@ -44,7 +42,6 @@ export const DEFAULT_GENERATION_STATE = {
 
 export const useGenerationStore = create<GenerationState>()((set) => ({
   ...DEFAULT_GENERATION_STATE,
-  isPreparingVariations: false,
   activeGenerationCount: 0,
   activeGenerationSignatures: {},
   lastSubmittedSignature: null,
@@ -67,8 +64,6 @@ export const useGenerationStore = create<GenerationState>()((set) => ({
   setVariationsEnabled: (variationsEnabled) => set({ variationsEnabled }),
 
   setAvoidPastVariations: (avoidPastVariations) => set({ avoidPastVariations }),
-
-  setIsPreparingVariations: (isPreparingVariations) => set({ isPreparingVariations }),
 
   addReferenceImage: (image) =>
     set((state) => ({
@@ -147,7 +142,6 @@ export const useGenerationStore = create<GenerationState>()((set) => ({
       state.currentReferenceImages.forEach((image) => URL.revokeObjectURL(image.url));
       return {
         ...DEFAULT_GENERATION_STATE,
-        isPreparingVariations: false,
       };
     }),
 }));

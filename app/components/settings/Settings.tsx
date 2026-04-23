@@ -3,8 +3,6 @@ import {
   Eye,
   EyeOff,
   Check,
-  BrainCircuit,
-  Sparkles,
   ChevronDown,
   Loader2,
   Bell,
@@ -44,9 +42,13 @@ export function SettingsModal() {
   const setApiKey = useSettingsStore((s) => s.setApiKey);
   const setTextModel = useSettingsStore((s) => s.setTextModel);
   const editorContextInjectionEnabled = useSettingsStore((s) => s.editorContextInjectionEnabled);
+  const alwaysImprovePromptEnabled = useSettingsStore((s) => s.alwaysImprovePromptEnabled);
   const setDesktopNotificationsEnabled = useSettingsStore((s) => s.setDesktopNotificationsEnabled);
   const setEditorContextInjectionEnabled = useSettingsStore(
     (s) => s.setEditorContextInjectionEnabled
+  );
+  const setAlwaysImprovePromptEnabled = useSettingsStore(
+    (s) => s.setAlwaysImprovePromptEnabled
   );
 
   const apiKeysDetailsRef = useRef<HTMLDetailsElement | null>(null);
@@ -203,7 +205,8 @@ export function SettingsModal() {
 
           <div className="ml-6 space-y-3 rounded-lg border border-zinc-800 bg-zinc-900/60 p-3">
             <p className="text-xs text-zinc-500">
-              Used for prompt improvement and smart model configuration.
+              Used for prompt improvement, variations, editor context briefs, and smart model
+              configuration.
             </p>
 
             <div className="space-y-2">
@@ -244,36 +247,38 @@ export function SettingsModal() {
                   : "No API keys configured. Add one above to enable text model features."}
               </p>
             )}
-          </div>
-        </details>
 
-        {/* Editor Context Section */}
-        <details className="group space-y-3" open>
-          <summary className="flex w-full cursor-pointer list-none items-center justify-between text-left [&::-webkit-details-marker]:hidden">
-            <div className="flex items-center gap-2">
-              <BrainCircuit className="h-4 w-4 text-purple-400" />
-              <span className="text-sm font-medium">Editor context</span>
-              {editorContextInjectionEnabled && <Check className="h-4 w-4 text-green-500" />}
+            <div className="space-y-3 border-t border-zinc-800 pt-3">
+              <label className="flex items-center justify-between gap-3">
+                <span className="text-sm text-zinc-200">Always improve prompt</span>
+                <Switch
+                  checked={alwaysImprovePromptEnabled}
+                  onChange={(e) => setAlwaysImprovePromptEnabled(e.target.checked)}
+                  aria-label="Toggle always improve prompt"
+                />
+              </label>
+              <p className="text-xs text-zinc-500">
+                Silently pass every prompt through the text model before generation. Composes with
+                variations: prompt → improve → variations → image requests. Your original prompt is
+                preserved and shown as the primary prompt in the lightbox.
+              </p>
             </div>
-            <ChevronDown className="h-4 w-4 -rotate-90 text-zinc-400 transition-transform duration-200 group-open:rotate-0" />
-          </summary>
 
-          <div className="ml-6 space-y-3 rounded-lg border border-zinc-800 bg-zinc-900/60 p-3">
-            <label className="flex items-center justify-between gap-3">
-              <span className="text-sm text-zinc-200">
-                Auto-generate context briefs from edit history
-              </span>
-              <Switch
-                checked={editorContextInjectionEnabled}
-                onChange={(e) => setEditorContextInjectionEnabled(e.target.checked)}
-                aria-label="Toggle editor context injection"
-              />
-            </label>
-            <p className="text-xs text-zinc-500">
-              After each edit, an AI summary of your editing intent is generated and prepended to
-              subsequent prompts. This helps maintain style and character consistency across
-              multiple edits.
-            </p>
+            <div className="space-y-3 border-t border-zinc-800 pt-3">
+              <label className="flex items-center justify-between gap-3">
+                <span className="text-sm text-zinc-200">Editor context briefs</span>
+                <Switch
+                  checked={editorContextInjectionEnabled}
+                  onChange={(e) => setEditorContextInjectionEnabled(e.target.checked)}
+                  aria-label="Toggle editor context injection"
+                />
+              </label>
+              <p className="text-xs text-zinc-500">
+                After each edit, an AI summary of your editing intent is generated and prepended to
+                subsequent prompts. This helps maintain style and character consistency across
+                multiple edits.
+              </p>
+            </div>
           </div>
         </details>
 
