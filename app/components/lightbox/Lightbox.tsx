@@ -27,7 +27,6 @@ import {
   useReuseGalleryItemPrompt,
 } from "~/hooks/useReuseGalleryItemPrompt";
 import { useUpscale } from "~/hooks/useUpscale";
-import { getEnabledUpscalers } from "~/stores/settingsStore";
 import { IconButton } from "./IconButton";
 import { WideIconButton } from "./WideIconButton";
 import { findSessionForImage, getReferenceImagesByIds, saveReferenceImage } from "~/lib/db";
@@ -54,7 +53,8 @@ export function Lightbox() {
   const [showUpscalePicker, setShowUpscalePicker] = useState(false);
   const { status: upscaleStatus, error: upscaleError, upscale } = useUpscale();
   const replicateKey = useSettingsStore((s) => s.apiKeys.replicate);
-  const enabledUpscalers = useSettingsStore(getEnabledUpscalers);
+  const upscalers = useSettingsStore((s) => s.upscalers);
+  const enabledUpscalers = replicateKey ? upscalers.filter((u) => u.enabled) : [];
 
   useEffect(() => {
     if (!galleryImage || galleryImage.referenceImageIds.length === 0) {
