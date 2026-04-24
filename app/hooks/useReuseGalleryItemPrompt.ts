@@ -15,7 +15,7 @@ export function useReuseGalleryItemPrompt() {
       clearReferenceImages();
       const references = await getReferenceImagesByIds(item.referenceImageIds);
       addReferenceImages(references);
-      setPrompt(item.prompt);
+      setPrompt(item.basePrompt ?? item.prompt);
       setVariationsEnabled(false);
     },
     [addReferenceImages, clearReferenceImages, setPrompt, setVariationsEnabled]

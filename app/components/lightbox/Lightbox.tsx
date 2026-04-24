@@ -7,12 +7,11 @@ import {
   Download,
   Trash2,
   Copy,
-  ClipboardCopy,
-  Wand2,
   FilePenLine,
   Expand,
-  Layers,
-  Layers2,
+  RotateCcw,
+  Check,
+  CopyPlus,
 } from "lucide-react";
 import { useLocation, useNavigate } from "react-router";
 import { useGalleryStore } from "~/stores/galleryStore";
@@ -51,6 +50,8 @@ export function Lightbox() {
   const [referenceImages, setReferenceImages] = useState<ReferenceImage[]>([]);
   const [linkedSession, setLinkedSession] = useState<StoredEditorSession | null>(null);
   const [showUpscalePicker, setShowUpscalePicker] = useState(false);
+  const [copySuccess, setCopySuccess] = useState(false);
+  const [copyRawSuccess, setCopyRawSuccess] = useState(false);
   const { status: upscaleStatus, error: upscaleError, upscale } = useUpscale();
   const replicateKey = useSettingsStore((s) => s.apiKeys.replicate);
   const upscalers = useSettingsStore((s) => s.upscalers);
@@ -142,11 +143,15 @@ export function Lightbox() {
   const handleCopyPrompt = useCallback(() => {
     if (!galleryImage) return;
     navigator.clipboard.writeText(galleryImage.basePrompt ?? galleryImage.prompt);
+    setCopySuccess(true);
+    setTimeout(() => setCopySuccess(false), 2000);
   }, [galleryImage]);
 
   const handleCopyRawPrompt = useCallback(() => {
     if (!galleryImage) return;
     navigator.clipboard.writeText(galleryImage.prompt);
+    setCopyRawSuccess(true);
+    setTimeout(() => setCopyRawSuccess(false), 2000);
   }, [galleryImage]);
 
   const handleReusePrompt = useCallback(async () => {
@@ -385,23 +390,34 @@ export function Lightbox() {
                 </div>
                 <div className="flex items-center gap-1">
                   <IconButton
-                    icon={<Copy className="h-4 w-4" />}
+                    icon={
+                      copySuccess ? (
+                        <Check className="h-4 w-4 text-green-400" />
+                      ) : (
+                        <Copy className="h-4 w-4" />
+                      )
+                    }
                     title="Copy Prompt"
                     onClick={handleCopyPrompt}
                   />
-                  <IconButton
-                    icon={<Wand2 className="h-4 w-4" />}
-                    title="Re-use Prompt"
-                    onClick={handleReusePrompt}
-                  />
                   {hasBasePrompt && (
-                    <WideIconButton
-                      icon={<ClipboardCopy className="h-4 w-4" />}
-                      title="Copy sent prompt"
-                      tooltip="Copy the actual prompt that was sent to the model"
+                    <IconButton
+                      icon={
+                        copyRawSuccess ? (
+                          <Check className="h-4 w-4 text-green-400" />
+                        ) : (
+                          <CopyPlus className="h-4 w-4" />
+                        )
+                      }
+                      title="Copy sent prompt (actual prompt that was sent to the model)"
                       onClick={handleCopyRawPrompt}
                     />
                   )}
+                  <IconButton
+                    icon={<RotateCcw className="h-4 w-4" />}
+                    title="Re-use Prompt"
+                    onClick={handleReusePrompt}
+                  />
                 </div>
               </div>
 

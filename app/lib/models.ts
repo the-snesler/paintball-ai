@@ -1,4 +1,4 @@
-import type { AspectRatio, StoredModel } from "~/types";
+import type { AspectRatio, Resolution, StoredModel } from "~/types";
 
 export const ASPECT_RATIOS: { value: AspectRatio; label: string; width: number; height: number }[] =
   [
@@ -12,7 +12,11 @@ export const ASPECT_RATIOS: { value: AspectRatio; label: string; width: number; 
 
 const PRIMARY_ASPECT_RATIO_VALUES = ASPECT_RATIOS.map((ratio) => ratio.value);
 
-export const RESOLUTIONS = ["1K", "2K", "4K"] as const;
+export const RESOLUTIONS_LABELS: [string, Resolution][] = [
+  ["Standard", "1K"],
+  ["High", "2K"],
+  ["Ultra", "4K"],
+];
 
 export const QUALITIES = ["low", "medium", "high", "auto"] as const;
 export type Quality = (typeof QUALITIES)[number];
