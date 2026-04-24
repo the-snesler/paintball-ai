@@ -15,7 +15,7 @@ import { useState } from "react";
 import type { StoredModel } from "~/types";
 import { Tooltip } from "~/components/ui/Tooltip";
 import { Switch } from "~/components/ui/Switch";
-import { getProvider } from "~/lib/providers";
+import { getProvider, PROVIDERS } from "~/lib/providers";
 
 function CapabilityBadge({
   icon: Icon,
@@ -94,6 +94,8 @@ export default function ModelToggleItem({
       ? "Schema update available. Click to refresh."
       : "Custom Replicate model. Click to refresh schema info.";
 
+  const provider = PROVIDERS[model.provider];
+
   return (
     <div
       className={`flex items-center gap-1 rounded-lg border border-zinc-700/50 bg-zinc-800/50 p-2 py-2.5 ${
@@ -122,30 +124,9 @@ export default function ModelToggleItem({
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-medium text-zinc-100">{model.name}</p>
         <div className="mt-0.5 flex items-center gap-1">
-          <Tooltip
-            content={
-              model.provider === "google"
-                ? "Google"
-                : model.provider === "replicate"
-                  ? "Replicate"
-                  : model.provider === "openai"
-                    ? "OpenAI"
-                    : model.provider
-            }
-            placement="top"
-            delay={200}
-          >
+          <Tooltip content={provider.label} placement="top" delay={200}>
             <span className="text-zinc-40 inline-flex cursor-help items-center gap-1 rounded bg-purple-700/50 px-1.5 py-0.5 text-[10px] text-purple-400">
-              {model.provider === "google" ||
-              model.provider === "replicate" ||
-              model.provider === "openai" ? (
-                <SVG
-                  src={`/icons/${model.provider}.svg`}
-                  className="h-2.5 w-2.5 overflow-visible"
-                />
-              ) : (
-                <Box className="h-2.5 w-2.5" />
-              )}
+              <SVG src={provider.iconPath} className="h-2.5 w-2.5 overflow-visible" />
             </span>
           </Tooltip>
           <CapabilityBadge

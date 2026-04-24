@@ -168,7 +168,7 @@ const BASE_BUILT_IN_MODELS: StoredModel[] = [
   },
   {
     id: "gpt-image-1.5",
-    name: "GPT Image 1.5 (OpenAI)",
+    name: "GPT Image 1.5",
     provider: "openai",
     enabled: false,
     icon: "/icons/openai.svg",

@@ -43,7 +43,7 @@ export interface TextGenerationArgs {
 export interface Provider {
   id: ProviderId;
   label: string;
-  iconPath?: string;
+  iconPath: string;
   requiresApiKey: boolean;
   capabilities: ProviderCapabilities;
   supportsTextPrefill?: boolean;
