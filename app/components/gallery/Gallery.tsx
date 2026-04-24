@@ -74,7 +74,11 @@ export function Gallery({ viewMode }: { viewMode: "grid" | "timeline" }) {
 
       <div className={`flex-1 overflow-y-auto p-2 md:p-6 ${selectedCount > 0 ? "pb-28" : ""}`}>
         {filteredItems.length === 0 ? (
-          searchQuery.trim() ? <NoSearchResults /> : <EmptyState />
+          searchQuery.trim() ? (
+            <NoSearchResults />
+          ) : (
+            <EmptyState />
+          )
         ) : viewMode === "grid" ? (
           <GridView items={filteredItems} />
         ) : (

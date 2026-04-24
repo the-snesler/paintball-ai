@@ -46,11 +46,7 @@ function buildGalleryDerivedIndexes(items: GalleryItem[]): GalleryDerivedIndexes
     itemById.set(item.id, item);
     pushToMapValue(itemsByPrompt, getPromptKey(item), item);
 
-    if (
-      item.status === "pending" ||
-      item.status === "generating" ||
-      item.status === "waiting"
-    ) {
+    if (item.status === "pending" || item.status === "generating" || item.status === "waiting") {
       inFlightCount += 1;
     }
 
@@ -74,12 +70,14 @@ function buildGalleryDerivedIndexes(items: GalleryItem[]): GalleryDerivedIndexes
     completedItemsByPrompt,
     childItemsByParentId,
     inFlightCount,
-    getItemById: (id) => (id ? itemById.get(id) ?? null : null),
+    getItemById: (id) => (id ? (itemById.get(id) ?? null) : null),
     getPromptGroup: (key) => itemsByPrompt.get(key) ?? EMPTY_ITEMS,
     getPromptGroupForItem: (item) =>
-      item ? itemsByPrompt.get(getPromptKey(item)) ?? EMPTY_ITEMS : EMPTY_ITEMS,
+      item ? (itemsByPrompt.get(getPromptKey(item)) ?? EMPTY_ITEMS) : EMPTY_ITEMS,
     getChildItems: (parentId) =>
-      parentId ? childItemsByParentId.get(parentId) ?? EMPTY_COMPLETED_ITEMS : EMPTY_COMPLETED_ITEMS,
+      parentId
+        ? (childItemsByParentId.get(parentId) ?? EMPTY_COMPLETED_ITEMS)
+        : EMPTY_COMPLETED_ITEMS,
   };
 
   return cachedIndexes;

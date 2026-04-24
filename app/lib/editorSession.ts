@@ -50,9 +50,7 @@ export async function hydrateStoredSession(
   }
 
   // Track only the URLs that will be managed by the store
-  const createdUrls = fetchedRefs
-    .filter((r) => urlNeededIds.has(r.id))
-    .map((r) => r.url);
+  const createdUrls = fetchedRefs.filter((r) => urlNeededIds.has(r.id)).map((r) => r.url);
 
   // Validate turn itemIds — prune gallery items that no longer exist
   const validatedItemIds: Record<string, string[]> = {};

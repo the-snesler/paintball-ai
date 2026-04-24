@@ -45,9 +45,7 @@ export function SettingsModal() {
   const setEditorContextInjectionEnabled = useSettingsStore(
     (s) => s.setEditorContextInjectionEnabled
   );
-  const setAlwaysImprovePromptEnabled = useSettingsStore(
-    (s) => s.setAlwaysImprovePromptEnabled
-  );
+  const setAlwaysImprovePromptEnabled = useSettingsStore((s) => s.setAlwaysImprovePromptEnabled);
 
   const apiKeysDetailsRef = useRef<HTMLDetailsElement | null>(null);
   const desktopNotificationsDetailsRef = useRef<HTMLDetailsElement | null>(null);

@@ -31,8 +31,7 @@ export function useAttachSelectedItemsToGeneration() {
       .filter(([, count]) => count > 0)
       .map(([modelId]) => modelId);
 
-    const totalReferences =
-      generationState.currentReferenceImages.length + selectedItems.length;
+    const totalReferences = generationState.currentReferenceImages.length + selectedItems.length;
     const fit = canAttachReferenceCount(models, selectedModelIds, totalReferences);
 
     if (!fit.allowed) {

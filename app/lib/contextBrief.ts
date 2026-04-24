@@ -64,11 +64,12 @@ export async function generateContextBrief(
     const instructions = getLineageInstructions(turns, turn, sourcePrompt);
     if (instructions.length === 0) return "";
 
-    const userPrompt = instructions
-      .map((inst, i) => `${i + 1}. ${inst}`)
-      .join("\n");
+    const userPrompt = instructions.map((inst, i) => `${i + 1}. ${inst}`).join("\n");
 
-    const brief = await callTextModel(CONTEXT_BRIEF_SYSTEM, userPrompt, [turn.sourceBlob, ...(referenceImages?.map((img) => img.blob) || [])]);
+    const brief = await callTextModel(CONTEXT_BRIEF_SYSTEM, userPrompt, [
+      turn.sourceBlob,
+      ...(referenceImages?.map((img) => img.blob) || []),
+    ]);
     const trimmed = brief.trim();
 
     logger.debug("Context brief generated:", trimmed);

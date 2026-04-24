@@ -21,7 +21,11 @@ export default function SortableModelItem({
 
   return (
     <div ref={setNodeRef} style={style} className={isDragging ? "relative z-50 opacity-75" : ""}>
-      <ModelToggleItem model={model} hasApiKey={hasApiKey} dragHandleProps={{ ...attributes, ...listeners }} />
+      <ModelToggleItem
+        model={model}
+        hasApiKey={hasApiKey}
+        dragHandleProps={{ ...attributes, ...listeners }}
+      />
     </div>
   );
 }

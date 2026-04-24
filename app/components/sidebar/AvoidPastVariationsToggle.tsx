@@ -13,10 +13,7 @@ export function AvoidPastVariationsToggle() {
   const avoidPastVariations = useGenerationStore((s) => s.avoidPastVariations);
   const setAvoidPastVariations = useGenerationStore((s) => s.setAvoidPastVariations);
 
-  const avoidList = useMemo(
-    () => collectAvoidList(currentPrompt, items),
-    [currentPrompt, items]
-  );
+  const avoidList = useMemo(() => collectAvoidList(currentPrompt, items), [currentPrompt, items]);
 
   if (!variationsEnabled || !avoidList || !avoidList.some((list) => list.length > 0)) {
     return null;

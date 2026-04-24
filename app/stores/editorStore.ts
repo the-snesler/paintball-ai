@@ -1,9 +1,5 @@
 import { create } from "zustand";
-import {
-  deleteEditorSession,
-  getSessionById,
-  upsertEditorSession,
-} from "~/lib/db";
+import { deleteEditorSession, getSessionById, upsertEditorSession } from "~/lib/db";
 import { hydrateStoredSession } from "~/lib/editorSession";
 import type { EditorTurn, ReferenceImage, StoredEditorSession } from "~/types";
 
@@ -229,18 +225,14 @@ export const useEditorStore = create<EditorState>()((set, get) => {
 
     setTurnContextBrief: (turnId, brief) => {
       set((state) => ({
-        turns: state.turns.map((t) =>
-          t.id === turnId ? { ...t, contextBrief: brief } : t
-        ),
+        turns: state.turns.map((t) => (t.id === turnId ? { ...t, contextBrief: brief } : t)),
       }));
       persistSession();
     },
 
     setTurnSentInstruction: (turnId, sentInstruction) => {
       set((state) => ({
-        turns: state.turns.map((t) =>
-          t.id === turnId ? { ...t, sentInstruction } : t
-        ),
+        turns: state.turns.map((t) => (t.id === turnId ? { ...t, sentInstruction } : t)),
       }));
       persistSession();
     },
