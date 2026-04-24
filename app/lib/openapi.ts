@@ -5,6 +5,8 @@ export interface OpenApiSchemaProperty {
   default?: unknown;
   description?: string;
   title?: string;
+  minimum?: number;
+  maximum?: number;
   $ref?: string;
   allOf?: Array<{ $ref?: string } & Partial<OpenApiSchemaProperty>>;
   anyOf?: Array<{ $ref?: string } & Partial<OpenApiSchemaProperty>>;

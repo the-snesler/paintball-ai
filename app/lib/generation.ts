@@ -17,6 +17,8 @@ export interface GenerationParams {
   prompt: string;
   aspectRatio: AspectRatio | null;
   resolution: Resolution | null;
+  quality: string | null;
+  numberOfImages: number;
   referenceImages: Array<{ id: string; blob: Blob }>;
 }
 
@@ -30,7 +32,7 @@ export interface GenerationResult {
 export async function executeGeneration(
   params: GenerationParams,
   apiKey?: string
-): Promise<GenerationResult> {
+): Promise<GenerationResult[]> {
   const provider = getProvider(params.provider);
   if (!provider.generateImage) {
     throw new Error(`Provider ${params.provider} does not support image generation`);

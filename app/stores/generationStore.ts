@@ -6,6 +6,8 @@ interface GenerationState {
   currentModelSelections: Record<string, number>;
   currentAspectRatio: AspectRatio | null;
   currentResolution: Resolution;
+  currentQuality: string | null;
+  currentNumberOfImages: number;
   currentReferenceImages: ReferenceImage[];
   variationsEnabled: boolean;
   avoidPastVariations: boolean;
@@ -18,6 +20,8 @@ interface GenerationState {
   setModelCount: (modelId: string, count: number) => void;
   setAspectRatio: (ratio: AspectRatio | null) => void;
   setResolution: (resolution: Resolution) => void;
+  setQuality: (quality: string | null) => void;
+  setNumberOfImages: (count: number) => void;
   setVariationsEnabled: (enabled: boolean) => void;
   setAvoidPastVariations: (enabled: boolean) => void;
   addReferenceImage: (image: ReferenceImage) => void;
@@ -35,6 +39,8 @@ export const DEFAULT_GENERATION_STATE = {
   currentModelSelections: {},
   currentAspectRatio: null,
   currentResolution: "1K" as Resolution,
+  currentQuality: null as string | null,
+  currentNumberOfImages: 1,
   currentReferenceImages: [],
   variationsEnabled: false,
   avoidPastVariations: true,
@@ -60,6 +66,11 @@ export const useGenerationStore = create<GenerationState>()((set) => ({
   setAspectRatio: (currentAspectRatio) => set({ currentAspectRatio }),
 
   setResolution: (currentResolution) => set({ currentResolution }),
+
+  setQuality: (currentQuality) => set({ currentQuality }),
+
+  setNumberOfImages: (currentNumberOfImages) =>
+    set({ currentNumberOfImages: Math.max(1, Math.min(50, currentNumberOfImages)) }),
 
   setVariationsEnabled: (variationsEnabled) => set({ variationsEnabled }),
 

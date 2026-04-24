@@ -6,6 +6,8 @@ import {
   Image,
   Box,
   RefreshCw,
+  GalleryHorizontalEnd,
+  Sparkles,
 } from "lucide-react";
 import { useSettingsStore } from "~/stores/settingsStore";
 import SVG from "react-inlinesvg";
@@ -153,9 +155,19 @@ export default function ModelToggleItem({
             enabled={capabilities.supportsResolution}
           />
           <CapabilityBadge
+            icon={Sparkles}
+            label="Quality"
+            enabled={Boolean(capabilities.supportsQuality)}
+          />
+          <CapabilityBadge
             icon={Image}
             label={`Reference images (max ${capabilities.maxReferenceImages})`}
             enabled={capabilities.supportsReferenceImages}
+          />
+          <CapabilityBadge
+            icon={GalleryHorizontalEnd}
+            label={`Batch generation (max ${capabilities.maxImagesPerRequest})`}
+            enabled={Boolean(capabilities.supportsNumberOfImages)}
           />
         </div>
       </div>

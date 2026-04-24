@@ -142,6 +142,10 @@ const BASE_BUILT_IN_MODELS: StoredModel[] = [
       supportsResolution: false,
       supportsReferenceImages: true,
       maxReferenceImages: 10,
+      supportsQuality: true,
+      supportedQualities: ["low", "medium", "high", "auto"],
+      supportsNumberOfImages: true,
+      maxImagesPerRequest: 10,
     },
   },
   {

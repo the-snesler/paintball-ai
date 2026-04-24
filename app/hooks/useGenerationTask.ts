@@ -10,7 +10,9 @@ import { useSettingsStore } from "~/stores/settingsStore";
 import type { AspectRatio, Provider, Resolution } from "~/types";
 
 export interface GenerationTask {
-  id: string;
+  /** Gallery item IDs this task produces. Length 1 for single-image models,
+   *  greater for batch-capable models called with numberOfImages > 1. */
+  itemIds: string[];
   modelId: string;
   modelName: string;
   provider: Provider;
@@ -19,6 +21,8 @@ export interface GenerationTask {
   variationReplacements?: string[];
   aspectRatio: AspectRatio | null;
   resolution: Resolution | null;
+  quality: string | null;
+  numberOfImages: number;
   referenceImages: Array<{ id: string; blob: Blob; sourceGalleryItemId?: string }>;
 }
 
@@ -34,8 +38,15 @@ export function useGenerationTask() {
   const updateItem = useGalleryStore((s) => s.updateItem);
   const getItem = useGalleryStore((s) => s.getItem);
 
+  const updateAll = useCallback(
+    (ids: string[], patch: Parameters<typeof updateItem>[1]) => {
+      for (const id of ids) updateItem(id, patch);
+    },
+    [updateItem]
+  );
+
   const executeTask = useCallback(
-    async (task: GenerationTask): Promise<GenerationResult> => {
+    async (task: GenerationTask): Promise<GenerationResult[]> => {
       const apiKey = providerRequiresApiKey(task.provider) ? apiKeys[task.provider] : undefined;
       if (providerRequiresApiKey(task.provider) && !apiKey) {
         throw new Error(`No API key for ${task.provider}`);
@@ -48,6 +59,8 @@ export function useGenerationTask() {
           prompt: task.prompt,
           aspectRatio: task.aspectRatio,
           resolution: task.resolution,
+          quality: task.quality,
+          numberOfImages: task.numberOfImages,
           referenceImages: task.referenceImages,
         },
         apiKey || undefined
@@ -60,7 +73,7 @@ export function useGenerationTask() {
     (task: GenerationTask) =>
       retryWithBackoff(() => executeTask(task), {
         onWaiting: ({ retryCount, waitMs, waitingUntil }) => {
-          updateItem(task.id, {
+          updateAll(task.itemIds, {
             status: "waiting",
             retryCount,
             waitingUntil,
@@ -68,56 +81,73 @@ export function useGenerationTask() {
           });
         },
         onRetrying: ({ retryCount }) => {
-          updateItem(task.id, { status: "generating", retryCount });
+          updateAll(task.itemIds, { status: "generating", retryCount });
         },
       }),
-    [executeTask, updateItem]
+    [executeTask, updateAll]
   );
 
   const completeTask = useCallback(
-    async (task: GenerationTask, result: GenerationResult, generationTimeMs: number) => {
-      const thumbnailBlob = await createThumbnailBlob(result.blob, 400);
-      const createdAt = Date.now();
-
+    async (task: GenerationTask, results: GenerationResult[], generationTimeMs: number) => {
       const parentGalleryItemIds = task.referenceImages
         .map((r) => r.sourceGalleryItemId)
         .filter((id): id is string => !!id);
 
-      await saveImage({
-        id: task.id,
-        originalBlob: result.blob,
-        thumbnailBlob,
-        prompt: task.prompt,
-        basePrompt: task.basePrompt,
-        variationReplacements: task.variationReplacements,
-        modelId: task.modelId,
-        modelName: task.modelName,
-        aspectRatio: task.aspectRatio,
-        resolution: task.resolution,
-        width: result.width,
-        height: result.height,
-        createdAt,
-        generationTimeMs,
-        referenceImageIds: task.referenceImages.map((referenceImage) => referenceImage.id),
-        parentGalleryItemIds: parentGalleryItemIds.length > 0 ? parentGalleryItemIds : undefined,
-        metadata: result.metadata,
-      });
+      const createdAt = Date.now();
 
-      updateItem(task.id, {
-        status: "completed",
-        originalBlob: result.blob,
-        originalUrl: URL.createObjectURL(result.blob),
-        thumbnailBlob,
-        thumbnailUrl: URL.createObjectURL(thumbnailBlob),
-        width: result.width,
-        height: result.height,
-        createdAt,
-        generationTimeMs,
-        metadata: result.metadata,
-        parentGalleryItemIds: parentGalleryItemIds.length > 0 ? parentGalleryItemIds : undefined,
-      });
+      // Pair each expected itemId with a result; fail the extras if fewer results arrived.
+      await Promise.all(
+        task.itemIds.map(async (itemId, index) => {
+          const result = results[index];
+          if (!result) {
+            updateItem(itemId, {
+              status: "failed",
+              error: "Model returned fewer images than requested",
+              canRetry: true,
+            });
+            return;
+          }
 
-      return result;
+          const thumbnailBlob = await createThumbnailBlob(result.blob, 400);
+
+          await saveImage({
+            id: itemId,
+            originalBlob: result.blob,
+            thumbnailBlob,
+            prompt: task.prompt,
+            basePrompt: task.basePrompt,
+            variationReplacements: task.variationReplacements,
+            modelId: task.modelId,
+            modelName: task.modelName,
+            aspectRatio: task.aspectRatio,
+            resolution: task.resolution,
+            quality: task.quality,
+            width: result.width,
+            height: result.height,
+            createdAt,
+            generationTimeMs,
+            referenceImageIds: task.referenceImages.map((r) => r.id),
+            parentGalleryItemIds: parentGalleryItemIds.length > 0 ? parentGalleryItemIds : undefined,
+            metadata: result.metadata,
+          });
+
+          updateItem(itemId, {
+            status: "completed",
+            originalBlob: result.blob,
+            originalUrl: URL.createObjectURL(result.blob),
+            thumbnailBlob,
+            thumbnailUrl: URL.createObjectURL(thumbnailBlob),
+            width: result.width,
+            height: result.height,
+            createdAt,
+            generationTimeMs,
+            metadata: result.metadata,
+            parentGalleryItemIds: parentGalleryItemIds.length > 0 ? parentGalleryItemIds : undefined,
+          });
+        })
+      );
+
+      return results;
     },
     [updateItem]
   );
@@ -125,15 +155,15 @@ export function useGenerationTask() {
   const runTask = useCallback(
     async (task: GenerationTask, options: RunTaskOptions = {}) => {
       const { useRetry = true, getCanRetry = () => true } = options;
-      updateItem(task.id, { status: "generating" });
+      updateAll(task.itemIds, { status: "generating" });
 
       try {
         const startTime = Date.now();
-        const result = useRetry ? await executeWithRetry(task) : await executeTask(task);
-        return await completeTask(task, result, Date.now() - startTime);
+        const results = useRetry ? await executeWithRetry(task) : await executeTask(task);
+        return await completeTask(task, results, Date.now() - startTime);
       } catch (error) {
         const message = error instanceof Error ? error.message : "Generation failed";
-        updateItem(task.id, {
+        updateAll(task.itemIds, {
           status: "failed",
           error: message,
           canRetry: getCanRetry(error, task),
@@ -141,17 +171,18 @@ export function useGenerationTask() {
         throw error;
       }
     },
-    [completeTask, executeTask, executeWithRetry, updateItem]
+    [completeTask, executeTask, executeWithRetry, updateAll]
   );
 
   const runTasks = useCallback(
     async (
       tasks: GenerationTask[],
       options: RunTaskOptions = {}
-    ): Promise<PromiseSettledResult<GenerationResult>[]> => {
+    ): Promise<PromiseSettledResult<GenerationResult[]>[]> => {
       if (tasks.length === 0) return [];
 
-      incrementRequestedOutputCount(tasks.length);
+      const totalItems = tasks.reduce((sum, t) => sum + t.itemIds.length, 0);
+      incrementRequestedOutputCount(totalItems);
 
       return Promise.allSettled(
         tasks.map((task) =>
@@ -175,7 +206,7 @@ export function useGenerationTask() {
 
       const persistedReferences = await getReferenceImagesByIds(item.referenceImageIds);
       const task: GenerationTask = {
-        id: itemId,
+        itemIds: [itemId],
         modelId: item.modelId,
         modelName: item.modelName,
         provider: model.provider,
@@ -184,6 +215,8 @@ export function useGenerationTask() {
         variationReplacements: item.variationReplacements,
         aspectRatio: item.aspectRatio,
         resolution: item.resolution,
+        quality: item.quality ?? null,
+        numberOfImages: 1,
         referenceImages: persistedReferences.map((referenceImage) => ({
           id: referenceImage.id,
           blob: referenceImage.blob,

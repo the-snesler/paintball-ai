@@ -16,7 +16,10 @@ function replicateBaseUrl(): string {
   return new URL("/proxy/replicate/v1", window.location.origin).toString();
 }
 
-async function generateImage(params: GenerationParams, apiKey?: string): Promise<GenerationResult> {
+async function generateImage(
+  params: GenerationParams,
+  apiKey?: string
+): Promise<GenerationResult[]> {
   if (!apiKey) throw new Error("No API key for replicate");
   const replicate = new Replicate({ auth: apiKey, baseUrl: replicateBaseUrl() });
 
@@ -26,6 +29,7 @@ async function generateImage(params: GenerationParams, apiKey?: string): Promise
 
   const model = useSettingsStore.getState().models.find((m) => m.id === params.modelId);
   const mapping = model?.schemaMapping;
+  const caps = model?.capabilities;
 
   const input: Record<string, unknown> = {
     prompt: params.prompt,
@@ -42,6 +46,14 @@ async function generateImage(params: GenerationParams, apiKey?: string): Promise
   if (params.resolution) {
     input.resolution = mapping?.resolution?.[params.resolution] ?? params.resolution;
   }
+  if (caps?.supportsQuality && params.quality) {
+    const qualityKey = mapping?.qualityKey ?? "quality";
+    input[qualityKey] = params.quality;
+  }
+  if (caps?.supportsNumberOfImages && params.numberOfImages > 1) {
+    const numberOfImagesKey = mapping?.numberOfImagesKey ?? "number_of_images";
+    input[numberOfImagesKey] = params.numberOfImages;
+  }
   if (mapping?.extraDefaults) {
     for (const [key, value] of Object.entries(mapping.extraDefaults)) {
       if (!(key in input)) input[key] = value;
@@ -57,23 +69,38 @@ async function generateImage(params: GenerationParams, apiKey?: string): Promise
     throw toRateLimitError(error, "replicate");
   }
 
-  const imageUrl =
-    typeof output === "object" && output !== null && "url" in output
-      ? (output as { url: () => string }).url()
-      : Array.isArray(output)
-        ? output[0]
-        : String(output);
+  // Normalize output to a list of image URLs. Replicate returns either a single
+  // string/FileOutput, or an array of them for batch-capable models.
+  const urls = extractReplicateUrls(output);
+  if (urls.length === 0) throw new Error("No image in Replicate response");
 
-  if (!imageUrl) throw new Error("No image in Replicate response");
+  const results = await Promise.all(
+    urls.map(async (url) => {
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch generated image: ${response.status}`);
+      }
+      const blob = await response.blob();
+      const dimensions = await getImageDimensions(blob);
+      return { blob, width: dimensions.width, height: dimensions.height, metadata: {} };
+    })
+  );
 
-  const imageResponse = await fetch(imageUrl);
-  if (!imageResponse.ok)
-    throw new Error(`Failed to fetch generated image: ${imageResponse.status}`);
+  return results;
+}
 
-  const blob = await imageResponse.blob();
-  const dimensions = await getImageDimensions(blob);
-
-  return { blob, width: dimensions.width, height: dimensions.height, metadata: {} };
+function extractReplicateUrls(output: unknown): string[] {
+  if (output == null) return [];
+  if (typeof output === "string") return [output];
+  if (typeof output === "object" && "url" in (output as object)) {
+    const url = (output as { url: () => string }).url();
+    return url ? [url] : [];
+  }
+  if (Array.isArray(output)) {
+    return output.flatMap((entry) => extractReplicateUrls(entry));
+  }
+  const str = String(output);
+  return str ? [str] : [];
 }
 
 async function generateText(args: TextGenerationArgs, apiKey: string): Promise<string> {
@@ -216,11 +243,15 @@ interface ReplicateModelResponse {
 interface HeuristicResult {
   capabilities: ModelCapabilities;
   detectedAspectRatioKey?: string;
+  detectedQualityKey?: string;
+  detectedNumberOfImagesKey?: string;
 }
 
 interface SchemaAnalysis {
   mapping: SchemaMapping;
   supportedAspectRatios?: string[];
+  supportedQualities?: string[];
+  maxImagesPerRequest?: number;
 }
 
 async function fetchReplicateModelSchema(
@@ -278,14 +309,40 @@ function inferCapabilitiesFromProperties(
     maxReferenceImages = 10;
   }
 
+  const qualityKeys = ["quality", "image_quality", "output_quality"];
+  const detectedQualityKey = qualityKeys.find((key) => {
+    const prop = properties[key];
+    return prop && prop.type === "string" && Array.isArray(prop.enum) && prop.enum.length > 0;
+  });
+  const supportsQuality = !!detectedQualityKey;
+  const supportedQualities = detectedQualityKey ? properties[detectedQualityKey].enum : undefined;
+
+  const numberOfImagesKeys = ["number_of_images", "num_images", "n_images", "num_outputs"];
+  const detectedNumberOfImagesKey = numberOfImagesKeys.find((key) => {
+    const prop = properties[key];
+    return prop && (prop.type === "integer" || prop.type === "number");
+  });
+  const supportsNumberOfImages = !!detectedNumberOfImagesKey;
+  const maxImagesPerRequest = detectedNumberOfImagesKey
+    ? typeof properties[detectedNumberOfImagesKey].maximum === "number"
+      ? properties[detectedNumberOfImagesKey].maximum
+      : 10
+    : undefined;
+
   return {
     capabilities: {
       supportsAspectRatios,
       supportsResolution,
       supportsReferenceImages,
       maxReferenceImages,
+      supportsQuality,
+      ...(supportedQualities ? { supportedQualities } : {}),
+      supportsNumberOfImages,
+      ...(typeof maxImagesPerRequest === "number" ? { maxImagesPerRequest } : {}),
     },
     detectedAspectRatioKey,
+    detectedQualityKey,
+    detectedNumberOfImagesKey,
   };
 }
 
@@ -305,6 +362,8 @@ async function analyzeSchemaWithTextModel(
 
     const mapping: SchemaMapping = {};
     let supportedAspectRatios: string[] | undefined;
+    let supportedQualities: string[] | undefined;
+    let maxImagesPerRequest: number | undefined;
 
     if (parsed.resolution && typeof parsed.resolution === "object") {
       mapping.resolution = parsed.resolution;
@@ -318,6 +377,16 @@ async function analyzeSchemaWithTextModel(
     if (typeof parsed.maxReferenceImages === "number" && parsed.maxReferenceImages > 0) {
       mapping.maxReferenceImages = parsed.maxReferenceImages;
     }
+    if (typeof parsed.qualityKey === "string" && parsed.qualityKey.length > 0) {
+      if (parsed.qualityKey !== "quality") {
+        mapping.qualityKey = parsed.qualityKey;
+      }
+    }
+    if (typeof parsed.numberOfImagesKey === "string" && parsed.numberOfImagesKey.length > 0) {
+      if (parsed.numberOfImagesKey !== "number_of_images") {
+        mapping.numberOfImagesKey = parsed.numberOfImagesKey;
+      }
+    }
     if (parsed.extraDefaults && typeof parsed.extraDefaults === "object") {
       mapping.extraDefaults = parsed.extraDefaults;
     }
@@ -326,13 +395,21 @@ async function analyzeSchemaWithTextModel(
         (v: unknown): v is string => typeof v === "string"
       );
     }
+    if (Array.isArray(parsed.supportedQualities)) {
+      supportedQualities = parsed.supportedQualities.filter(
+        (v: unknown): v is string => typeof v === "string"
+      );
+    }
+    if (typeof parsed.maxImagesPerRequest === "number" && parsed.maxImagesPerRequest > 0) {
+      maxImagesPerRequest = Math.floor(parsed.maxImagesPerRequest);
+    }
 
     const hasMapping = Object.keys(mapping).length > 0;
-    if (!hasMapping && !supportedAspectRatios) {
+    if (!hasMapping && !supportedAspectRatios && !supportedQualities && !maxImagesPerRequest) {
       return null;
     }
 
-    return { mapping, supportedAspectRatios };
+    return { mapping, supportedAspectRatios, supportedQualities, maxImagesPerRequest };
   } catch {
     return null;
   }
@@ -368,6 +445,44 @@ function mergeAnalysis(
 
   if (mapping.resolution && !capabilities.supportsResolution) {
     capabilities.supportsResolution = true;
+  }
+
+  // Quality: the analyzer may have named a non-default property key OR provided
+  // an enum list. The heuristic may have found a default-named `quality` prop.
+  if (mapping.qualityKey && !capabilities.supportsQuality) {
+    const prop = properties[mapping.qualityKey];
+    capabilities.supportsQuality = true;
+    if (!capabilities.supportedQualities && Array.isArray(prop?.enum)) {
+      capabilities.supportedQualities = prop.enum;
+    }
+  } else if (
+    heuristic.detectedQualityKey &&
+    heuristic.detectedQualityKey !== "quality" &&
+    !mapping.qualityKey
+  ) {
+    mapping.qualityKey = heuristic.detectedQualityKey;
+  }
+  if (analysis?.supportedQualities && analysis.supportedQualities.length > 0) {
+    capabilities.supportedQualities = analysis.supportedQualities;
+  }
+
+  // Batch: similar pattern.
+  if (mapping.numberOfImagesKey && !capabilities.supportsNumberOfImages) {
+    const prop = properties[mapping.numberOfImagesKey];
+    capabilities.supportsNumberOfImages = true;
+    if (!capabilities.maxImagesPerRequest) {
+      capabilities.maxImagesPerRequest =
+        typeof prop?.maximum === "number" ? prop.maximum : (analysis?.maxImagesPerRequest ?? 4);
+    }
+  } else if (
+    heuristic.detectedNumberOfImagesKey &&
+    heuristic.detectedNumberOfImagesKey !== "number_of_images" &&
+    !mapping.numberOfImagesKey
+  ) {
+    mapping.numberOfImagesKey = heuristic.detectedNumberOfImagesKey;
+  }
+  if (typeof analysis?.maxImagesPerRequest === "number") {
+    capabilities.maxImagesPerRequest = analysis.maxImagesPerRequest;
   }
 
   const schemaMapping = Object.keys(mapping).length > 0 ? mapping : undefined;
