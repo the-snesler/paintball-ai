@@ -33,6 +33,12 @@ const providers: { id: ApiKeyProvider; name: string; description: string; link: 
     description: "For Flux, GPT Image, and other community models",
     link: "https://replicate.com/",
   },
+  {
+    id: "openai",
+    name: "OpenAI",
+    description: "For GPT Image generation directly via OpenAI",
+    link: "https://platform.openai.com/api-keys",
+  },
 ];
 
 export function SettingsModal() {
@@ -116,7 +122,9 @@ export function SettingsModal() {
             <div className="flex items-center gap-2">
               <KeyRound className="h-4 w-4 text-purple-400" />
               <span className="text-sm font-medium">API Keys</span>
-              {apiKeys.google && apiKeys.replicate && <Check className="h-4 w-4 text-green-500" />}
+              {apiKeys.google && apiKeys.replicate && apiKeys.openai && (
+                <Check className="h-4 w-4 text-green-500" />
+              )}
             </div>
             <ChevronDown className="h-4 w-4 -rotate-90 text-zinc-400 transition-transform duration-200 group-open:rotate-0" />
           </summary>

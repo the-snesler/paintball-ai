@@ -1,6 +1,7 @@
 import type { ApiKeyProvider, ApiKeys, Provider as ProviderId } from "~/types";
 import { debugProvider } from "./debug";
 import { googleProvider } from "./google";
+import { openaiProvider } from "./openai";
 import { replicateProvider } from "./replicate";
 import type { Provider, ProviderCapabilities, TextCapableProvider } from "./types";
 
@@ -15,6 +16,7 @@ export type {
 export const PROVIDERS: Record<ProviderId, Provider> = {
   google: googleProvider,
   replicate: replicateProvider,
+  openai: openaiProvider,
   debug: debugProvider,
 };
 

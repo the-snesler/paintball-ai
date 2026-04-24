@@ -88,6 +88,7 @@ export const useSettingsStore = create<SettingsState>()(
       apiKeys: {
         google: null,
         replicate: null,
+        openai: null,
       },
       models: BUILT_IN_MODELS,
       textModels: BUILT_IN_TEXT_MODELS,
@@ -107,6 +108,7 @@ export const useSettingsStore = create<SettingsState>()(
         set((state) => ({
           apiKeys: { ...state.apiKeys, [provider]: null },
         })),
+
 
       setModelEnabled: (id, enabled) =>
         set((state) => ({
@@ -260,7 +262,7 @@ export const useSettingsStore = create<SettingsState>()(
     }),
     {
       name: "studio-settings",
-      version: 12,
+      version: 13,
       partialize: (state) => ({
         apiKeys: state.apiKeys,
         models: state.models,
@@ -363,6 +365,7 @@ export const useSettingsStore = create<SettingsState>()(
           apiKeys: {
             google: state.apiKeys?.google ?? null,
             replicate: state.apiKeys?.replicate ?? null,
+            openai: state.apiKeys?.openai ?? null,
           },
           // always merge with built-in
           models: mergeWithBuiltInModels(state.models) ?? BUILT_IN_MODELS,
