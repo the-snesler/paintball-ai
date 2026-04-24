@@ -1,11 +1,8 @@
 import { Plus, Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
-import {
-  inferIcon,
-  resolveModelCapabilities,
-  searchReplicateModels,
-  type ReplicateSearchResult,
-} from "~/lib/replicateSchema";
+import { inferIcon } from "~/lib/modelNames";
+import { getProvider } from "~/lib/providers";
+import type { SearchResult } from "~/lib/providers";
 import SVG from "react-inlinesvg";
 import { useSettingsStore } from "~/stores/settingsStore";
 import { Combobox } from "@base-ui/react/combobox";
@@ -22,7 +19,7 @@ export default function AddCustomModelButton({
   const [loading, setLoading] = useState(false);
   const [loadingStatus, setLoadingStatus] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [suggestions, setSuggestions] = useState<ReplicateSearchResult[]>([]);
+  const [suggestions, setSuggestions] = useState<SearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [open, setOpen] = useState(false);
 
@@ -38,7 +35,8 @@ export default function AddCustomModelButton({
     const timer = setTimeout(async () => {
       setIsSearching(true);
       try {
-        const results = await searchReplicateModels(modelId, apiKey);
+        const search = getProvider("replicate").searchImageModels;
+        const results = search ? await search(modelId, apiKey) : [];
         setSuggestions(results);
         setOpen(results.length > 0);
       } catch {
@@ -70,13 +68,15 @@ export default function AddCustomModelButton({
     setError(null);
 
     try {
-      const { name, capabilities, schemaMapping, icon } = await resolveModelCapabilities(
+      const resolve = getProvider("replicate").resolveImageModel;
+      if (!resolve) throw new Error("Replicate provider can't resolve models");
+      const { name, capabilities, schemaMapping, icon } = await resolve(
         idToAdd,
         apiKey!,
         setLoadingStatus
       );
 
-      addCustomModel(idToAdd, name, capabilities, schemaMapping, icon);
+      addCustomModel("replicate", idToAdd, name, capabilities, schemaMapping, icon);
       setModelId("");
       setIsAdding(false);
     } catch (err) {

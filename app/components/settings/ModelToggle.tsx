@@ -13,7 +13,7 @@ import { useState } from "react";
 import type { StoredModel } from "~/types";
 import { Tooltip } from "~/components/ui/Tooltip";
 import { Switch } from "~/components/ui/Switch";
-import { resolveModelCapabilities } from "~/lib/replicateSchema";
+import { getProvider } from "~/lib/providers";
 
 function CapabilityBadge({
   icon: Icon,
@@ -67,7 +67,9 @@ export default function ModelToggleItem({
 
     try {
       const replicateId = model.id.replace("replicate/", "");
-      const { capabilities, schemaMapping } = await resolveModelCapabilities(
+      const resolve = getProvider("replicate").resolveImageModel;
+      if (!resolve) throw new Error("Replicate provider can't resolve models");
+      const { capabilities, schemaMapping } = await resolve(
         replicateId,
         replicateApiKey,
         setRefetchingStatus

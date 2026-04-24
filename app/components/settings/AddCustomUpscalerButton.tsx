@@ -1,11 +1,8 @@
 import { Plus, Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
-import {
-  inferIcon,
-  inferName,
-  searchReplicateModels,
-  type ReplicateSearchResult,
-} from "~/lib/replicateSchema";
+import { inferIcon, inferName } from "~/lib/modelNames";
+import { getProvider } from "~/lib/providers";
+import type { SearchResult } from "~/lib/providers";
 import SVG from "react-inlinesvg";
 import { useSettingsStore } from "~/stores/settingsStore";
 import { Combobox } from "@base-ui/react/combobox";
@@ -21,7 +18,7 @@ export default function AddCustomUpscalerButton({
   const [modelId, setModelId] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [suggestions, setSuggestions] = useState<ReplicateSearchResult[]>([]);
+  const [suggestions, setSuggestions] = useState<SearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [open, setOpen] = useState(false);
 
@@ -37,7 +34,8 @@ export default function AddCustomUpscalerButton({
     const timer = setTimeout(async () => {
       setIsSearching(true);
       try {
-        const results = await searchReplicateModels(modelId, apiKey);
+        const search = getProvider("replicate").searchUpscalers;
+        const results = search ? await search(modelId, apiKey) : [];
         setSuggestions(results);
         setOpen(results.length > 0);
       } catch {
