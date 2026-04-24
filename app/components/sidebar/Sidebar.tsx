@@ -133,7 +133,7 @@ function SettingsSidebarContent() {
         </SortableContext>
       </DndContext>
 
-      <AddCustomModelButton disabled={!apiKeys.replicate} apiKey={apiKeys.replicate} />
+      <AddCustomModelButton />
 
       <div className="flex items-center gap-2 pt-4">
         <span className="text-zinc-500">
@@ -166,23 +166,16 @@ function SettingsSidebarContent() {
         collisionDetection={closestCenter}
         onDragEnd={handleUpscalerDragEnd}
       >
-        <SortableContext
-          items={upscalers.map((u) => u.id)}
-          strategy={verticalListSortingStrategy}
-        >
+        <SortableContext items={upscalers.map((u) => u.id)} strategy={verticalListSortingStrategy}>
           <div className="space-y-2">
             {upscalers.map((u) => (
-              <SortableUpscalerItem
-                key={u.id}
-                upscaler={u}
-                hasApiKey={!!apiKeys.replicate}
-              />
+              <SortableUpscalerItem key={u.id} upscaler={u} hasApiKey={!!apiKeys.replicate} />
             ))}
           </div>
         </SortableContext>
       </DndContext>
 
-      <AddCustomUpscalerButton disabled={!apiKeys.replicate} apiKey={apiKeys.replicate} />
+      <AddCustomUpscalerButton />
     </div>
   );
 }

@@ -1,9 +1,10 @@
-import { GoogleGenAI, ThinkingLevel } from "@google/genai";
+import { GoogleGenAI, ThinkingLevel, type Model } from "@google/genai";
+import { distance } from "fastest-levenshtein";
 import type { GenerationParams, GenerationResult } from "~/lib/generation";
 import { getImageDimensions } from "~/lib/imageProcessing";
 import { toRateLimitError } from "~/lib/retry";
 import { blobToBase64 } from "~/lib/util";
-import type { Provider, TextGenerationArgs } from "./types";
+import type { Provider, SearchResult, TextGenerationArgs } from "./types";
 
 async function generateImage(params: GenerationParams, apiKey?: string): Promise<GenerationResult> {
   if (!apiKey) throw new Error("No API key for google");
@@ -139,6 +140,87 @@ async function testTextModel(apiKey: string, modelId: string): Promise<void> {
   );
 }
 
+const MAX_LIST_PAGES = 5;
+
+async function listGeminiModels(apiKey: string): Promise<Model[]> {
+  const ai = new GoogleGenAI({ apiKey });
+  const pager = await ai.models.list({ config: { queryBase: true, pageSize: 200 } });
+  const models: Model[] = [];
+  let pages = 0;
+  for await (const model of pager) {
+    models.push(model);
+    // Prevent runaway iteration on very long lists — a handful of pages covers
+    // every Gemini model that's ever been publicly offered.
+    if (++pages >= MAX_LIST_PAGES * 200) break;
+  }
+  return models;
+}
+
+function stripModelsPrefix(name: string | undefined): string {
+  if (!name) return "";
+  return name.startsWith("models/") ? name.slice("models/".length) : name;
+}
+
+function isImageGenerationModel(model: Model): boolean {
+  const id = stripModelsPrefix(model.name).toLowerCase();
+  if (!id) return false;
+  // Gemini image generation still uses `generateContent`, so action flags
+  // can't distinguish image from text. Go by naming convention.
+  return /(^|[-_\/])(image|imagen)([-_\/]|$)/.test(id) || id.includes("-image-");
+}
+
+function isTextGenerationModel(model: Model): boolean {
+  const id = stripModelsPrefix(model.name);
+  if (!id) return false;
+  if (!model.supportedActions?.some((a) => a === "generateContent")) return false;
+  if (isImageGenerationModel(model)) return false;
+  // Exclude embedding / vision-only / TTS / audio flavors that share generateContent.
+  const lower = id.toLowerCase();
+  if (/embed|tts|audio|live|native-audio/.test(lower)) return false;
+  return true;
+}
+
+function toSearchResult(model: Model): SearchResult {
+  const id = stripModelsPrefix(model.name);
+  return {
+    id,
+    name: model.displayName || id,
+    description: model.description,
+    icon: "/icons/google.svg",
+  };
+}
+
+function rankAndLimit(
+  models: Model[],
+  query: string,
+  limit = 6
+): SearchResult[] {
+  const q = query.toLowerCase();
+  const scored = models
+    .map((m) => {
+      const id = stripModelsPrefix(m.name).toLowerCase();
+      const name = (m.displayName || "").toLowerCase();
+      const containsBoost = id.includes(q) || name.includes(q) ? -1000 : 0;
+      const d = Math.min(distance(q, id), distance(q, name));
+      return { model: m, score: d + containsBoost };
+    })
+    .sort((a, b) => a.score - b.score);
+
+  return scored.slice(0, limit).map(({ model }) => toSearchResult(model));
+}
+
+async function searchImageModels(query: string, apiKey: string): Promise<SearchResult[]> {
+  const all = await listGeminiModels(apiKey);
+  const imageModels = all.filter(isImageGenerationModel);
+  return rankAndLimit(imageModels, query);
+}
+
+async function searchTextModels(query: string, apiKey: string): Promise<SearchResult[]> {
+  const all = await listGeminiModels(apiKey);
+  const textModels = all.filter(isTextGenerationModel);
+  return rankAndLimit(textModels, query);
+}
+
 export const googleProvider: Provider = {
   id: "google",
   label: "Google",
@@ -149,12 +231,14 @@ export const googleProvider: Provider = {
     image: true,
     text: true,
     upscale: false,
-    searchImage: false,
-    searchText: false,
+    searchImage: true,
+    searchText: true,
     searchUpscale: false,
     resolveImageModel: false,
   },
   generateImage,
   generateText,
   testTextModel,
+  searchImageModels,
+  searchTextModels,
 };

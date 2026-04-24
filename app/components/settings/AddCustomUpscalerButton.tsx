@@ -1,20 +1,30 @@
-import { Plus, Loader2 } from "lucide-react";
-import { useEffect, useState } from "react";
-import { inferIcon, inferName } from "~/lib/modelNames";
-import { getProvider } from "~/lib/providers";
-import type { SearchResult } from "~/lib/providers";
-import SVG from "react-inlinesvg";
-import { useSettingsStore } from "~/stores/settingsStore";
 import { Combobox } from "@base-ui/react/combobox";
+import { Loader2, Plus } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import SVG from "react-inlinesvg";
+import { inferIcon, inferName } from "~/lib/modelNames";
+import { getProvider, providersWith } from "~/lib/providers";
+import type { SearchResult } from "~/lib/providers";
+import { useSettingsStore } from "~/stores/settingsStore";
+import type { ApiKeyProvider } from "~/types";
 
-export default function AddCustomUpscalerButton({
-  disabled,
-  apiKey,
-}: {
-  disabled?: boolean;
-  apiKey: string | null;
-}) {
+export default function AddCustomUpscalerButton() {
+  const apiKeys = useSettingsStore((s) => s.apiKeys);
+  const addCustomUpscaler = useSettingsStore((s) => s.addCustomUpscaler);
+  const upscalers = useSettingsStore((s) => s.upscalers);
+
+  const availableProviders = useMemo(
+    () =>
+      providersWith("searchUpscale").filter(
+        (p) => p.id !== "debug" && apiKeys[p.id as ApiKeyProvider]
+      ),
+    [apiKeys]
+  );
+  const disabled = availableProviders.length === 0;
+  const defaultProvider = (availableProviders[0]?.id as ApiKeyProvider) ?? "replicate";
+
   const [isAdding, setIsAdding] = useState(false);
+  const [providerId, setProviderId] = useState<ApiKeyProvider>(defaultProvider);
   const [modelId, setModelId] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -22,8 +32,7 @@ export default function AddCustomUpscalerButton({
   const [isSearching, setIsSearching] = useState(false);
   const [open, setOpen] = useState(false);
 
-  const addCustomUpscaler = useSettingsStore((s) => s.addCustomUpscaler);
-  const upscalers = useSettingsStore((s) => s.upscalers);
+  const apiKey = apiKeys[providerId];
 
   useEffect(() => {
     if (!modelId.trim() || modelId.length < 2 || !apiKey || loading) {
@@ -34,7 +43,7 @@ export default function AddCustomUpscalerButton({
     const timer = setTimeout(async () => {
       setIsSearching(true);
       try {
-        const search = getProvider("replicate").searchUpscalers;
+        const search = getProvider(providerId).searchUpscalers;
         const results = search ? await search(modelId, apiKey) : [];
         setSuggestions(results);
         setOpen(results.length > 0);
@@ -45,7 +54,7 @@ export default function AddCustomUpscalerButton({
       }
     }, 300);
     return () => clearTimeout(timer);
-  }, [modelId, apiKey]);
+  }, [modelId, apiKey, providerId]);
 
   const handleAdd = async (altModelID?: string) => {
     const idToAdd = altModelID ?? modelId;
@@ -57,7 +66,7 @@ export default function AddCustomUpscalerButton({
       return;
     }
 
-    const syntheticId = `replicate/${idToAdd}`;
+    const syntheticId = `${providerId}/${idToAdd}`;
     if (upscalers.some((u) => u.id === syntheticId)) {
       setError("Upscaler already added");
       return;
@@ -82,20 +91,46 @@ export default function AddCustomUpscalerButton({
   if (!isAdding) {
     return (
       <button
-        onClick={() => setIsAdding(true)}
+        onClick={() => {
+          if (availableProviders.length > 0) {
+            setProviderId(availableProviders[0].id as ApiKeyProvider);
+          }
+          setIsAdding(true);
+        }}
         disabled={disabled}
         className={`flex w-full items-center gap-2 rounded-lg border border-dashed border-zinc-700 p-2.5 text-zinc-400 transition-colors ${
           disabled ? "cursor-not-allowed opacity-50" : "hover:border-zinc-600 hover:text-zinc-300"
         }`}
       >
         <Plus className="h-4 w-4" />
-        <span className="text-sm">Add custom Replicate upscaler</span>
+        <span className="text-sm">Add custom upscaler</span>
       </button>
     );
   }
 
   return (
     <div className="space-y-2 rounded-lg border border-zinc-700 bg-zinc-800/50 p-3">
+      {availableProviders.length > 1 && (
+        <div className="space-y-1">
+          <label className="block text-xs font-medium text-zinc-300">Provider</label>
+          <select
+            value={providerId}
+            onChange={(e) => {
+              setProviderId(e.target.value as ApiKeyProvider);
+              setError(null);
+              setSuggestions([]);
+              setOpen(false);
+            }}
+            className="w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 focus:outline-none"
+          >
+            {availableProviders.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.label}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
       <Combobox.Root
         open={open}
         onOpenChange={setOpen}
@@ -129,7 +164,7 @@ export default function AddCustomUpscalerButton({
               style={{ width: "var(--anchor-width)" }}
             >
               {suggestions.map((result) => {
-                const icon = inferIcon(result.id);
+                const icon = result.icon || inferIcon(result.id);
                 const owner = result.id.split("/")[0];
                 return (
                   <Combobox.Item
@@ -182,7 +217,7 @@ export default function AddCustomUpscalerButton({
       </div>
       {error && <p className="text-xs text-red-400">{error}</p>}
       <p className="text-xs text-zinc-500">
-        Type to search, or enter a Replicate model ID like &quot;nightmareai/real-esrgan&quot;.
+        Type to search, or enter a model ID like &quot;nightmareai/real-esrgan&quot;.
       </p>
     </div>
   );
