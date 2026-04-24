@@ -27,6 +27,7 @@ export function QualitySection() {
     [models, selectedModels]
   );
 
+  if (!pickerEnabled) return null;
   return (
     <section>
       <div className="mb-2 flex items-center gap-2">
@@ -45,7 +46,6 @@ export function QualitySection() {
             <button
               key={q}
               onClick={() => isEnabled && setQuality(isSelected ? null : q)}
-              disabled={!isEnabled}
               className={`flex-1 rounded-lg px-2 py-2 text-xs font-medium transition-colors ${
                 showSelectedStyle
                   ? "border border-purple-500 bg-purple-500/20 text-purple-300"
