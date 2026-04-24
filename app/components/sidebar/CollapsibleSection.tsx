@@ -20,7 +20,7 @@ export function CollapsibleSection({
   return (
     <section>
       <Accordion.Root defaultValue={defaultExpanded ? [0] : []}>
-        <Accordion.Item>
+        <Accordion.Item value={0}>
           <Accordion.Header>
             <Accordion.Trigger className="group mb-2 flex w-full cursor-pointer items-center justify-between">
               <div className="flex items-center gap-2">
