@@ -1,7 +1,9 @@
 import { Combobox } from "@base-ui/react/combobox";
 import { Loader2, Plus } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import SVG from "react-inlinesvg";
+import SearchComboboxPopup from "~/components/ui/SearchComboboxPopup";
+import { useSearchCombobox } from "~/hooks/useSearchCombobox";
 import { inferIcon } from "~/lib/modelNames";
 import { getProvider, listProviders } from "~/lib/providers";
 import type { SearchResult } from "~/lib/providers";
@@ -27,38 +29,37 @@ export default function AddCustomTextModelButton() {
 
   const [isAdding, setIsAdding] = useState(false);
   const [provider, setProvider] = useState<ApiKeyProvider>(defaultProvider);
-  const [modelId, setModelId] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState<string>("");
-  const [suggestions, setSuggestions] = useState<SearchResult[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
-  const [open, setOpen] = useState(false);
+  const inputRef = useRef<HTMLInputElement | null>(null);
 
   const apiKey = apiKeys[provider];
   const canSearch = getProvider(provider).capabilities.searchText;
 
+  const {
+    inputValue: modelId,
+    setInputValue: setModelId,
+    open,
+    setOpen,
+    suggestions,
+    isSearching,
+    resetSearch,
+  } = useSearchCombobox<SearchResult>({
+    enabled: canSearch && !!apiKey && !loading,
+    search: async (query) => {
+      const search = getProvider(provider).searchTextModels;
+      return search ? search(query, apiKey!) : [];
+    },
+  });
+
   useEffect(() => {
-    if (!canSearch || !modelId.trim() || modelId.length < 2 || !apiKey || loading) {
-      setSuggestions([]);
-      setOpen(false);
+    if (!isAdding) {
       return;
     }
-    const timer = setTimeout(async () => {
-      setIsSearching(true);
-      try {
-        const search = getProvider(provider).searchTextModels;
-        const results = search ? await search(modelId, apiKey) : [];
-        setSuggestions(results);
-        setOpen(results.length > 0);
-      } catch {
-        // best-effort
-      } finally {
-        setIsSearching(false);
-      }
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [modelId, apiKey, provider, canSearch]);
+    const frame = requestAnimationFrame(() => inputRef.current?.focus());
+    return () => cancelAnimationFrame(frame);
+  }, [isAdding]);
 
   const reset = () => {
     setIsAdding(false);
@@ -66,8 +67,7 @@ export default function AddCustomTextModelButton() {
     setError(null);
     setStatus("");
     setProvider(defaultProvider);
-    setSuggestions([]);
-    setOpen(false);
+    resetSearch();
   };
 
   const handleAdd = async (altModelID?: string) => {
@@ -144,8 +144,7 @@ export default function AddCustomTextModelButton() {
             onChange={(e) => {
               setProvider(e.target.value as ApiKeyProvider);
               setError(null);
-              setSuggestions([]);
-              setOpen(false);
+              resetSearch();
             }}
             className="w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 focus:outline-none"
           >
@@ -181,45 +180,38 @@ export default function AddCustomTextModelButton() {
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && !open && !loading) handleAdd();
                 }}
-                autoFocus
+                ref={inputRef}
               />
               {isSearching && (
                 <Loader2 className="absolute top-2.5 right-2.5 h-4 w-4 animate-spin text-zinc-500" />
               )}
             </div>
-            <Combobox.Portal>
-              <Combobox.Positioner sideOffset={4} align="start">
-                <Combobox.Popup
-                  className="z-50 max-h-72 overflow-y-auto rounded-lg border border-zinc-700 bg-zinc-900 py-1 shadow-xl"
-                  style={{ width: "var(--anchor-width)" }}
-                >
-                  {suggestions.map((result) => {
-                    const icon = result.icon || inferIcon(result.id);
-                    return (
-                      <Combobox.Item
-                        key={result.id}
-                        value={result.id}
-                        className="flex w-full cursor-default items-center gap-2.5 px-3 py-2 text-left outline-none data-[highlighted]:bg-zinc-800"
-                      >
-                        {icon ? (
-                          <SVG src={icon} className="h-5 w-5 shrink-0" />
-                        ) : (
-                          <div className="h-5 w-5 shrink-0 rounded bg-zinc-700" />
-                        )}
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm font-medium text-zinc-100">
-                            {result.name}
-                          </p>
-                          {result.description && (
-                            <p className="truncate text-xs text-zinc-400">{result.description}</p>
-                          )}
-                        </div>
-                      </Combobox.Item>
-                    );
-                  })}
-                </Combobox.Popup>
-              </Combobox.Positioner>
-            </Combobox.Portal>
+            <SearchComboboxPopup
+              suggestions={suggestions}
+              isSearching={isSearching}
+              showEmptyState={modelId.trim().length >= 2}
+              emptyStateText="No text models found"
+              getKey={(result) => result.id}
+              getValue={(result) => result.id}
+              renderItem={(result) => {
+                const icon = result.icon || inferIcon(result.id);
+                return (
+                  <>
+                    {icon ? (
+                      <SVG src={icon} className="h-5 w-5 shrink-0" />
+                    ) : (
+                      <div className="h-5 w-5 shrink-0 rounded bg-zinc-700" />
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium text-zinc-100">{result.name}</p>
+                      {result.description && (
+                        <p className="truncate text-xs text-zinc-400">{result.description}</p>
+                      )}
+                    </div>
+                  </>
+                );
+              }}
+            />
           </Combobox.Root>
         ) : (
           <input
@@ -234,7 +226,7 @@ export default function AddCustomTextModelButton() {
             }}
             placeholder={placeholder}
             className="w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 placeholder-zinc-500 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 focus:outline-none"
-            autoFocus
+            ref={inputRef}
           />
         )}
       </div>

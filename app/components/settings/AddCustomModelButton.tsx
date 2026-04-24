@@ -1,7 +1,9 @@
 import { Combobox } from "@base-ui/react/combobox";
 import { Loader2, Plus } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import SVG from "react-inlinesvg";
+import SearchComboboxPopup from "~/components/ui/SearchComboboxPopup";
+import { useSearchCombobox } from "~/hooks/useSearchCombobox";
 import { inferIcon } from "~/lib/modelNames";
 import { getProvider, providersWith } from "~/lib/providers";
 import type { SearchResult } from "~/lib/providers";
@@ -34,37 +36,37 @@ export default function AddCustomModelButton() {
 
   const [isAdding, setIsAdding] = useState(false);
   const [providerId, setProviderId] = useState<ApiKeyProvider>(defaultProvider);
-  const [modelId, setModelId] = useState("");
   const [loading, setLoading] = useState(false);
   const [loadingStatus, setLoadingStatus] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [suggestions, setSuggestions] = useState<SearchResult[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
-  const [open, setOpen] = useState(false);
+  const inputRef = useRef<HTMLInputElement | null>(null);
 
   const apiKey = apiKeys[providerId];
+  const canSearch = !!getProvider(providerId).searchImageModels;
+
+  const {
+    inputValue: modelId,
+    setInputValue: setModelId,
+    open,
+    setOpen,
+    suggestions,
+    isSearching,
+    resetSearch,
+  } = useSearchCombobox<SearchResult>({
+    enabled: !!apiKey && !loading && canSearch,
+    search: async (query) => {
+      const search = getProvider(providerId).searchImageModels;
+      return search ? search(query, apiKey!) : [];
+    },
+  });
 
   useEffect(() => {
-    if (!modelId.trim() || modelId.length < 2 || !apiKey || loading) {
-      setSuggestions([]);
-      setOpen(false);
+    if (!isAdding) {
       return;
     }
-    const timer = setTimeout(async () => {
-      setIsSearching(true);
-      try {
-        const search = getProvider(providerId).searchImageModels;
-        const results = search ? await search(modelId, apiKey) : [];
-        setSuggestions(results);
-        setOpen(results.length > 0);
-      } catch {
-        // suggestions are best-effort
-      } finally {
-        setIsSearching(false);
-      }
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [modelId, apiKey, providerId]);
+    const frame = requestAnimationFrame(() => inputRef.current?.focus());
+    return () => cancelAnimationFrame(frame);
+  }, [isAdding]);
 
   const handleAdd = async (altModelID?: string) => {
     const idToAdd = altModelID ?? modelId;
@@ -109,6 +111,7 @@ export default function AddCustomModelButton() {
 
       addCustomModel(providerId, idToAdd, name, capabilities, schemaMapping, icon);
       setModelId("");
+      resetSearch();
       setIsAdding(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to fetch model");
@@ -154,8 +157,7 @@ export default function AddCustomModelButton() {
             onChange={(e) => {
               setProviderId(e.target.value as ApiKeyProvider);
               setError(null);
-              setSuggestions([]);
-              setOpen(false);
+              resetSearch();
             }}
             className="w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 focus:outline-none"
           >
@@ -187,47 +189,44 @@ export default function AddCustomModelButton() {
             onKeyDown={(e) => {
               if (e.key === "Enter" && !open && !loading) handleAdd();
             }}
-            autoFocus
+            ref={inputRef}
           />
           {isSearching && (
             <Loader2 className="absolute top-2.5 right-2.5 h-4 w-4 animate-spin text-zinc-500" />
           )}
         </div>
-        <Combobox.Portal>
-          <Combobox.Positioner sideOffset={4} align="start">
-            <Combobox.Popup
-              className="z-50 max-h-72 overflow-y-auto rounded-lg border border-zinc-700 bg-zinc-900 py-1 shadow-xl"
-              style={{ width: "var(--anchor-width)" }}
-            >
-              {suggestions.map((result) => {
-                const icon = result.icon || inferIcon(result.id);
-                const owner = result.id.includes("/") ? result.id.split("/")[0] : selectedProvider.label;
-                return (
-                  <Combobox.Item
-                    key={result.id}
-                    value={result.id}
-                    className="flex w-full cursor-default items-center gap-2.5 px-3 py-2 text-left outline-none data-highlighted:bg-zinc-800"
-                  >
-                    {icon ? (
-                      <SVG src={icon} className="h-5 w-5 shrink-0" />
-                    ) : (
-                      <div className="h-5 w-5 shrink-0 rounded bg-zinc-700" />
-                    )}
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-baseline gap-1.5">
-                        <p className="truncate text-sm font-medium text-zinc-100">{result.name}</p>
-                        <p className="shrink-0 text-xs text-zinc-500">{owner}</p>
-                      </div>
-                      {result.description && (
-                        <p className="truncate text-xs text-zinc-400">{result.description}</p>
-                      )}
-                    </div>
-                  </Combobox.Item>
-                );
-              })}
-            </Combobox.Popup>
-          </Combobox.Positioner>
-        </Combobox.Portal>
+        <SearchComboboxPopup
+          suggestions={suggestions}
+          isSearching={isSearching}
+          showEmptyState={modelId.trim().length >= 2}
+          emptyStateText="No models found"
+          getKey={(result) => result.id}
+          getValue={(result) => result.id}
+          renderItem={(result) => {
+            const icon = result.icon || inferIcon(result.id);
+            const owner = result.id.includes("/")
+              ? result.id.split("/")[0]
+              : selectedProvider.label;
+            return (
+              <>
+                {icon ? (
+                  <SVG src={icon} className="h-5 w-5 shrink-0" />
+                ) : (
+                  <div className="h-5 w-5 shrink-0 rounded bg-zinc-700" />
+                )}
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-baseline gap-1.5">
+                    <p className="truncate text-sm font-medium text-zinc-100">{result.name}</p>
+                    <p className="shrink-0 text-xs text-zinc-500">{owner}</p>
+                  </div>
+                  {result.description && (
+                    <p className="truncate text-xs text-zinc-400">{result.description}</p>
+                  )}
+                </div>
+              </>
+            );
+          }}
+        />
       </Combobox.Root>
       <div className="grid grid-cols-2 gap-2">
         <button
@@ -243,8 +242,7 @@ export default function AddCustomModelButton() {
             setIsAdding(false);
             setModelId("");
             setError(null);
-            setSuggestions([]);
-            setOpen(false);
+            resetSearch();
           }}
           className="rounded-lg bg-zinc-700 px-3 py-2 text-sm font-medium text-zinc-300 transition-colors hover:bg-zinc-600"
         >
