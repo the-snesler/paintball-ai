@@ -12,6 +12,11 @@ export default defineConfig({
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/proxy\/replicate/, ""),
       },
+      "/proxy/openai": {
+        target: "https://api.openai.com",
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/proxy\/openai/, ""),
+      },
     },
   },
 });

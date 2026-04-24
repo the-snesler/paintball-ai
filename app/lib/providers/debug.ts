@@ -108,6 +108,7 @@ async function generateImage(params: GenerationParams): Promise<GenerationResult
 export const debugProvider: Provider = {
   id: "debug",
   label: "Debug",
+  iconPath: "/icons/box.svg",
   requiresApiKey: false,
   capabilities: {
     image: true,

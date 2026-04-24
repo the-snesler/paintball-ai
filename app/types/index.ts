@@ -1,5 +1,5 @@
 // Model types
-export type ApiKeyProvider = "google" | "replicate";
+export type ApiKeyProvider = "google" | "replicate" | "openai";
 export type Provider = ApiKeyProvider | "debug";
 
 export type AspectRatio = string;
@@ -194,6 +194,7 @@ export interface SchemaMapping {
 export interface ApiKeys {
   google: string | null;
   replicate: string | null;
+  openai: string | null;
 }
 
 // Editor types
