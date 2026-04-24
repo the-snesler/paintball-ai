@@ -23,21 +23,28 @@ export default function UpscalerItem({
         !hasApiKey ? "opacity-50" : ""
       }`}
     >
-      {dragHandleProps && (
+      {dragHandleProps ? (
         <button
           {...dragHandleProps}
-          className="mr-2 shrink-0 cursor-grab touch-none text-zinc-600 hover:text-zinc-400 active:cursor-grabbing"
+          className="shrink-0 cursor-grab touch-none text-zinc-600 hover:text-zinc-400 active:cursor-grabbing"
         >
-          <GripVertical className="h-4 w-4" />
+          <div className="mr-2 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-zinc-700 text-zinc-400">
+            {upscaler.icon ? (
+              <SVG src={upscaler.icon} className="h-5 w-5" />
+            ) : (
+              <Box className="h-4 w-4" />
+            )}
+          </div>
         </button>
+      ) : (
+        <div className="mr-2 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-zinc-700 text-zinc-400">
+          {upscaler.icon ? (
+            <SVG src={upscaler.icon} className="h-5 w-5" />
+          ) : (
+            <Box className="h-4 w-4" />
+          )}
+        </div>
       )}
-      <div className="mr-2 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-zinc-700 text-zinc-400">
-        {upscaler.icon ? (
-          <SVG src={upscaler.icon} className="h-5 w-5" />
-        ) : (
-          <Box className="h-4 w-4" />
-        )}
-      </div>
 
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-medium text-zinc-100">{upscaler.name}</p>

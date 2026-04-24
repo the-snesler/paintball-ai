@@ -133,7 +133,7 @@ export default function AddCustomModelButton() {
         }`}
       >
         <Plus className="h-4 w-4" />
-        <span className="text-sm">Add custom model</span>
+        <span className="text-sm">Add custom image model</span>
       </button>
     );
   }
@@ -206,7 +206,7 @@ export default function AddCustomModelButton() {
                   <Combobox.Item
                     key={result.id}
                     value={result.id}
-                    className="flex w-full cursor-default items-center gap-2.5 px-3 py-2 text-left outline-none data-[highlighted]:bg-zinc-800"
+                    className="flex w-full cursor-default items-center gap-2.5 px-3 py-2 text-left outline-none data-highlighted:bg-zinc-800"
                   >
                     {icon ? (
                       <SVG src={icon} className="h-5 w-5 shrink-0" />

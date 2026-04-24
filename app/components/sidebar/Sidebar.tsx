@@ -111,12 +111,12 @@ function SettingsSidebarContent() {
   );
 
   return (
-    <div className="flex-1 space-y-2 overflow-y-auto p-4 [scrollbar-gutter:stable]">
+    <div className="flex-1 space-y-2 overflow-y-auto py-4 pr-1 pl-4 [scrollbar-gutter:stable]">
       <div className="flex items-center gap-2">
         <span className="text-zinc-500">
           <Layers className="h-4 w-4" />
         </span>
-        <h2 className="text-xs font-medium tracking-wide text-zinc-400 uppercase">Models</h2>
+        <h2 className="text-xs font-medium tracking-wide text-zinc-400 uppercase">Image Models</h2>
       </div>
 
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>

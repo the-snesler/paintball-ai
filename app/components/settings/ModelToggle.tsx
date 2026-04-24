@@ -94,21 +94,28 @@ export default function ModelToggleItem({
 
   return (
     <div
-      className={`flex items-center gap-1 rounded-lg border border-zinc-700/50 bg-zinc-800/50 p-2.5 ${
+      className={`flex items-center gap-1 rounded-lg border border-zinc-700/50 bg-zinc-800/50 p-2 py-2.5 ${
         !hasApiKey ? "opacity-50" : ""
       }`}
     >
-      {dragHandleProps && (
+      {dragHandleProps ? (
         <button
           {...dragHandleProps}
-          className="mr-2 shrink-0 cursor-grab touch-none text-zinc-600 hover:text-zinc-400 active:cursor-grabbing"
+          className="shrink-0 cursor-grab touch-none text-zinc-600 hover:text-zinc-400 active:cursor-grabbing"
         >
-          <GripVertical className="h-4 w-4" />
+          <div className="mr-2 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-zinc-700 text-zinc-400">
+            {model.icon ? (
+              <SVG src={model.icon} className="h-5 w-5" />
+            ) : (
+              <Box className="h-4 w-4" />
+            )}
+          </div>
         </button>
+      ) : (
+        <div className="mr-2 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-zinc-700 text-zinc-400">
+          {model.icon ? <SVG src={model.icon} className="h-5 w-5" /> : <Box className="h-4 w-4" />}
+        </div>
       )}
-      <div className="mr-2 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-zinc-700 text-zinc-400">
-        {model.icon ? <SVG src={model.icon} className="h-5 w-5" /> : <Box className="h-4 w-4" />}
-      </div>
 
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-medium text-zinc-100">{model.name}</p>
