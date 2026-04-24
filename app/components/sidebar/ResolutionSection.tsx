@@ -1,6 +1,5 @@
 import { Maximize } from "lucide-react";
-import { RESOLUTIONS, anyModelSupportsResolution } from "~/lib/models";
-import { CollapsibleSection } from "./CollapsibleSection";
+import { RESOLUTIONS_LABELS, anyModelSupportsResolution } from "~/lib/models";
 import { useGenerationStore } from "~/stores/generationStore";
 import { useSettingsStore } from "~/stores/settingsStore";
 import type { Resolution } from "~/types";
@@ -26,7 +25,7 @@ export function ResolutionSection() {
         <h2 className="text-xs font-medium tracking-wide text-zinc-400 uppercase">Resolution</h2>
       </div>
       <div className="flex gap-2">
-        {RESOLUTIONS.map((res) => {
+        {RESOLUTIONS_LABELS.map(([label, res]) => {
           const isSelected = resolution === res;
           const showSelectedStyle = isSelected && pickerEnabled;
 
@@ -35,7 +34,7 @@ export function ResolutionSection() {
               key={res}
               onClick={() => pickerEnabled && setResolution(res as Resolution)}
               disabled={!pickerEnabled}
-              className={`flex-1 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+              className={`flex-1 rounded-lg px-1 py-2 text-sm font-medium transition-colors ${
                 showSelectedStyle
                   ? "border border-purple-500 bg-purple-500/20 text-purple-300"
                   : pickerEnabled
@@ -43,7 +42,8 @@ export function ResolutionSection() {
                     : "cursor-not-allowed border border-zinc-800 bg-zinc-800/50 text-zinc-500 opacity-40"
               }`}
             >
-              {res}
+              {label}
+              <p className="text-[0.6rem] text-zinc-600">{res} resolution</p>
             </button>
           );
         })}
