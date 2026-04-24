@@ -25,6 +25,23 @@ export default {
       });
     }
 
+    // api.openai.com doesn't send CORS headers, so direct browser calls are blocked.
+    if (url.pathname.startsWith("/proxy/openai/")) {
+      const targetPath = url.pathname.replace("/proxy/openai", "");
+      const targetUrl = `https://api.openai.com${targetPath}${url.search}`;
+
+      const response = await fetch(targetUrl, {
+        method: request.method,
+        headers: request.headers,
+        body: request.body,
+      });
+
+      return new Response(response.body, {
+        status: response.status,
+        headers: response.headers,
+      });
+    }
+
     // Serve static assets; not_found_handling: "single-page-application" in wrangler.jsonc
     // ensures unknown paths fall back to index.html automatically.
     return env.ASSETS.fetch(request);

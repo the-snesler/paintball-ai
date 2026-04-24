@@ -128,13 +128,17 @@ export default function ModelToggleItem({
                 ? "Google"
                 : model.provider === "replicate"
                   ? "Replicate"
-                  : model.provider
+                  : model.provider === "openai"
+                    ? "OpenAI"
+                    : model.provider
             }
             placement="top"
             delay={200}
           >
             <span className="text-zinc-40 inline-flex cursor-help items-center gap-1 rounded bg-purple-700/50 px-1.5 py-0.5 text-[10px] text-purple-400">
-              {model.provider === "google" || model.provider === "replicate" ? (
+              {model.provider === "google" ||
+              model.provider === "replicate" ||
+              model.provider === "openai" ? (
                 <SVG
                   src={`/icons/${model.provider}.svg`}
                   className="h-2.5 w-2.5 overflow-visible"

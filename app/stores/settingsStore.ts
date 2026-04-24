@@ -88,6 +88,7 @@ export const useSettingsStore = create<SettingsState>()(
       apiKeys: {
         google: null,
         replicate: null,
+        openai: null,
       },
       models: BUILT_IN_MODELS,
       textModels: BUILT_IN_TEXT_MODELS,
@@ -295,6 +296,8 @@ export const useSettingsStore = create<SettingsState>()(
             "replicate/google/nano-banana": "/icons/google.svg",
             "replicate/google/nano-banana-pro": "/icons/google.svg",
             "replicate/openai/gpt-image-1.5": "/icons/openai.svg",
+            "gpt-image-2": "/icons/openai.svg",
+            "gpt-image-1.5": "/icons/openai.svg",
             "replicate/black-forest-labs/flux-2-flex": "/icons/bfl.svg",
             "replicate/bytedance/seedream-4.5": "/icons/bytedance.svg",
           };
@@ -363,6 +366,7 @@ export const useSettingsStore = create<SettingsState>()(
           apiKeys: {
             google: state.apiKeys?.google ?? null,
             replicate: state.apiKeys?.replicate ?? null,
+            openai: state.apiKeys?.openai ?? null,
           },
           // always merge with built-in
           models: mergeWithBuiltInModels(state.models) ?? BUILT_IN_MODELS,
