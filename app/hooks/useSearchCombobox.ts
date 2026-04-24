@@ -19,10 +19,14 @@ export function useSearchCombobox<T>({
   const [isSearching, setIsSearching] = useState(false);
 
   const requestIdRef = useRef(0);
+  const searchRef = useRef(search);
+  useEffect(() => {
+    searchRef.current = search;
+  }, [search]);
 
   const resetSearch = useCallback(() => {
     setOpen(false);
-    setSuggestions([]);
+    setSuggestions((prev) => (prev.length === 0 ? prev : []));
     setIsSearching(false);
   }, []);
 
@@ -41,7 +45,7 @@ export function useSearchCombobox<T>({
     const timer = setTimeout(async () => {
       setIsSearching(true);
       try {
-        const results = await search(query);
+        const results = await searchRef.current(query);
         if (requestIdRef.current !== currentRequestId) {
           return;
         }
@@ -61,7 +65,7 @@ export function useSearchCombobox<T>({
     }, debounceMs);
 
     return () => clearTimeout(timer);
-  }, [debounceMs, enabled, inputValue, minChars, resetSearch, search]);
+  }, [debounceMs, enabled, inputValue, minChars, resetSearch]);
 
   return {
     inputValue,
