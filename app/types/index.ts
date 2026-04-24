@@ -184,6 +184,8 @@ export interface SchemaMapping {
   resolution?: Record<string, string>;
   aspectRatioKey?: string;
   imageInputKey?: string;
+  qualityKey?: string;
+  numberOfImagesKey?: string;
   maxReferenceImages?: number;
   extraDefaults?: Record<string, unknown>;
 }

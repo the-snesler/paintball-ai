@@ -88,6 +88,10 @@ The mapping object has this shape:
   "supportedAspectRatios": ["1:1", "16:9", ...],
   "imageInputKey": "<actual_property_name_for_images>",
   "maxReferenceImages": <number>,
+  "qualityKey": "<actual_property_name_for_quality>",
+  "supportedQualities": ["low", "medium", "high", "auto"],
+  "numberOfImagesKey": "<actual_property_name_for_batch_size>",
+  "maxImagesPerRequest": <number>,
   "extraDefaults": { "<key>": "<value>" }
 }
 
@@ -95,6 +99,8 @@ Our application sends these parameters to Replicate models:
 - resolution: one of "1K", "2K", "4K"
 - aspect_ratio: a string in "W:H" format (e.g. "1:1", "16:9", "9:16", "3:2"), if the model supports aspect ratios
 - image_input: array of base64 data URIs for reference images
+- quality: one of "low", "medium", "high", "auto" (an image quality preset), if the model supports it
+- number_of_images: integer batch size when the model can return multiple coherent images in a single call
 - output_format: "png"
 - prompt: string
 
@@ -104,6 +110,10 @@ Rules:
 - Always include "supportedAspectRatios" if the model has an aspect ratio parameter. List every accepted value as a string in "W:H" format (e.g. "1:1", "16:9", "9:16", "3:2"). Extract values from enum constraints, allowed values in descriptions, or oneOf schemas. If the aspect ratio property exists but has no enum or list of accepted values (open-ended support), set "supportedAspectRatios" to [] — do NOT invent or guess values. If the model has no aspect ratio parameter at all, omit this field entirely.
 - Only include "imageInputKey" if the model uses a property name other than "image_input" for reference images (e.g. "input_images", "image", "init_image")
 - Include "maxReferenceImages" if the schema specifies a maximum number of input/reference images (look in field descriptions for phrases like "Maximum N images" or "up to N"). Omit if no limit is stated.
+- "qualityKey": include ONLY if the model has a string-enum parameter representing image quality (e.g. a property named "quality", "image_quality", "output_quality" or similar with enum values like "low"/"medium"/"high"/"auto", "standard"/"hd", "draft"/"fine", etc.). Set it to the actual property name. Do NOT set this for parameters that look like resolutions, samplers, or inference-step counts.
+- "supportedQualities": include ONLY alongside "qualityKey". List every enum value exactly as the model accepts them (e.g. ["low", "medium", "high", "auto"] or ["standard", "hd"]).
+- "numberOfImagesKey": include ONLY if the model has an integer parameter that controls how many images are produced per single API call in one coherent batch (e.g. "number_of_images", "num_images", "n_images", "num_outputs"). Do NOT set this for sampling-step counts, seeds, or guidance scales.
+- "maxImagesPerRequest": include ONLY alongside "numberOfImagesKey". Use the schema's "maximum" if present, otherwise a conservative integer like 4.
 - Only include "extraDefaults" for parameters with important non-obvious defaults our app doesn't set
 - If there are values in the schema relating to things like safety filters or content restrictions, set them to their most permissive values in "extraDefaults" (e.g. "safety_filter": "off").
 - You should return at least an empty object if all parameters already conform to our schema.

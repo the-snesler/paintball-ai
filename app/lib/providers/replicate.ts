@@ -47,10 +47,12 @@ async function generateImage(
     input.resolution = mapping?.resolution?.[params.resolution] ?? params.resolution;
   }
   if (caps?.supportsQuality && params.quality) {
-    input.quality = params.quality;
+    const qualityKey = mapping?.qualityKey ?? "quality";
+    input[qualityKey] = params.quality;
   }
   if (caps?.supportsNumberOfImages && params.numberOfImages > 1) {
-    input.number_of_images = params.numberOfImages;
+    const numberOfImagesKey = mapping?.numberOfImagesKey ?? "number_of_images";
+    input[numberOfImagesKey] = params.numberOfImages;
   }
   if (mapping?.extraDefaults) {
     for (const [key, value] of Object.entries(mapping.extraDefaults)) {
@@ -241,11 +243,15 @@ interface ReplicateModelResponse {
 interface HeuristicResult {
   capabilities: ModelCapabilities;
   detectedAspectRatioKey?: string;
+  detectedQualityKey?: string;
+  detectedNumberOfImagesKey?: string;
 }
 
 interface SchemaAnalysis {
   mapping: SchemaMapping;
   supportedAspectRatios?: string[];
+  supportedQualities?: string[];
+  maxImagesPerRequest?: number;
 }
 
 async function fetchReplicateModelSchema(
@@ -303,14 +309,40 @@ function inferCapabilitiesFromProperties(
     maxReferenceImages = 10;
   }
 
+  const qualityKeys = ["quality", "image_quality", "output_quality"];
+  const detectedQualityKey = qualityKeys.find((key) => {
+    const prop = properties[key];
+    return prop && prop.type === "string" && Array.isArray(prop.enum) && prop.enum.length > 0;
+  });
+  const supportsQuality = !!detectedQualityKey;
+  const supportedQualities = detectedQualityKey ? properties[detectedQualityKey].enum : undefined;
+
+  const numberOfImagesKeys = ["number_of_images", "num_images", "n_images", "num_outputs"];
+  const detectedNumberOfImagesKey = numberOfImagesKeys.find((key) => {
+    const prop = properties[key];
+    return prop && (prop.type === "integer" || prop.type === "number");
+  });
+  const supportsNumberOfImages = !!detectedNumberOfImagesKey;
+  const maxImagesPerRequest = detectedNumberOfImagesKey
+    ? typeof properties[detectedNumberOfImagesKey].maximum === "number"
+      ? properties[detectedNumberOfImagesKey].maximum
+      : 10
+    : undefined;
+
   return {
     capabilities: {
       supportsAspectRatios,
       supportsResolution,
       supportsReferenceImages,
       maxReferenceImages,
+      supportsQuality,
+      ...(supportedQualities ? { supportedQualities } : {}),
+      supportsNumberOfImages,
+      ...(typeof maxImagesPerRequest === "number" ? { maxImagesPerRequest } : {}),
     },
     detectedAspectRatioKey,
+    detectedQualityKey,
+    detectedNumberOfImagesKey,
   };
 }
 
@@ -330,6 +362,8 @@ async function analyzeSchemaWithTextModel(
 
     const mapping: SchemaMapping = {};
     let supportedAspectRatios: string[] | undefined;
+    let supportedQualities: string[] | undefined;
+    let maxImagesPerRequest: number | undefined;
 
     if (parsed.resolution && typeof parsed.resolution === "object") {
       mapping.resolution = parsed.resolution;
@@ -343,6 +377,16 @@ async function analyzeSchemaWithTextModel(
     if (typeof parsed.maxReferenceImages === "number" && parsed.maxReferenceImages > 0) {
       mapping.maxReferenceImages = parsed.maxReferenceImages;
     }
+    if (typeof parsed.qualityKey === "string" && parsed.qualityKey.length > 0) {
+      if (parsed.qualityKey !== "quality") {
+        mapping.qualityKey = parsed.qualityKey;
+      }
+    }
+    if (typeof parsed.numberOfImagesKey === "string" && parsed.numberOfImagesKey.length > 0) {
+      if (parsed.numberOfImagesKey !== "number_of_images") {
+        mapping.numberOfImagesKey = parsed.numberOfImagesKey;
+      }
+    }
     if (parsed.extraDefaults && typeof parsed.extraDefaults === "object") {
       mapping.extraDefaults = parsed.extraDefaults;
     }
@@ -351,13 +395,21 @@ async function analyzeSchemaWithTextModel(
         (v: unknown): v is string => typeof v === "string"
       );
     }
+    if (Array.isArray(parsed.supportedQualities)) {
+      supportedQualities = parsed.supportedQualities.filter(
+        (v: unknown): v is string => typeof v === "string"
+      );
+    }
+    if (typeof parsed.maxImagesPerRequest === "number" && parsed.maxImagesPerRequest > 0) {
+      maxImagesPerRequest = Math.floor(parsed.maxImagesPerRequest);
+    }
 
     const hasMapping = Object.keys(mapping).length > 0;
-    if (!hasMapping && !supportedAspectRatios) {
+    if (!hasMapping && !supportedAspectRatios && !supportedQualities && !maxImagesPerRequest) {
       return null;
     }
 
-    return { mapping, supportedAspectRatios };
+    return { mapping, supportedAspectRatios, supportedQualities, maxImagesPerRequest };
   } catch {
     return null;
   }
@@ -393,6 +445,44 @@ function mergeAnalysis(
 
   if (mapping.resolution && !capabilities.supportsResolution) {
     capabilities.supportsResolution = true;
+  }
+
+  // Quality: the analyzer may have named a non-default property key OR provided
+  // an enum list. The heuristic may have found a default-named `quality` prop.
+  if (mapping.qualityKey && !capabilities.supportsQuality) {
+    const prop = properties[mapping.qualityKey];
+    capabilities.supportsQuality = true;
+    if (!capabilities.supportedQualities && Array.isArray(prop?.enum)) {
+      capabilities.supportedQualities = prop.enum;
+    }
+  } else if (
+    heuristic.detectedQualityKey &&
+    heuristic.detectedQualityKey !== "quality" &&
+    !mapping.qualityKey
+  ) {
+    mapping.qualityKey = heuristic.detectedQualityKey;
+  }
+  if (analysis?.supportedQualities && analysis.supportedQualities.length > 0) {
+    capabilities.supportedQualities = analysis.supportedQualities;
+  }
+
+  // Batch: similar pattern.
+  if (mapping.numberOfImagesKey && !capabilities.supportsNumberOfImages) {
+    const prop = properties[mapping.numberOfImagesKey];
+    capabilities.supportsNumberOfImages = true;
+    if (!capabilities.maxImagesPerRequest) {
+      capabilities.maxImagesPerRequest =
+        typeof prop?.maximum === "number" ? prop.maximum : (analysis?.maxImagesPerRequest ?? 4);
+    }
+  } else if (
+    heuristic.detectedNumberOfImagesKey &&
+    heuristic.detectedNumberOfImagesKey !== "number_of_images" &&
+    !mapping.numberOfImagesKey
+  ) {
+    mapping.numberOfImagesKey = heuristic.detectedNumberOfImagesKey;
+  }
+  if (typeof analysis?.maxImagesPerRequest === "number") {
+    capabilities.maxImagesPerRequest = analysis.maxImagesPerRequest;
   }
 
   const schemaMapping = Object.keys(mapping).length > 0 ? mapping : undefined;
