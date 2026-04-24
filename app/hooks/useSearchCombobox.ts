@@ -14,7 +14,7 @@ export function useSearchCombobox<T>({
   debounceMs = 300,
 }: UseSearchComboboxOptions<T>) {
   const [inputValue, setInputValue] = useState("");
-  const [open, setOpen] = useState(false);
+  const [open, setOpenState] = useState(false);
   const [suggestions, setSuggestions] = useState<T[]>([]);
   const [isSearching, setIsSearching] = useState(false);
 
@@ -25,10 +25,27 @@ export function useSearchCombobox<T>({
   }, [search]);
 
   const resetSearch = useCallback(() => {
-    setOpen(false);
+    setOpenState(false);
     setSuggestions((prev) => (prev.length === 0 ? prev : []));
     setIsSearching(false);
   }, []);
+
+  const setOpen = useCallback(
+    (nextOpen: boolean) => {
+      if (!nextOpen) {
+        setOpenState(false);
+        return;
+      }
+
+      // Ignore open requests until the user has typed enough characters.
+      if (!enabled || inputValue.trim().length < minChars) {
+        return;
+      }
+
+      setOpenState(true);
+    },
+    [enabled, inputValue, minChars]
+  );
 
   useEffect(() => {
     const query = inputValue.trim();
@@ -50,13 +67,13 @@ export function useSearchCombobox<T>({
           return;
         }
         setSuggestions(results);
-        setOpen(true);
+        setOpenState(true);
       } catch {
         if (requestIdRef.current !== currentRequestId) {
           return;
         }
         setSuggestions([]);
-        setOpen(true);
+        setOpenState(true);
       } finally {
         if (requestIdRef.current === currentRequestId) {
           setIsSearching(false);

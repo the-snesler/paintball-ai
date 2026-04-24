@@ -4,7 +4,6 @@ import {
   BUILT_IN_MODELS,
   BUILT_IN_TEXT_MODELS,
   BUILT_IN_UPSCALERS,
-  isBuiltInModel,
   mergeWithBuiltInModels,
   mergeWithBuiltInTextModels,
   mergeWithBuiltInUpscalers,
@@ -261,7 +260,7 @@ export const useSettingsStore = create<SettingsState>()(
     }),
     {
       name: "studio-settings",
-      version: 13,
+      version: 15,
       partialize: (state) => ({
         apiKeys: state.apiKeys,
         models: state.models,
@@ -315,9 +314,13 @@ export const useSettingsStore = create<SettingsState>()(
           state = {
             ...state,
             textModel: { provider: "google", modelId: "gemini-3-flash-preview" },
-            models: state.models?.map((model) =>
-              isBuiltInModel(model.id) ? { ...model, isCustom: undefined } : model
-            ),
+            models: state.models?.map((model) => {
+              const BUILT_IN_MODEL_IDS = new Set(BUILT_IN_MODELS.map((model) => model.id));
+              function isBuiltInModel(id: string): boolean {
+                return BUILT_IN_MODEL_IDS.has(id);
+              }
+              return isBuiltInModel(model.id) ? { ...model, isCustom: undefined } : model;
+            }),
             desktopNotificationsEnabled: state.desktopNotificationsEnabled ?? false,
             notificationPromptDismissed: state.notificationPromptDismissed ?? false,
             requestedOutputCount: state.requestedOutputCount ?? 0,

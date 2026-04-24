@@ -1,9 +1,11 @@
 import OpenAI, { toFile } from "openai";
+import { distance } from "fastest-levenshtein";
 import type { GenerationParams, GenerationResult } from "~/lib/generation";
 import { getImageDimensions } from "~/lib/imageProcessing";
 import { toRateLimitError } from "~/lib/retry";
 import type { AspectRatio } from "~/types";
-import type { Provider } from "./types";
+import type { Provider, SearchResult } from "./types";
+import { inferName } from "../modelNames";
 
 function openaiBaseUrl(): string {
   return new URL("/proxy/openai/v1", window.location.origin).toString();
@@ -126,6 +128,58 @@ async function parseResponse(
   );
 }
 
+interface OpenAIModel {
+  id: string;
+  owned_by?: string;
+}
+
+function isImageModel(model: OpenAIModel): boolean {
+  const id = model.id.toLowerCase();
+  // Keep image search focused on generation/edit models users can add.
+  return /(^|[-_])(gpt-image|image|dall-e)/.test(id);
+}
+
+function toSearchResult(model: OpenAIModel): SearchResult {
+  return {
+    id: model.id,
+    name: inferName(model.id),
+    description: model.owned_by ? `Owner: ${model.owned_by}` : "OpenAI image model",
+    icon: "/icons/openai.svg",
+  };
+}
+
+async function searchImageModels(query: string, apiKey: string): Promise<SearchResult[]> {
+  const client = createClient(apiKey);
+
+  let models: OpenAIModel[] = [];
+  try {
+    const response = await client.models.list();
+    models = response.data as OpenAIModel[];
+  } catch {
+    return [];
+  }
+
+  const q = query.trim().toLowerCase();
+  const imageModels = models.filter(isImageModel);
+
+  if (!q) {
+    return imageModels.slice(0, 6).map(toSearchResult);
+  }
+
+  const ranked = imageModels
+    .map((model) => {
+      const id = model.id.toLowerCase();
+      const containsBoost = id.includes(q) ? -1000 : 0;
+      const score = distance(q, id) + containsBoost;
+      return { model, score };
+    })
+    .sort((a, b) => a.score - b.score)
+    .slice(0, 6)
+    .map(({ model }) => toSearchResult(model));
+
+  return ranked;
+}
+
 export const openaiProvider: Provider = {
   id: "openai",
   label: "OpenAI",
@@ -135,10 +189,11 @@ export const openaiProvider: Provider = {
     image: true,
     text: false,
     upscale: false,
-    searchImage: false,
+    searchImage: true,
     searchText: false,
     searchUpscale: false,
     resolveImageModel: false,
   },
   generateImage,
+  searchImageModels,
 };

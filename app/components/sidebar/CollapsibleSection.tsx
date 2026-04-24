@@ -1,10 +1,12 @@
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Info } from "lucide-react";
 import { type ReactNode } from "react";
 import { Accordion } from "@base-ui/react/accordion";
+import { Tooltip } from "../ui/Tooltip";
 
 interface CollapsibleSectionProps {
   icon: ReactNode;
   title: string;
+  tooltip?: string;
   badge?: ReactNode;
   defaultExpanded?: boolean;
   children: ReactNode;
@@ -13,6 +15,7 @@ interface CollapsibleSectionProps {
 export function CollapsibleSection({
   icon,
   title,
+  tooltip,
   badge,
   defaultExpanded = true,
   children,
@@ -28,6 +31,13 @@ export function CollapsibleSection({
                 <h2 className="text-xs font-medium tracking-wide text-zinc-400 uppercase">
                   {title}
                 </h2>
+                {tooltip && (
+                  <Tooltip content={tooltip} placement="bottom-start">
+                    <span className="cursor-help text-zinc-600 transition-colors hover:text-zinc-400">
+                      <Info className="h-3 w-3" />
+                    </span>
+                  </Tooltip>
+                )}
               </div>
               <div className="flex items-center gap-2">
                 {badge}

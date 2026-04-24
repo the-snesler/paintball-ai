@@ -53,7 +53,7 @@ function SidebarContent() {
 function GallerySidebarContent() {
   return (
     <>
-      <div className="flex-1 space-y-6 overflow-x-hidden overflow-y-auto p-4 [scrollbar-gutter:stable]">
+      <div className="flex-1 space-y-6 overflow-x-hidden overflow-y-auto py-4 pr-1 pl-4 [scrollbar-gutter:stable]">
         <PromptInput />
         <PromptVariationsToggle />
         <AvoidPastVariationsToggle />
@@ -72,7 +72,7 @@ function GallerySidebarContent() {
 
 function EditorSidebarContent() {
   return (
-    <div className="flex-1 space-y-6 overflow-y-auto p-4 [scrollbar-gutter:stable]">
+    <div className="flex-1 space-y-6 overflow-y-auto py-4 pr-1 pl-4 [scrollbar-gutter:stable]">
       <RecentSessions />
       <ModelList />
       <AspectRatioSection />

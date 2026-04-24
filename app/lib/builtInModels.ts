@@ -2,31 +2,6 @@ import type { StoredModel, StoredTextModel, StoredUpscaler } from "~/types";
 
 const BASE_BUILT_IN_MODELS: StoredModel[] = [
   {
-    id: "gemini-2.5-flash-image",
-    name: "Gemini 2.5 Flash",
-    provider: "google",
-    enabled: true,
-    icon: "/icons/google.svg",
-    capabilities: {
-      supportsAspectRatios: true,
-      supportedAspectRatios: [
-        "1:1",
-        "2:3",
-        "3:2",
-        "3:4",
-        "4:3",
-        "4:5",
-        "5:4",
-        "9:16",
-        "16:9",
-        "21:9",
-      ],
-      supportsResolution: false,
-      supportsReferenceImages: true,
-      maxReferenceImages: 10,
-    },
-  },
-  {
     id: "gemini-3-pro-image-preview",
     name: "Gemini 3.0 Pro",
     provider: "google",
@@ -81,31 +56,6 @@ const BASE_BUILT_IN_MODELS: StoredModel[] = [
     },
   },
   {
-    id: "replicate/google/nano-banana",
-    name: "Nano Banana",
-    provider: "replicate",
-    enabled: true,
-    icon: "/icons/google.svg",
-    capabilities: {
-      supportsAspectRatios: true,
-      supportedAspectRatios: [
-        "1:1",
-        "2:3",
-        "3:2",
-        "3:4",
-        "4:3",
-        "4:5",
-        "5:4",
-        "9:16",
-        "16:9",
-        "21:9",
-      ],
-      supportsResolution: false,
-      supportsReferenceImages: true,
-      maxReferenceImages: 10,
-    },
-  },
-  {
     id: "replicate/google/nano-banana-pro",
     name: "Nano Banana Pro",
     provider: "replicate",
@@ -131,24 +81,6 @@ const BASE_BUILT_IN_MODELS: StoredModel[] = [
     },
   },
   {
-    id: "replicate/openai/gpt-image-1.5",
-    name: "GPT Image 1.5",
-    provider: "replicate",
-    enabled: true,
-    icon: "/icons/openai.svg",
-    capabilities: {
-      supportsAspectRatios: true,
-      supportedAspectRatios: ["1:1", "3:2", "2:3"],
-      supportsResolution: false,
-      supportsReferenceImages: true,
-      maxReferenceImages: 10,
-      supportsQuality: true,
-      supportedQualities: ["low", "medium", "high", "auto"],
-      supportsNumberOfImages: true,
-      maxImagesPerRequest: 10,
-    },
-  },
-  {
     id: "gpt-image-2",
     name: "GPT Image 2",
     provider: "openai",
@@ -156,26 +88,8 @@ const BASE_BUILT_IN_MODELS: StoredModel[] = [
     icon: "/icons/openai.svg",
     capabilities: {
       supportsAspectRatios: true,
-      supportedAspectRatios: ["1:1", "3:2", "2:3"],
-      supportsResolution: false,
-      supportsReferenceImages: true,
-      maxReferenceImages: 16,
-      supportsQuality: true,
-      supportedQualities: ["low", "medium", "high", "auto"],
-      supportsNumberOfImages: true,
-      maxImagesPerRequest: 10,
-    },
-  },
-  {
-    id: "gpt-image-1.5",
-    name: "GPT Image 1.5",
-    provider: "openai",
-    enabled: false,
-    icon: "/icons/openai.svg",
-    capabilities: {
-      supportsAspectRatios: true,
-      supportedAspectRatios: ["1:1", "3:2", "2:3"],
-      supportsResolution: false,
+      supportedAspectRatios: [],
+      supportsResolution: true,
       supportsReferenceImages: true,
       maxReferenceImages: 16,
       supportsQuality: true,
@@ -245,10 +159,6 @@ export const BUILT_IN_MODELS: StoredModel[] = import.meta.env.DEV
 
 const BUILT_IN_MODEL_IDS = new Set(BUILT_IN_MODELS.map((model) => model.id));
 
-export function isBuiltInModel(id: string): boolean {
-  return BUILT_IN_MODEL_IDS.has(id);
-}
-
 export function mergeWithBuiltInModels(models?: StoredModel[]): StoredModel[] {
   if (!models || models.length === 0) {
     return BUILT_IN_MODELS.map((model) => ({ ...model }));
@@ -271,7 +181,7 @@ export function mergeWithBuiltInModels(models?: StoredModel[]): StoredModel[] {
     };
   });
 
-  const customModels = models.filter((model) => !isBuiltInModel(model.id));
+  const customModels = models.filter((model) => model.isCustom); // excludes deleted built-ins
 
   return [...mergedBuiltIns, ...customModels];
 }
@@ -297,9 +207,6 @@ export const BUILT_IN_TEXT_MODELS: StoredTextModel[] = [
 
 const BUILT_IN_TEXT_MODEL_IDS = new Set(BUILT_IN_TEXT_MODELS.map((m) => m.id));
 
-export function isBuiltInTextModel(id: string): boolean {
-  return BUILT_IN_TEXT_MODEL_IDS.has(id);
-}
 
 export function mergeWithBuiltInTextModels(models?: StoredTextModel[]): StoredTextModel[] {
   if (!models || models.length === 0) {
@@ -317,7 +224,7 @@ export function mergeWithBuiltInTextModels(models?: StoredTextModel[]): StoredTe
     };
   });
 
-  const customModels = models.filter((m) => !isBuiltInTextModel(m.id) && m.isCustom);
+  const customModels = models.filter((m) => m.isCustom);
 
   const merged = [...mergedBuiltIns, ...customModels];
 
@@ -377,10 +284,6 @@ export const BUILT_IN_UPSCALERS: StoredUpscaler[] = [
 
 const BUILT_IN_UPSCALER_IDS = new Set(BUILT_IN_UPSCALERS.map((u) => u.id));
 
-export function isBuiltInUpscaler(id: string): boolean {
-  return BUILT_IN_UPSCALER_IDS.has(id);
-}
-
 export function mergeWithBuiltInUpscalers(upscalers?: StoredUpscaler[]): StoredUpscaler[] {
   if (!upscalers || upscalers.length === 0) {
     return BUILT_IN_UPSCALERS.map((u) => ({ ...u }));
@@ -394,7 +297,7 @@ export function mergeWithBuiltInUpscalers(upscalers?: StoredUpscaler[]): StoredU
     return { ...builtIn, enabled: existing.enabled };
   });
 
-  const customUpscalers = upscalers.filter((u) => !isBuiltInUpscaler(u.id));
+  const customUpscalers = upscalers.filter((u) => u.isCustom);
 
   return [...mergedBuiltIns, ...customUpscalers];
 }
