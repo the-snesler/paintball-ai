@@ -8,10 +8,10 @@ import {
   Trash2,
   Copy,
   FilePenLine,
-  Expand,
   RotateCcw,
   Check,
   CopyPlus,
+  ImageUpscale,
 } from "lucide-react";
 import { useLocation, useNavigate } from "react-router";
 import { useGalleryStore } from "~/stores/galleryStore";
@@ -295,7 +295,7 @@ export function Lightbox() {
                   />
                 )}
                 <WideIconButton
-                  icon={<Expand className="h-4 w-4" />}
+                  icon={<ImageUpscale className="h-4 w-4" />}
                   title={"Upscale"}
                   tooltip={
                     !replicateKey ? "Upscaling requires a Replicate API key" : "Upscale this image"
