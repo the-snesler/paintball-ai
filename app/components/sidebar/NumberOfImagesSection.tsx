@@ -41,7 +41,11 @@ export function NumberOfImagesSection() {
         step={1}
         value={Math.min(numberOfImages, Math.max(1, max))}
         onChange={(e) => setNumberOfImages(Number(e.target.value))}
-        className="h-1.5 w-full cursor-pointer appearance-none rounded-full bg-zinc-800 accent-purple-500"
+        className="h-1.5 w-full cursor-pointer appearance-none rounded-full"
+        style={{
+          background: `linear-gradient(to right, var(--color-purple-500) 0%, var(--color-purple-500) ${((numberOfImages - 1) / (max - 1)) * 100}%, var(--color-zinc-800) ${((numberOfImages - 1) / (max - 1)) * 100}%, var(--color-zinc-800) 100%)
+          `,
+        }}
       />
       <div className="mt-1 flex justify-between text-[10px] text-zinc-500 tabular-nums">
         <span>1</span>
