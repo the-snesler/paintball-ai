@@ -121,7 +121,7 @@ function SettingsSidebarContent() {
 
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <SortableContext items={models.map((m) => m.id)} strategy={verticalListSortingStrategy}>
-          <div className="space-y-2">
+          <div className="space-y-1">
             {models.map((model) => (
               <SortableModelItem
                 key={model.id}
@@ -142,7 +142,7 @@ function SettingsSidebarContent() {
         <h2 className="text-xs font-medium tracking-wide text-zinc-400 uppercase">Text Model</h2>
       </div>
 
-      <div className="space-y-2">
+      <div className="space-y-1">
         {textModels.map((model) => (
           <TextModelItem
             key={model.id}
@@ -167,7 +167,7 @@ function SettingsSidebarContent() {
         onDragEnd={handleUpscalerDragEnd}
       >
         <SortableContext items={upscalers.map((u) => u.id)} strategy={verticalListSortingStrategy}>
-          <div className="space-y-2">
+          <div className="space-y-1">
             {upscalers.map((u) => (
               <SortableUpscalerItem key={u.id} upscaler={u} hasApiKey={!!apiKeys.replicate} />
             ))}
