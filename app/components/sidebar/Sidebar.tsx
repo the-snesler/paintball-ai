@@ -4,6 +4,8 @@ import { PromptInput } from "./PromptInput";
 import { ModelList } from "./ModelList";
 import { AspectRatioSection } from "./AspectRatioSection";
 import { ResolutionSection } from "./ResolutionSection";
+import { QualitySection } from "./QualitySection";
+import { NumberOfImagesSection } from "./NumberOfImagesSection";
 import { GenerateButton } from "./GenerateButton";
 import { PromptVariationsToggle } from "./PromptVariationsToggle";
 import { AvoidPastVariationsToggle } from "./AvoidPastVariationsToggle";
@@ -58,6 +60,8 @@ function GallerySidebarContent() {
         <ModelList />
         <AspectRatioSection />
         <ResolutionSection />
+        <QualitySection />
+        <NumberOfImagesSection />
       </div>
       <div className="border-t border-zinc-800 p-4">
         <GenerateButton />
@@ -73,6 +77,8 @@ function EditorSidebarContent() {
       <ModelList />
       <AspectRatioSection />
       <ResolutionSection />
+      <QualitySection />
+      <NumberOfImagesSection />
     </div>
   );
 }

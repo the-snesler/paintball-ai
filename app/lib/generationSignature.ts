@@ -5,6 +5,8 @@ interface GenerationSignatureInput {
   modelSelections: Record<string, number>;
   aspectRatio: AspectRatio | null;
   resolution: Resolution;
+  quality: string | null;
+  numberOfImages: number;
   referenceImages: ReferenceImage[];
 }
 
@@ -20,6 +22,8 @@ export function buildGenerationSignature(input: GenerationSignatureInput): strin
     selections: normalizedSelections,
     aspectRatio: input.aspectRatio,
     resolution: input.resolution,
+    quality: input.quality,
+    numberOfImages: input.numberOfImages,
     referenceImageIds: normalizedReferenceIds,
   });
 }

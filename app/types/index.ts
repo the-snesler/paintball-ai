@@ -13,6 +13,10 @@ export interface ModelCapabilities {
   resolutions?: Resolution[];
   supportsReferenceImages: boolean;
   maxReferenceImages: number;
+  supportsQuality?: boolean;
+  supportedQualities?: string[];
+  supportsNumberOfImages?: boolean;
+  maxImagesPerRequest?: number;
 }
 
 export interface ModelDefinition {
@@ -83,6 +87,7 @@ export interface BaseGalleryItem {
   variationReplacements?: string[];
   aspectRatio: AspectRatio | null;
   resolution: Resolution | null;
+  quality?: string | null;
   referenceImageIds: string[];
 }
 
@@ -135,6 +140,7 @@ export interface StoredImageRecord {
   modelName: string;
   aspectRatio: AspectRatio | null;
   resolution: Resolution | null;
+  quality?: string | null;
   width: number;
   height: number;
   createdAt: number;

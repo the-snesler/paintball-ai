@@ -48,7 +48,7 @@ export interface Provider {
   capabilities: ProviderCapabilities;
   supportsTextPrefill?: boolean;
 
-  generateImage?(params: GenerationParams, apiKey?: string): Promise<GenerationResult>;
+  generateImage?(params: GenerationParams, apiKey?: string): Promise<GenerationResult[]>;
   generateText?(args: TextGenerationArgs, apiKey: string): Promise<string>;
   testTextModel?(apiKey: string, modelId: string): Promise<void>;
   upscale?(sourceBlob: Blob, upscaler: StoredUpscaler, apiKey: string): Promise<GenerationResult>;

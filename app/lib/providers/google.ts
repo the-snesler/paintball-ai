@@ -6,7 +6,10 @@ import { toRateLimitError } from "~/lib/retry";
 import { blobToBase64 } from "~/lib/util";
 import type { Provider, SearchResult, TextGenerationArgs } from "./types";
 
-async function generateImage(params: GenerationParams, apiKey?: string): Promise<GenerationResult> {
+async function generateImage(
+  params: GenerationParams,
+  apiKey?: string
+): Promise<GenerationResult[]> {
   if (!apiKey) throw new Error("No API key for google");
   const ai = new GoogleGenAI({ apiKey });
 
@@ -64,12 +67,14 @@ async function generateImage(params: GenerationParams, apiKey?: string): Promise
   if (!imageBlob) throw new Error("No image in response");
   const dimensions = await getImageDimensions(imageBlob);
 
-  return {
-    blob: imageBlob,
-    width: dimensions.width,
-    height: dimensions.height,
-    metadata: { modelVersion },
-  };
+  return [
+    {
+      blob: imageBlob,
+      width: dimensions.width,
+      height: dimensions.height,
+      metadata: { modelVersion },
+    },
+  ];
 }
 
 async function generateText(args: TextGenerationArgs, apiKey: string): Promise<string> {

@@ -16,6 +16,8 @@ export function useImageGeneration() {
   const modelSelections = useGenerationStore((s) => s.currentModelSelections);
   const aspectRatio = useGenerationStore((s) => s.currentAspectRatio);
   const resolution = useGenerationStore((s) => s.currentResolution);
+  const quality = useGenerationStore((s) => s.currentQuality);
+  const numberOfImages = useGenerationStore((s) => s.currentNumberOfImages);
   const referenceImages = useGenerationStore((s) => s.currentReferenceImages);
   const startGeneration = useGenerationStore((s) => s.startGeneration);
   const finishGeneration = useGenerationStore((s) => s.finishGeneration);
@@ -47,10 +49,13 @@ export function useImageGeneration() {
       modelSelections,
       aspectRatio,
       resolution,
+      quality,
+      numberOfImages,
       referenceImages,
     });
 
-    // Count total tasks synchronously (everything except final prompt text is known upfront)
+    // Count total API calls synchronously. One task = one API call, but a single
+    // batch-capable task may produce multiple gallery items.
     let totalTasks = 0;
     for (const [modelId, count] of Object.entries(modelSelections)) {
       if (count === 0) continue;
@@ -63,12 +68,14 @@ export function useImageGeneration() {
     // Final prompts will be patched in once the improve/variation pipeline completes.
     const originalPrompt = prompt;
     const taskSlots: Array<{
-      id: string;
+      itemIds: string[];
       modelId: string;
       modelName: string;
       provider: GenerationTask["provider"];
       aspectRatio: GenerationTask["aspectRatio"];
       resolution: GenerationTask["resolution"];
+      quality: string | null;
+      numberOfImages: number;
     }> = [];
     const pendingItems: GalleryItem[] = [];
 
@@ -77,44 +84,55 @@ export function useImageGeneration() {
       const model = getModel(models, modelId);
       if (!model) continue;
 
+      const taskResolution = model.capabilities.supportsResolution ? resolution : null;
+      const supportedRatios = model.capabilities.supportedAspectRatios;
+      const taskAspectRatio =
+        aspectRatio && supportedRatios
+          ? supportedRatios.includes(aspectRatio)
+            ? aspectRatio
+            : null
+          : model.capabilities.supportsAspectRatios
+            ? aspectRatio
+            : null;
+      const taskQuality = model.capabilities.supportsQuality ? quality : null;
+      const maxBatch = model.capabilities.maxImagesPerRequest ?? 1;
+      const perCallImages = model.capabilities.supportsNumberOfImages
+        ? Math.max(1, Math.min(numberOfImages, maxBatch))
+        : 1;
+
       for (let i = 0; i < count; i++) {
-        const taskId = crypto.randomUUID();
-        const taskResolution = model.capabilities.supportsResolution ? resolution : null;
-        const supportedRatios = model.capabilities.supportedAspectRatios;
-        const taskAspectRatio =
-          aspectRatio && supportedRatios
-            ? supportedRatios.includes(aspectRatio)
-              ? aspectRatio
-              : null
-            : model.capabilities.supportsAspectRatios
-              ? aspectRatio
-              : null;
+        const itemIds = Array.from({ length: perCallImages }, () => crypto.randomUUID());
 
         taskSlots.push({
-          id: taskId,
+          itemIds,
           modelId,
           modelName: model.name,
           provider: model.provider,
           aspectRatio: taskAspectRatio,
           resolution: taskResolution,
+          quality: taskQuality,
+          numberOfImages: perCallImages,
         });
 
-        pendingItems.push({
-          id: taskId,
-          status: "pending",
-          modelId,
-          modelName: model.name,
-          prompt: originalPrompt,
-          aspectRatio: taskAspectRatio,
-          resolution: taskResolution,
-          referenceImageIds: referenceImages.map((r) => r.id),
-          retryCount: 0,
-        });
+        for (const itemId of itemIds) {
+          pendingItems.push({
+            id: itemId,
+            status: "pending",
+            modelId,
+            modelName: model.name,
+            prompt: originalPrompt,
+            aspectRatio: taskAspectRatio,
+            resolution: taskResolution,
+            quality: taskQuality,
+            referenceImageIds: referenceImages.map((r) => r.id),
+            retryCount: 0,
+          });
+        }
       }
     }
 
     if (taskSlots.length === 0) return;
-    const taskIds = taskSlots.map((slot) => slot.id);
+    const taskIds = taskSlots.flatMap((slot) => slot.itemIds);
 
     // Show loading cards immediately and register the generation. The prompt-prep
     // pipeline runs concurrently — by the time pending items become `generating`,
@@ -156,7 +174,7 @@ export function useImageGeneration() {
         const taskReplacements = preparedPrompts.variationReplacementsByTask?.[taskIndex];
 
         return {
-          id: slot.id,
+          itemIds: slot.itemIds,
           modelId: slot.modelId,
           modelName: slot.modelName,
           provider: slot.provider,
@@ -165,6 +183,8 @@ export function useImageGeneration() {
           variationReplacements: taskReplacements,
           aspectRatio: slot.aspectRatio,
           resolution: slot.resolution,
+          quality: slot.quality,
+          numberOfImages: slot.numberOfImages,
           referenceImages: referenceImages.map((r) => ({
             id: r.id,
             blob: r.blob,
@@ -176,12 +196,14 @@ export function useImageGeneration() {
       // Patch the already-visible pending items with their final prompt data so
       // the gallery records match what gets sent to the model.
       updatePendingPromptFields(
-        tasks.map((t) => ({
-          id: t.id,
-          prompt: t.prompt,
-          basePrompt: t.basePrompt,
-          variationReplacements: t.variationReplacements,
-        }))
+        tasks.flatMap((t) =>
+          t.itemIds.map((id) => ({
+            id,
+            prompt: t.prompt,
+            basePrompt: t.basePrompt,
+            variationReplacements: t.variationReplacements,
+          }))
+        )
       );
       updatePendingPhase(taskIds, undefined);
 
@@ -194,6 +216,8 @@ export function useImageGeneration() {
     modelSelections,
     aspectRatio,
     resolution,
+    quality,
+    numberOfImages,
     referenceImages,
     models,
     startGeneration,

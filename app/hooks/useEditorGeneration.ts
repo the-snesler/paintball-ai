@@ -41,6 +41,8 @@ export function useEditorGeneration() {
       modelSelections: Record<string, number>;
       aspectRatio: AspectRatio | null;
       resolution: Resolution;
+      quality: string | null;
+      numberOfImages: number;
       onItemsCreated: (itemIds: string[]) => void;
       onPromptPrepared?: (prompt: string) => void;
     }): Promise<void> => {
@@ -54,6 +56,8 @@ export function useEditorGeneration() {
         modelSelections,
         aspectRatio,
         resolution,
+        quality,
+        numberOfImages,
         onItemsCreated,
         onPromptPrepared,
       } = params;
@@ -70,12 +74,14 @@ export function useEditorGeneration() {
       const allReferenceIds = allReferences.map((r) => r.id);
 
       const taskSlots: Array<{
-        id: string;
+        itemIds: string[];
         modelId: string;
         modelName: string;
         provider: GenerationTask["provider"];
         aspectRatio: GenerationTask["aspectRatio"];
         resolution: GenerationTask["resolution"];
+        quality: string | null;
+        numberOfImages: number;
       }> = [];
       const pendingItems: GalleryItem[] = [];
 
@@ -84,45 +90,56 @@ export function useEditorGeneration() {
         const model = getModel(models, modelId);
         if (!model) continue;
 
+        const taskResolution = model.capabilities.supportsResolution ? resolution : null;
+        const supportedRatios = model.capabilities.supportedAspectRatios;
+        const taskAspectRatio =
+          aspectRatio && supportedRatios
+            ? supportedRatios.includes(aspectRatio)
+              ? aspectRatio
+              : null
+            : model.capabilities.supportsAspectRatios
+              ? aspectRatio
+              : null;
+        const taskQuality = model.capabilities.supportsQuality ? quality : null;
+        const maxBatch = model.capabilities.maxImagesPerRequest ?? 1;
+        const perCallImages = model.capabilities.supportsNumberOfImages
+          ? Math.max(1, Math.min(numberOfImages, maxBatch))
+          : 1;
+
         for (let i = 0; i < count; i++) {
-          const taskId = crypto.randomUUID();
-          const taskResolution = model.capabilities.supportsResolution ? resolution : null;
-          const supportedRatios = model.capabilities.supportedAspectRatios;
-          const taskAspectRatio =
-            aspectRatio && supportedRatios
-              ? supportedRatios.includes(aspectRatio)
-                ? aspectRatio
-                : null
-              : model.capabilities.supportsAspectRatios
-                ? aspectRatio
-                : null;
+          const itemIds = Array.from({ length: perCallImages }, () => crypto.randomUUID());
 
           taskSlots.push({
-            id: taskId,
+            itemIds,
             modelId,
             modelName: model.name,
             provider: model.provider,
             aspectRatio: taskAspectRatio,
             resolution: taskResolution,
+            quality: taskQuality,
+            numberOfImages: perCallImages,
           });
 
-          pendingItems.push({
-            id: taskId,
-            status: "pending",
-            modelId,
-            modelName: model.name,
-            prompt: instruction,
-            basePrompt,
-            aspectRatio: taskAspectRatio,
-            resolution: taskResolution,
-            referenceImageIds: allReferenceIds,
-            retryCount: 0,
-          });
+          for (const itemId of itemIds) {
+            pendingItems.push({
+              id: itemId,
+              status: "pending",
+              modelId,
+              modelName: model.name,
+              prompt: instruction,
+              basePrompt,
+              aspectRatio: taskAspectRatio,
+              resolution: taskResolution,
+              quality: taskQuality,
+              referenceImageIds: allReferenceIds,
+              retryCount: 0,
+            });
+          }
         }
       }
 
       if (taskSlots.length === 0) return;
-      const taskIds = taskSlots.map((slot) => slot.id);
+      const taskIds = taskSlots.flatMap((slot) => slot.itemIds);
 
       addItems(pendingItems);
       onItemsCreated(taskIds);
@@ -155,7 +172,7 @@ export function useEditorGeneration() {
       const displayBasePrompt = basePrompt && sentPrompt !== basePrompt ? basePrompt : undefined;
 
       const tasks: GenerationTask[] = taskSlots.map((slot, taskIndex) => ({
-        id: slot.id,
+        itemIds: slot.itemIds,
         modelId: slot.modelId,
         modelName: slot.modelName,
         provider: slot.provider,
@@ -163,15 +180,19 @@ export function useEditorGeneration() {
         basePrompt: displayBasePrompt,
         aspectRatio: slot.aspectRatio,
         resolution: slot.resolution,
+        quality: slot.quality,
+        numberOfImages: slot.numberOfImages,
         referenceImages: allReferences,
       }));
 
       updatePendingPromptFields(
-        tasks.map((task) => ({
-          id: task.id,
-          prompt: task.prompt,
-          basePrompt: task.basePrompt,
-        }))
+        tasks.flatMap((task) =>
+          task.itemIds.map((id) => ({
+            id,
+            prompt: task.prompt,
+            basePrompt: task.basePrompt,
+          }))
+        )
       );
       updatePendingPhase(taskIds, undefined);
 

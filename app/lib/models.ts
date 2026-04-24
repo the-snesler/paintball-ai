@@ -14,6 +14,9 @@ const PRIMARY_ASPECT_RATIO_VALUES = ASPECT_RATIOS.map((ratio) => ratio.value);
 
 export const RESOLUTIONS = ["1K", "2K", "4K"] as const;
 
+export const QUALITIES = ["low", "medium", "high", "auto"] as const;
+export type Quality = (typeof QUALITIES)[number];
+
 // Helper to get a model by ID from a models array
 export function getModel(models: StoredModel[], modelId: string): StoredModel | undefined {
   return models.find((m) => m.id === modelId);
@@ -148,6 +151,73 @@ export function getStrictReferenceImageLimit(
   }
 
   return Number.isFinite(limit) ? limit : Infinity;
+}
+
+// Helper to check if any selected model supports quality presets
+export function anyModelSupportsQuality(
+  models: StoredModel[],
+  selectedModelIds: string[]
+): boolean {
+  return selectedModelIds.some((modelId) => {
+    const model = getModel(models, modelId);
+    return model?.capabilities.supportsQuality;
+  });
+}
+
+// Intersection of quality enum values across selected quality-aware models.
+export function getQualityIntersection(
+  models: StoredModel[],
+  selectedModelIds: string[]
+): string[] {
+  let intersection: Set<string> | null = null;
+
+  for (const modelId of selectedModelIds) {
+    const model = getModel(models, modelId);
+    if (!model?.capabilities.supportsQuality) continue;
+
+    const qualities = model.capabilities.supportedQualities ?? [...QUALITIES];
+    const qualitySet = new Set(qualities);
+
+    if (!intersection) {
+      intersection = qualitySet;
+      continue;
+    }
+
+    intersection = new Set([...intersection].filter((q) => qualitySet.has(q)));
+  }
+
+  return intersection ? [...intersection] : [];
+}
+
+// Helper to check if any selected model supports batch image generation.
+export function anyModelSupportsNumberOfImages(
+  models: StoredModel[],
+  selectedModelIds: string[]
+): boolean {
+  return selectedModelIds.some((modelId) => {
+    const model = getModel(models, modelId);
+    return model?.capabilities.supportsNumberOfImages;
+  });
+}
+
+// Strictest batch cap across selected batch-aware models. Falls back to 1
+// when no selected model advertises the capability.
+export function getMaxImagesPerRequest(
+  models: StoredModel[],
+  selectedModelIds: string[]
+): number {
+  let limit = Infinity;
+  let sawBatchModel = false;
+
+  for (const modelId of selectedModelIds) {
+    const model = getModel(models, modelId);
+    if (!model?.capabilities.supportsNumberOfImages) continue;
+    sawBatchModel = true;
+    limit = Math.min(limit, model.capabilities.maxImagesPerRequest ?? 1);
+  }
+
+  if (!sawBatchModel) return 1;
+  return Number.isFinite(limit) ? limit : 1;
 }
 
 export function canAttachReferenceCount(

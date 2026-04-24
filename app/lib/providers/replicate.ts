@@ -16,7 +16,10 @@ function replicateBaseUrl(): string {
   return new URL("/proxy/replicate/v1", window.location.origin).toString();
 }
 
-async function generateImage(params: GenerationParams, apiKey?: string): Promise<GenerationResult> {
+async function generateImage(
+  params: GenerationParams,
+  apiKey?: string
+): Promise<GenerationResult[]> {
   if (!apiKey) throw new Error("No API key for replicate");
   const replicate = new Replicate({ auth: apiKey, baseUrl: replicateBaseUrl() });
 
@@ -26,6 +29,7 @@ async function generateImage(params: GenerationParams, apiKey?: string): Promise
 
   const model = useSettingsStore.getState().models.find((m) => m.id === params.modelId);
   const mapping = model?.schemaMapping;
+  const caps = model?.capabilities;
 
   const input: Record<string, unknown> = {
     prompt: params.prompt,
@@ -42,6 +46,12 @@ async function generateImage(params: GenerationParams, apiKey?: string): Promise
   if (params.resolution) {
     input.resolution = mapping?.resolution?.[params.resolution] ?? params.resolution;
   }
+  if (caps?.supportsQuality && params.quality) {
+    input.quality = params.quality;
+  }
+  if (caps?.supportsNumberOfImages && params.numberOfImages > 1) {
+    input.number_of_images = params.numberOfImages;
+  }
   if (mapping?.extraDefaults) {
     for (const [key, value] of Object.entries(mapping.extraDefaults)) {
       if (!(key in input)) input[key] = value;
@@ -57,23 +67,38 @@ async function generateImage(params: GenerationParams, apiKey?: string): Promise
     throw toRateLimitError(error, "replicate");
   }
 
-  const imageUrl =
-    typeof output === "object" && output !== null && "url" in output
-      ? (output as { url: () => string }).url()
-      : Array.isArray(output)
-        ? output[0]
-        : String(output);
+  // Normalize output to a list of image URLs. Replicate returns either a single
+  // string/FileOutput, or an array of them for batch-capable models.
+  const urls = extractReplicateUrls(output);
+  if (urls.length === 0) throw new Error("No image in Replicate response");
 
-  if (!imageUrl) throw new Error("No image in Replicate response");
+  const results = await Promise.all(
+    urls.map(async (url) => {
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch generated image: ${response.status}`);
+      }
+      const blob = await response.blob();
+      const dimensions = await getImageDimensions(blob);
+      return { blob, width: dimensions.width, height: dimensions.height, metadata: {} };
+    })
+  );
 
-  const imageResponse = await fetch(imageUrl);
-  if (!imageResponse.ok)
-    throw new Error(`Failed to fetch generated image: ${imageResponse.status}`);
+  return results;
+}
 
-  const blob = await imageResponse.blob();
-  const dimensions = await getImageDimensions(blob);
-
-  return { blob, width: dimensions.width, height: dimensions.height, metadata: {} };
+function extractReplicateUrls(output: unknown): string[] {
+  if (output == null) return [];
+  if (typeof output === "string") return [output];
+  if (typeof output === "object" && "url" in (output as object)) {
+    const url = (output as { url: () => string }).url();
+    return url ? [url] : [];
+  }
+  if (Array.isArray(output)) {
+    return output.flatMap((entry) => extractReplicateUrls(entry));
+  }
+  const str = String(output);
+  return str ? [str] : [];
 }
 
 async function generateText(args: TextGenerationArgs, apiKey: string): Promise<string> {

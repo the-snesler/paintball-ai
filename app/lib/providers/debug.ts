@@ -36,7 +36,7 @@ function getDebugDimensions(
   };
 }
 
-async function generateImage(params: GenerationParams): Promise<GenerationResult> {
+async function generateImage(params: GenerationParams): Promise<GenerationResult[]> {
   const { width, height } = getDebugDimensions(params.aspectRatio, params.resolution);
   const canvas = document.createElement("canvas");
   canvas.width = width;
@@ -60,31 +60,49 @@ async function generateImage(params: GenerationParams): Promise<GenerationResult
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
 
-  ctx.font = `600 ${headlineSize}px ui-sans-serif, system-ui, sans-serif`;
-  ctx.fillText("DEBUG", width / 2, height / 2 - headlineSize * 0.7);
+  const results: GenerationResult[] = [];
+  const n = Math.max(1, params.numberOfImages);
 
-  ctx.font = `${detailSize}px ui-monospace, monospace`;
-  ctx.fillText(params.modelId, width / 2, height / 2 + detailSize * 0.25);
+  for (let i = 0; i < n; i++) {
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, width, height);
+    ctx.strokeStyle = "#d4d4d8";
+    ctx.strokeRect(0, 0, width, height);
 
-  const promptPreview = params.prompt.trim().slice(0, 80) || "No prompt";
-  ctx.fillStyle = "#52525b";
-  ctx.fillText(promptPreview, width / 2, height / 2 + detailSize * 1.8);
+    ctx.fillStyle = "#18181b";
+    ctx.font = `600 ${headlineSize}px ui-sans-serif, system-ui, sans-serif`;
+    ctx.fillText(
+      n > 1 ? `DEBUG ${i + 1}/${n}` : "DEBUG",
+      width / 2,
+      height / 2 - headlineSize * 0.7
+    );
 
-  await new Promise((resolve) => window.setTimeout(resolve, 350));
+    ctx.font = `${detailSize}px ui-monospace, monospace`;
+    ctx.fillText(params.modelId, width / 2, height / 2 + detailSize * 0.25);
 
-  const blob = await canvasToBlob(canvas);
-  const dimensions = await getImageDimensions(blob);
+    const promptPreview = params.prompt.trim().slice(0, 80) || "No prompt";
+    ctx.fillStyle = "#52525b";
+    ctx.fillText(promptPreview, width / 2, height / 2 + detailSize * 1.8);
 
-  return {
-    blob,
-    width: dimensions.width,
-    height: dimensions.height,
-    metadata: {
-      debug: true,
-      generatedAt: new Date().toISOString(),
-      referenceImageCount: params.referenceImages.length,
-    },
-  };
+    await new Promise((resolve) => window.setTimeout(resolve, 350));
+
+    const blob = await canvasToBlob(canvas);
+    const dimensions = await getImageDimensions(blob);
+
+    results.push({
+      blob,
+      width: dimensions.width,
+      height: dimensions.height,
+      metadata: {
+        debug: true,
+        generatedAt: new Date().toISOString(),
+        referenceImageCount: params.referenceImages.length,
+        batchIndex: i,
+      },
+    });
+  }
+
+  return results;
 }
 
 export const debugProvider: Provider = {
