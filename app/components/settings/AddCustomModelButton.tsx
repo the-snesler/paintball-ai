@@ -8,29 +8,14 @@ import { inferIcon } from "~/lib/modelNames";
 import { getProvider, providersWith } from "~/lib/providers";
 import type { SearchResult } from "~/lib/providers";
 import { useSettingsStore } from "~/stores/settingsStore";
-import type { ApiKeyProvider, ModelCapabilities } from "~/types";
-
-// Fallback capabilities used when a provider has no resolveImageModel step
-// (e.g. Gemini image models — we infer from the current built-in Gemini shape).
-const DEFAULT_IMAGE_CAPABILITIES: ModelCapabilities = {
-  supportsAspectRatios: true,
-  supportsResolution: true,
-  supportsReferenceImages: true,
-  maxReferenceImages: 10,
-};
+import type { ApiKeyProvider } from "~/types";
 
 export default function AddCustomModelButton() {
   const apiKeys = useSettingsStore((s) => s.apiKeys);
   const addCustomModel = useSettingsStore((s) => s.addCustomModel);
   const models = useSettingsStore((s) => s.models);
 
-  const availableProviders = useMemo(
-    () =>
-      providersWith("searchImage").filter(
-        (p) => p.id !== "debug" && apiKeys[p.id as ApiKeyProvider]
-      ),
-    [apiKeys]
-  );
+  const availableProviders = providersWith("searchImage");
   const disabled = availableProviders.length === 0;
   const defaultProvider = (availableProviders[0]?.id as ApiKeyProvider) ?? "replicate";
 
@@ -42,7 +27,9 @@ export default function AddCustomModelButton() {
   const inputRef = useRef<HTMLInputElement | null>(null);
 
   const apiKey = apiKeys[providerId];
-  const canSearch = !!getProvider(providerId).searchImageModels;
+  const canSearchEver = !!getProvider(providerId).searchImageModels;
+  const canSearchNow =
+    canSearchEver && !loading && (!getProvider(providerId).requiresApiKey || !!apiKey);
 
   const {
     inputValue: modelId,
@@ -53,7 +40,7 @@ export default function AddCustomModelButton() {
     isSearching,
     resetSearch,
   } = useSearchCombobox<SearchResult>({
-    enabled: !!apiKey && !loading && canSearch,
+    enabled: canSearchNow,
     search: async (query) => {
       const search = getProvider(providerId).searchImageModels;
       return search ? search(query, apiKey!) : [];
@@ -89,26 +76,11 @@ export default function AddCustomModelButton() {
 
     try {
       const provider = getProvider(providerId);
-      let name: string;
-      let capabilities: ModelCapabilities;
-      let schemaMapping;
-      let icon: string | undefined;
-
-      if (provider.resolveImageModel) {
-        const resolved = await provider.resolveImageModel(idToAdd, apiKey!, setLoadingStatus);
-        name = resolved.name;
-        capabilities = resolved.capabilities;
-        schemaMapping = resolved.schemaMapping;
-        icon = resolved.icon;
-      } else {
-        // Providers without a resolve step (e.g. Google) — pick up name/icon from
-        // the search result if we have one cached, otherwise fall back to the id.
-        const hit = suggestions.find((s) => s.id === idToAdd);
-        name = hit?.name || idToAdd;
-        icon = hit?.icon || provider.iconPath;
-        capabilities = DEFAULT_IMAGE_CAPABILITIES;
-      }
-
+      const { name, capabilities, schemaMapping, icon } = await provider.resolveImageModel(
+        idToAdd,
+        apiKey!,
+        setLoadingStatus
+      );
       addCustomModel(providerId, idToAdd, name, capabilities, schemaMapping, icon);
       setModelId("");
       resetSearch();

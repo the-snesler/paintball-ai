@@ -14,7 +14,6 @@ export interface ProviderCapabilities {
   searchImage: boolean;
   searchText: boolean;
   searchUpscale: boolean;
-  resolveImageModel: boolean;
 }
 
 export interface SearchResult {
@@ -57,7 +56,7 @@ export interface Provider {
   searchTextModels?(query: string, apiKey: string): Promise<SearchResult[]>;
   searchUpscalers?(query: string, apiKey: string): Promise<SearchResult[]>;
 
-  resolveImageModel?(
+  resolveImageModel(
     modelId: string,
     apiKey: string,
     onProgress?: (status: string) => void

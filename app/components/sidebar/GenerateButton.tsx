@@ -17,6 +17,8 @@ export function GenerateButton() {
   const aspectRatio = useGenerationStore((s) => s.currentAspectRatio);
   const resolution = useGenerationStore((s) => s.currentResolution);
   const referenceImages = useGenerationStore((s) => s.currentReferenceImages);
+  const quality = useGenerationStore((s) => s.currentQuality);
+  const numberOfImages = useGenerationStore((s) => s.currentNumberOfImages);
   const models = useSettingsStore((s) => s.models);
   const apiKeys = useSettingsStore((s) => s.apiKeys);
   const navigate = useNavigate();
@@ -39,6 +41,8 @@ export function GenerateButton() {
     aspectRatio,
     resolution,
     referenceImages,
+    quality,
+    numberOfImages,
   });
 
   const isLastSubmittedActive =

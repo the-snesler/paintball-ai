@@ -518,7 +518,6 @@ export const replicateProvider: Provider = {
     searchImage: true,
     searchText: false,
     searchUpscale: true,
-    resolveImageModel: true,
   },
   generateImage,
   generateText,

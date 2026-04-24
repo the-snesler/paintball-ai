@@ -37,7 +37,7 @@ export default function SearchComboboxPopup<T>({
             <Combobox.Item
               key={getKey(item)}
               value={getValue(item)}
-              className="flex w-full cursor-default items-center gap-2.5 px-3 py-2 text-left outline-none data-[highlighted]:bg-zinc-800"
+              className="flex w-full cursor-default items-center gap-2.5 px-3 py-2 text-left outline-none data-highlighted:bg-zinc-800"
             >
               {renderItem(item)}
             </Combobox.Item>

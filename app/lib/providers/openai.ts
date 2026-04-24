@@ -4,7 +4,7 @@ import type { GenerationParams, GenerationResult } from "~/lib/generation";
 import { getImageDimensions } from "~/lib/imageProcessing";
 import { toRateLimitError } from "~/lib/retry";
 import type { AspectRatio } from "~/types";
-import type { Provider, SearchResult } from "./types";
+import type { Provider, ResolvedImageModel, SearchResult } from "./types";
 import { inferName } from "../modelNames";
 
 function openaiBaseUrl(): string {
@@ -133,6 +133,77 @@ interface OpenAIModel {
   owned_by?: string;
 }
 
+function inferOpenAiImageCapabilities(modelId: string): ResolvedImageModel["capabilities"] {
+  const lower = modelId.toLowerCase();
+  const isGptImage = /(^|[-_])gpt-image/.test(lower);
+
+  if (!isGptImage) {
+    return {
+      supportsAspectRatios: true,
+      supportedAspectRatios: ["1:1"],
+      supportsResolution: false,
+      supportsReferenceImages: false,
+      maxReferenceImages: 1,
+      supportsQuality: false,
+      supportsNumberOfImages: false,
+      maxImagesPerRequest: 1,
+    };
+  }
+
+  return {
+    supportsAspectRatios: true,
+    supportedAspectRatios: ["1:1", "3:2", "2:3"],
+    supportsResolution: false,
+    supportsReferenceImages: true,
+    maxReferenceImages: 16,
+    supportsQuality: true,
+    supportedQualities: ["low", "medium", "high", "auto"],
+    supportsNumberOfImages: true,
+    maxImagesPerRequest: 10,
+  };
+}
+
+async function resolveImageModel(
+  modelId: string,
+  apiKey: string,
+  onProgress?: (status: string) => void
+): Promise<ResolvedImageModel> {
+  const client = createClient(apiKey);
+  const normalizedId = modelId.trim();
+
+  onProgress?.("Looking up model...");
+
+  let found: OpenAIModel | null = null;
+  try {
+    const retrieved = await client.models.retrieve(normalizedId);
+    found = { id: retrieved.id, owned_by: (retrieved as { owned_by?: string }).owned_by };
+  } catch {
+    try {
+      const listed = await client.models.list();
+      found =
+        (listed.data as OpenAIModel[]).find(
+          (m) => m.id.toLowerCase() === normalizedId.toLowerCase()
+        ) ?? null;
+    } catch {
+      found = null;
+    }
+  }
+
+  if (!found) {
+    throw new Error(`Model not found: ${normalizedId}`);
+  }
+  if (!isImageModel(found)) {
+    throw new Error(`Model is not an image generation model: ${normalizedId}`);
+  }
+
+  onProgress?.("Analyzing capabilities...");
+  return {
+    name: inferName(found.id),
+    capabilities: inferOpenAiImageCapabilities(found.id),
+    icon: "/icons/openai.svg",
+  };
+}
+
 function isImageModel(model: OpenAIModel): boolean {
   const id = model.id.toLowerCase();
   // Keep image search focused on generation/edit models users can add.
@@ -192,8 +263,8 @@ export const openaiProvider: Provider = {
     searchImage: true,
     searchText: false,
     searchUpscale: false,
-    resolveImageModel: false,
   },
   generateImage,
   searchImageModels,
+  resolveImageModel,
 };

@@ -12,19 +12,16 @@ import {
   getMaxImagesPerRequest,
   getQualityIntersection,
 } from "~/lib/models";
+import { PROVIDERS } from "~/lib/providers";
 
 interface ModelItemProps {
   model: StoredModel;
   count: number;
 }
 
-const providerNames: Record<string, string> = {
-  google: "Google",
-  replicate: "Replicate",
-};
-
 export function ModelItem({ model, count }: ModelItemProps) {
   const setModelCount = useGenerationStore((s) => s.setModelCount);
+  const provider = PROVIDERS[model.provider];
 
   const isActive = count > 0;
 
@@ -100,7 +97,7 @@ export function ModelItem({ model, count }: ModelItemProps) {
         <p className="truncate text-sm font-medium text-zinc-100" title={model.name}>
           {model.name}
         </p>
-        <p className="text-xs text-zinc-500">{providerNames[model.provider]}</p>
+        <p className="text-xs text-zinc-500">{provider.label}</p>
       </div>
 
       {/* Counter */}

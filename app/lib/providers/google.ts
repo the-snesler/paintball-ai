@@ -2,9 +2,10 @@ import { GoogleGenAI, ThinkingLevel, type Model } from "@google/genai";
 import { distance } from "fastest-levenshtein";
 import type { GenerationParams, GenerationResult } from "~/lib/generation";
 import { getImageDimensions } from "~/lib/imageProcessing";
+import { inferName } from "~/lib/modelNames";
 import { toRateLimitError } from "~/lib/retry";
 import { blobToBase64 } from "~/lib/util";
-import type { Provider, SearchResult, TextGenerationArgs } from "./types";
+import type { Provider, ResolvedImageModel, SearchResult, TextGenerationArgs } from "./types";
 
 async function generateImage(
   params: GenerationParams,
@@ -214,6 +215,50 @@ function rankAndLimit(
   return scored.slice(0, limit).map(({ model }) => toSearchResult(model));
 }
 
+const STD_ASPECT_RATIOS = ["1:1", "2:3", "3:2", "3:4", "4:3", "4:5", "5:4", "9:16", "16:9", "21:9"];
+const WIDE_ASPECT_RATIOS = ["1:4", "1:8", "4:1", "8:1"];
+
+function inferGoogleImageCapabilities(modelId: string): ResolvedImageModel["capabilities"] {
+  const lower = modelId.toLowerCase();
+  const supports14References = lower.includes("3");
+  const supportsWideRatios = lower.includes("3.1-flash-image-preview");
+
+  return {
+    supportsAspectRatios: true,
+    supportedAspectRatios: supportsWideRatios
+      ? [...STD_ASPECT_RATIOS, ...WIDE_ASPECT_RATIOS]
+      : STD_ASPECT_RATIOS,
+    supportsResolution: true,
+    supportsReferenceImages: true,
+    maxReferenceImages: supports14References ? 14 : 10,
+  };
+}
+
+async function resolveImageModel(
+  modelId: string,
+  apiKey: string,
+  onProgress?: (status: string) => void
+): Promise<ResolvedImageModel> {
+  onProgress?.("Looking up model...");
+  const all = await listGeminiModels(apiKey);
+  const normalizedId = stripModelsPrefix(modelId);
+  const match = all.find((model) => stripModelsPrefix(model.name) === normalizedId);
+
+  if (!match) {
+    throw new Error(`Model not found: ${modelId}`);
+  }
+  if (!isImageGenerationModel(match)) {
+    throw new Error(`Model is not an image generation model: ${modelId}`);
+  }
+
+  onProgress?.("Analyzing capabilities...");
+  return {
+    name: match.displayName || inferName(normalizedId),
+    capabilities: inferGoogleImageCapabilities(normalizedId),
+    icon: "/icons/google.svg",
+  };
+}
+
 async function searchImageModels(query: string, apiKey: string): Promise<SearchResult[]> {
   const all = await listGeminiModels(apiKey);
   const imageModels = all.filter(isImageGenerationModel);
@@ -239,11 +284,11 @@ export const googleProvider: Provider = {
     searchImage: true,
     searchText: true,
     searchUpscale: false,
-    resolveImageModel: false,
   },
   generateImage,
   generateText,
   testTextModel,
   searchImageModels,
   searchTextModels,
+  resolveImageModel,
 };

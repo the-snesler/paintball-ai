@@ -2,7 +2,9 @@ import { parseAspectRatio } from "~/lib/models";
 import type { GenerationParams, GenerationResult } from "~/lib/generation";
 import { getImageDimensions } from "~/lib/imageProcessing";
 import type { AspectRatio, Resolution } from "~/types";
-import type { Provider } from "./types";
+import type { Provider, ResolvedImageModel, SearchResult } from "./types";
+import { DEFAULT_IMAGE_CAPABILITIES } from "../builtInModels";
+import { inferName } from "../modelNames";
 
 const DEBUG_RESOLUTION_WIDTH: Record<Resolution, number> = {
   "1K": 1024,
@@ -105,6 +107,29 @@ async function generateImage(params: GenerationParams): Promise<GenerationResult
   return results;
 }
 
+async function searchModels(query: string, apiKey: string): Promise<SearchResult[]> {
+  return [
+    {
+      id: "debug/debug-model",
+      name: "Debug Model",
+      description: "A built-in model that generates placeholder images for testing.",
+      icon: "/icons/box.svg",
+    },
+  ];
+}
+
+async function resolveImageModel(
+  modelId: string,
+  apiKey: string,
+  onProgress?: (status: string) => void
+): Promise<ResolvedImageModel> {
+  return {
+    name: inferName(modelId),
+    capabilities: DEFAULT_IMAGE_CAPABILITIES,
+    icon: "/icons/box.svg",
+  };
+}
+
 export const debugProvider: Provider = {
   id: "debug",
   label: "Debug",
@@ -114,10 +139,11 @@ export const debugProvider: Provider = {
     image: true,
     text: false,
     upscale: false,
-    searchImage: false,
+    searchImage: true,
     searchText: false,
     searchUpscale: false,
-    resolveImageModel: false,
   },
   generateImage,
+  searchImageModels: searchModels,
+  resolveImageModel,
 };

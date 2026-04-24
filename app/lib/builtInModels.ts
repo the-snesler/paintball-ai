@@ -1,6 +1,6 @@
-import type { StoredModel, StoredTextModel, StoredUpscaler } from "~/types";
+import type { ModelCapabilities, StoredModel, StoredTextModel, StoredUpscaler } from "~/types";
 
-const BASE_BUILT_IN_MODELS: StoredModel[] = [
+export const BUILT_IN_MODELS: StoredModel[] = [
   {
     id: "gemini-3-pro-image-preview",
     name: "Gemini 3.0 Pro",
@@ -128,37 +128,6 @@ const BASE_BUILT_IN_MODELS: StoredModel[] = [
   },
 ];
 
-const DEBUG_MODEL: StoredModel = {
-  id: "debug/dev-placeholder",
-  name: "Dev Placeholder",
-  provider: "debug",
-  enabled: true,
-  capabilities: {
-    supportsAspectRatios: true,
-    supportedAspectRatios: [
-      "1:1",
-      "2:3",
-      "3:2",
-      "3:4",
-      "4:3",
-      "4:5",
-      "5:4",
-      "9:16",
-      "16:9",
-      "21:9",
-    ],
-    supportsResolution: true,
-    supportsReferenceImages: true,
-    maxReferenceImages: 10,
-  },
-};
-
-export const BUILT_IN_MODELS: StoredModel[] = import.meta.env.DEV
-  ? [...BASE_BUILT_IN_MODELS, DEBUG_MODEL]
-  : BASE_BUILT_IN_MODELS;
-
-const BUILT_IN_MODEL_IDS = new Set(BUILT_IN_MODELS.map((model) => model.id));
-
 export function mergeWithBuiltInModels(models?: StoredModel[]): StoredModel[] {
   if (!models || models.length === 0) {
     return BUILT_IN_MODELS.map((model) => ({ ...model }));
@@ -204,9 +173,6 @@ export const BUILT_IN_TEXT_MODELS: StoredTextModel[] = [
     icon: "/icons/google.svg",
   },
 ];
-
-const BUILT_IN_TEXT_MODEL_IDS = new Set(BUILT_IN_TEXT_MODELS.map((m) => m.id));
-
 
 export function mergeWithBuiltInTextModels(models?: StoredTextModel[]): StoredTextModel[] {
   if (!models || models.length === 0) {
@@ -282,8 +248,6 @@ export const BUILT_IN_UPSCALERS: StoredUpscaler[] = [
   },
 ];
 
-const BUILT_IN_UPSCALER_IDS = new Set(BUILT_IN_UPSCALERS.map((u) => u.id));
-
 export function mergeWithBuiltInUpscalers(upscalers?: StoredUpscaler[]): StoredUpscaler[] {
   if (!upscalers || upscalers.length === 0) {
     return BUILT_IN_UPSCALERS.map((u) => ({ ...u }));
@@ -301,3 +265,10 @@ export function mergeWithBuiltInUpscalers(upscalers?: StoredUpscaler[]): StoredU
 
   return [...mergedBuiltIns, ...customUpscalers];
 }
+
+export const DEFAULT_IMAGE_CAPABILITIES: ModelCapabilities = {
+  supportsAspectRatios: true,
+  supportsResolution: true,
+  supportsReferenceImages: true,
+  maxReferenceImages: 10,
+};
