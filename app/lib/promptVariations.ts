@@ -1,4 +1,5 @@
 import { callTextModel, resolveTextModelProvider } from "./textModel";
+import { getProvider } from "~/lib/providers";
 import { VARIATION_SYSTEM } from "./prompts";
 import type { GalleryItem } from "~/types";
 
@@ -77,10 +78,7 @@ export function buildVariedPrompts(
  * from the basePrompt that captures the text occupying each {{...}} slot. Returns null if
  * the match is ambiguous or fails (e.g. adjacent sections with no literal separator).
  */
-export function extractReplacementsFromPair(
-  basePrompt: string,
-  prompt: string
-): string[] | null {
+export function extractReplacementsFromPair(basePrompt: string, prompt: string): string[] | null {
   const sections = parseVariationSections(basePrompt);
   if (sections.length === 0) return null;
 
@@ -113,10 +111,7 @@ function escapeRegExp(str: string): string {
  * whose basePrompt exactly matches. Uses stored replacements when present; falls back
  * to regex extraction for legacy items. Returns null if no sections or no hits.
  */
-export function collectAvoidList(
-  currentPrompt: string,
-  items: GalleryItem[]
-): string[][] | null {
+export function collectAvoidList(currentPrompt: string, items: GalleryItem[]): string[][] | null {
   const sections = parseVariationSections(currentPrompt);
   if (sections.length === 0) return null;
 
@@ -206,7 +201,10 @@ export async function generateVariations(
   // model to "avoid X" tends to degrade creative quality, while making it think it's already
   // generated X and asking it to continue the list preserves quality. Replicate can't take a
   // prefilled assistant turn, so it falls back to an instructional avoid-line in the prompt.
-  const canPrefill = resolveTextModelProvider() === "google";
+  const activeProvider = resolveTextModelProvider();
+  const canPrefill = activeProvider
+    ? getProvider(activeProvider).supportsTextPrefill === true
+    : false;
 
   const results = await Promise.all(
     sections.map(async (section, sectionIndex) => {

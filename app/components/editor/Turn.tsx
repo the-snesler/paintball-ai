@@ -82,8 +82,7 @@ export function Turn({ turn, turnIndex, isFirst = false }: TurnProps) {
 
   if (items.filter(Boolean).length === 0 && !isPendingFirstItems) return null;
 
-  const showSentInstruction =
-    turn.sentInstruction && turn.sentInstruction !== turn.instruction;
+  const showSentInstruction = turn.sentInstruction && turn.sentInstruction !== turn.instruction;
 
   return (
     <div className="animate-fade-in flex w-full flex-col items-center">

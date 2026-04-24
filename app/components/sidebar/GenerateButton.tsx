@@ -52,10 +52,7 @@ export function GenerateButton() {
   const variationsBlocking = variationsEnabled && !hasVariationSections(prompt);
 
   const canGenerate =
-    prompt.trim().length > 0 &&
-    totalImages > 0 &&
-    !isLockedForCurrentParams &&
-    !variationsBlocking;
+    prompt.trim().length > 0 && totalImages > 0 && !isLockedForCurrentParams && !variationsBlocking;
 
   const canClear = prompt.trim().length !== 0 || totalImages > 0;
 

@@ -90,7 +90,9 @@ function DiffViewerInner({
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         className="animate-fade-in relative z-10 max-h-[90vh] max-w-[90vw] cursor-ew-resize touch-none overflow-hidden rounded-xl bg-zinc-900 shadow-2xl select-none"
-        style={aspectRatio ? { aspectRatio, width: `min(90vw, calc(90vh * ${aspectRatio}))` } : undefined}
+        style={
+          aspectRatio ? { aspectRatio, width: `min(90vw, calc(90vh * ${aspectRatio}))` } : undefined
+        }
       >
         {parentUrl && childUrl && (
           <>

@@ -196,10 +196,7 @@ export function EditorInputBar({ onSourceFile }: EditorInputBarProps) {
 
   const hasSource = sourceBlob !== null;
   const canSubmit =
-    hasSource &&
-    instruction.trim().length > 0 &&
-    !isAnalyzing &&
-    selectedModelIds.length > 0;
+    hasSource && instruction.trim().length > 0 && !isAnalyzing && selectedModelIds.length > 0;
 
   // Resolve current canvas blob
   const getCanvasBlob = useCallback((): Blob | null => {
@@ -507,10 +504,7 @@ export function EditorInputBar({ onSourceFile }: EditorInputBarProps) {
     const el = barRef.current;
     if (!el) return;
     const observer = new ResizeObserver(() => {
-      document.documentElement.style.setProperty(
-        "--editor-input-height",
-        `${el.offsetHeight}px`
-      );
+      document.documentElement.style.setProperty("--editor-input-height", `${el.offsetHeight}px`);
     });
     observer.observe(el);
     return () => {
@@ -640,9 +634,7 @@ export function EditorInputBar({ onSourceFile }: EditorInputBarProps) {
                   <button
                     type="button"
                     onClick={() => void handleImprove()}
-                    disabled={
-                      !isTextModelAvailable() || !instruction.trim() || isImproving
-                    }
+                    disabled={!isTextModelAvailable() || !instruction.trim() || isImproving}
                     className="flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs text-zinc-500 transition-colors hover:bg-zinc-700/60 hover:text-zinc-300 disabled:cursor-not-allowed disabled:opacity-40"
                   >
                     {isImproving ? (

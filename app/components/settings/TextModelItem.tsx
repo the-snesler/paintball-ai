@@ -36,7 +36,11 @@ export default function TextModelItem({
         disabled={!hasApiKey}
         className="flex min-w-0 flex-1 items-center gap-2 text-left disabled:cursor-not-allowed"
       >
-        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-zinc-700 text-zinc-400">
+        <div
+          className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${
+            model.enabled ? "bg-purple-800 text-purple-400" : "bg-zinc-700 text-zinc-400"
+          }`}
+        >
           {model.icon ? <SVG src={model.icon} className="h-5 w-5" /> : <Box className="h-4 w-4" />}
         </div>
         <div className="min-w-0 flex-1">

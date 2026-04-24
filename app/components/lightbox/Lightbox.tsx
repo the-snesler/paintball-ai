@@ -193,7 +193,14 @@ export function Lightbox() {
     });
     closeLightbox();
     navigate("/editor");
-  }, [galleryImage, linkedSession, clearForSessionRestore, setEditorSource, closeLightbox, navigate]);
+  }, [
+    galleryImage,
+    linkedSession,
+    clearForSessionRestore,
+    setEditorSource,
+    closeLightbox,
+    navigate,
+  ]);
 
   const handleDelete = useCallback(async () => {
     if (!galleryImage) return;

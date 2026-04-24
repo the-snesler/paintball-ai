@@ -14,7 +14,6 @@ import type {
   ApiKeyProvider,
   ApiKeys,
   ModelCapabilities,
-  Provider,
   SchemaMapping,
   StoredModel,
   StoredTextModel,
@@ -39,6 +38,7 @@ interface SettingsState {
   // Model actions
   setModelEnabled: (id: string, enabled: boolean) => void;
   addCustomModel: (
+    provider: ApiKeyProvider,
     id: string,
     name: string,
     capabilities: ModelCapabilities,
@@ -113,14 +113,14 @@ export const useSettingsStore = create<SettingsState>()(
           models: state.models.map((m) => (m.id === id ? { ...m, enabled } : m)),
         })),
 
-      addCustomModel: (id, name, capabilities, schemaMapping, icon) =>
+      addCustomModel: (provider, id, name, capabilities, schemaMapping, icon) =>
         set((state) => ({
           models: [
             ...state.models,
             {
-              id: `replicate/${id}`,
+              id: `${provider}/${id}`,
               name,
-              provider: "replicate" as const,
+              provider,
               enabled: true,
               isCustom: true,
               schemaFetched: true,

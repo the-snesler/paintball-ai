@@ -35,7 +35,12 @@ export function Tooltip({
     open,
     onOpenChange: setOpen,
     placement,
-    middleware: [offset(8), flip(), shift({ padding: 8 }), arrow({ element: arrowRef, padding: 8 })],
+    middleware: [
+      offset(8),
+      flip(),
+      shift({ padding: 8 }),
+      arrow({ element: arrowRef, padding: 8 }),
+    ],
   });
 
   const hover = useHover(context, { delay: { open: delay, close: 0 } });
@@ -55,7 +60,12 @@ export function Tooltip({
       })}
       {isMounted && (
         <FloatingPortal>
-          <div ref={refs.setFloating} style={floatingStyles} {...getFloatingProps()} className="z-50">
+          <div
+            ref={refs.setFloating}
+            style={floatingStyles}
+            {...getFloatingProps()}
+            className="z-50"
+          >
             <div
               style={isPositioned ? transitionStyles : { opacity: 0 }}
               className={`${maxWidth} rounded-lg border border-zinc-700 bg-zinc-800 px-2.5 py-1.5 text-[11px] leading-relaxed text-zinc-300 shadow-xl`}

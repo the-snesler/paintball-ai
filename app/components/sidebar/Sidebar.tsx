@@ -111,12 +111,12 @@ function SettingsSidebarContent() {
   );
 
   return (
-    <div className="flex-1 space-y-2 overflow-y-auto p-4 [scrollbar-gutter:stable]">
+    <div className="flex-1 space-y-2 overflow-y-auto py-4 pr-1 pl-4 [scrollbar-gutter:stable]">
       <div className="flex items-center gap-2">
         <span className="text-zinc-500">
           <Layers className="h-4 w-4" />
         </span>
-        <h2 className="text-xs font-medium tracking-wide text-zinc-400 uppercase">Models</h2>
+        <h2 className="text-xs font-medium tracking-wide text-zinc-400 uppercase">Image Models</h2>
       </div>
 
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
@@ -133,7 +133,7 @@ function SettingsSidebarContent() {
         </SortableContext>
       </DndContext>
 
-      <AddCustomModelButton disabled={!apiKeys.replicate} apiKey={apiKeys.replicate} />
+      <AddCustomModelButton />
 
       <div className="flex items-center gap-2 pt-4">
         <span className="text-zinc-500">
@@ -166,23 +166,16 @@ function SettingsSidebarContent() {
         collisionDetection={closestCenter}
         onDragEnd={handleUpscalerDragEnd}
       >
-        <SortableContext
-          items={upscalers.map((u) => u.id)}
-          strategy={verticalListSortingStrategy}
-        >
+        <SortableContext items={upscalers.map((u) => u.id)} strategy={verticalListSortingStrategy}>
           <div className="space-y-2">
             {upscalers.map((u) => (
-              <SortableUpscalerItem
-                key={u.id}
-                upscaler={u}
-                hasApiKey={!!apiKeys.replicate}
-              />
+              <SortableUpscalerItem key={u.id} upscaler={u} hasApiKey={!!apiKeys.replicate} />
             ))}
           </div>
         </SortableContext>
       </DndContext>
 
-      <AddCustomUpscalerButton disabled={!apiKeys.replicate} apiKey={apiKeys.replicate} />
+      <AddCustomUpscalerButton />
     </div>
   );
 }

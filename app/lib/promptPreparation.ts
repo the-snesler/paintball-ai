@@ -97,9 +97,7 @@ export async function preparePromptBatch(
   }
 
   const fallbackPrompt =
-    variationsEnabled && !variedPrompts
-      ? stripVariationSections(workingPrompt)
-      : workingPrompt;
+    variationsEnabled && !variedPrompts ? stripVariationSections(workingPrompt) : workingPrompt;
 
   const prompts = Array.from({ length: totalTasks }, (_, taskIndex) => {
     if (!variedPrompts) return fallbackPrompt;

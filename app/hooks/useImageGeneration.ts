@@ -25,7 +25,9 @@ export function useImageGeneration() {
   const { runTasks, retryItem } = useGenerationTask();
 
   const persistReferences = useCallback(
-    async (images: Array<{ id: string; blob: Blob; name: string; sourceGalleryItemId?: string }>) => {
+    async (
+      images: Array<{ id: string; blob: Blob; name: string; sourceGalleryItemId?: string }>
+    ) => {
       await Promise.all(
         images.map(async (image) => {
           const saved = await saveReferenceImage(image);

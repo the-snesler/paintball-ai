@@ -10,7 +10,12 @@ interface GalleryHeaderProps {
   onSearchChange?: (query: string) => void;
 }
 
-export function GalleryHeader({ count = 0, title, searchQuery, onSearchChange }: GalleryHeaderProps) {
+export function GalleryHeader({
+  count = 0,
+  title,
+  searchQuery,
+  onSearchChange,
+}: GalleryHeaderProps) {
   const location = useLocation();
   const navigate = useNavigate();
 

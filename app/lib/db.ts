@@ -1,4 +1,9 @@
-import type { CompletedGalleryItem, ReferenceImage, StoredEditorSession, StoredImageRecord } from "~/types";
+import type {
+  CompletedGalleryItem,
+  ReferenceImage,
+  StoredEditorSession,
+  StoredImageRecord,
+} from "~/types";
 import { createThumbnailBlob } from "./imageProcessing";
 
 const DB_NAME = "studio-image-gallery";
@@ -108,9 +113,7 @@ export async function getImagesPaginated(
       if (!cursor || raw.length >= limit) {
         void (async () => {
           try {
-            const normalized = await Promise.all(
-              raw.map((r) => normalizeStoredImageRecord(db, r))
-            );
+            const normalized = await Promise.all(raw.map((r) => normalizeStoredImageRecord(db, r)));
             resolve(normalized);
           } catch (e) {
             reject(e);
@@ -473,9 +476,7 @@ export async function getAllSessions(): Promise<StoredEditorSession[]> {
 }
 
 /** Find the first session that includes `imageId` as a source, turn reference, or turn output. */
-export async function findSessionForImage(
-  imageId: string
-): Promise<StoredEditorSession | null> {
+export async function findSessionForImage(imageId: string): Promise<StoredEditorSession | null> {
   const sessions = await getAllSessions();
   return (
     sessions.find(
