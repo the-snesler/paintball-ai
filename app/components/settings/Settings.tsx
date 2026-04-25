@@ -286,7 +286,9 @@ function DataSection() {
     setStatus(null);
     try {
       const result = await importFromZip(file);
-      const parts = [`${result.imported} imported`];
+      const parts = [`${result.imported} generations imported`];
+      if (result.referencesImported > 0)
+        parts.push(`${result.referencesImported} references imported`);
       if (result.skipped > 0) parts.push(`${result.skipped} skipped (already exist)`);
       if (result.failed > 0) parts.push(`${result.failed} failed`);
       setStatus(parts.join(", "));

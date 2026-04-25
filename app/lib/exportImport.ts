@@ -79,6 +79,7 @@ export async function exportAllImages(
 
 export interface ImportResult {
   imported: number;
+  referencesImported: number;
   skipped: number;
   failed: number;
 }
@@ -98,7 +99,7 @@ export async function importFromZip(
   const manifest: ManifestEntry[] = JSON.parse(manifestText);
 
   const existingIds = await getExistingImageIds();
-  const result: ImportResult = { imported: 0, skipped: 0, failed: 0 };
+  const result: ImportResult = { imported: 0, referencesImported: 0, skipped: 0, failed: 0 };
 
   for (let i = 0; i < manifest.length; i++) {
     const entry = manifest[i];
@@ -171,7 +172,7 @@ export async function importFromZip(
           blob,
           sourceGalleryItemId: entry.sourceGalleryItemId,
         });
-        result.imported++;
+        result.referencesImported++;
       } catch {
         result.failed++;
       }
