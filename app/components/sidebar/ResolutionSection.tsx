@@ -36,14 +36,14 @@ export function ResolutionSection() {
               disabled={!pickerEnabled}
               className={`flex-1 rounded-lg px-1 py-2 text-sm font-medium transition-colors ${
                 showSelectedStyle
-                  ? "border border-purple-500 bg-purple-500/20 text-purple-300"
+                  ? "text-accent border border-purple-500 bg-purple-500/20"
                   : pickerEnabled
-                    ? "border border-c-border bg-surface-overlay text-text-tertiary hover:border-c-border"
-                    : "cursor-not-allowed border border-border-subtle bg-surface-overlay/50 text-text-muted opacity-40"
+                    ? "border-c-border bg-surface-overlay text-text-tertiary hover:border-c-border border"
+                    : "border-border-subtle bg-surface-overlay/50 text-text-muted cursor-not-allowed border opacity-40"
               }`}
             >
               {label}
-              <p className="text-[0.6rem] text-text-muted">{res} resolution</p>
+              <p className="text-text-muted text-[0.6rem]">{res} resolution</p>
             </button>
           );
         })}

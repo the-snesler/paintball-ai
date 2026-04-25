@@ -38,27 +38,29 @@ export default function TextModelItem({
       >
         <div
           className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${
-            model.enabled ? "bg-purple-800 text-accent-muted" : "bg-surface-interactive text-text-tertiary"
+            model.enabled
+              ? "text-accent-muted bg-purple-500/20"
+              : "bg-surface-interactive text-text-tertiary"
           }`}
         >
           {model.icon ? <SVG src={model.icon} className="h-5 w-5" /> : <Box className="h-4 w-4" />}
         </div>
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-medium text-text-primary">{model.name}</p>
+          <p className="text-text-primary truncate text-sm font-medium">{model.name}</p>
           <div className="mt-0.5 flex items-center gap-1">
             <Tooltip
               content={model.provider === "google" ? "Google" : "Replicate"}
               placement="top"
               delay={200}
             >
-              <span className="text-text-tertiary inline-flex cursor-help items-center gap-1 rounded bg-purple-700/50 px-1.5 py-0.5 text-[10px] text-accent-muted">
+              <span className="text-accent-muted bg-accent/50 inline-flex cursor-help items-center gap-1 rounded px-1.5 py-0.5 text-[10px]">
                 <SVG
                   src={`/icons/${model.provider}.svg`}
                   className="h-2.5 w-2.5 overflow-visible"
                 />
               </span>
             </Tooltip>
-            <span className="truncate text-[10px] text-text-muted">{model.modelId}</span>
+            <span className="text-text-muted truncate text-[10px]">{model.modelId}</span>
           </div>
         </div>
       </button>
@@ -67,7 +69,7 @@ export default function TextModelItem({
         <button
           type="button"
           onClick={() => removeCustomTextModel(model.id)}
-          className="shrink-0 p-1 text-text-muted transition-colors hover:text-red-400"
+          className="text-text-muted shrink-0 p-1 transition-colors hover:text-red-400"
           title="Remove model"
         >
           <Trash2 className="h-4 w-4" />

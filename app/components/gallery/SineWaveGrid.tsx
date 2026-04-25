@@ -6,7 +6,6 @@ interface SineWaveGridProps {
   radius?: number;
   opacity?: number;
   maxCellSizePct?: number;
-  backgroundColor?: string;
 }
 
 export function SineWaveGrid({
@@ -15,7 +14,6 @@ export function SineWaveGrid({
   radius = 0,
   opacity = 1,
   maxCellSizePct = 1.3,
-  backgroundColor = "#18181b",
 }: SineWaveGridProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationRef = useRef<number>(0);
@@ -54,8 +52,7 @@ export function SineWaveGrid({
       const height = rect.height;
 
       // Clear canvas
-      ctx.fillStyle = backgroundColor;
-      ctx.fillRect(0, 0, width, height);
+      ctx.clearRect(0, 0, width, height);
 
       // Calculate cell size based on canvas dimensions
       const cols = gridSize;
