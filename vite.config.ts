@@ -5,6 +5,9 @@ import tsconfigPaths from "vite-tsconfig-paths";
 
 export default defineConfig({
   plugins: [tailwindcss(), reactRouter(), tsconfigPaths()],
+  worker: {
+    format: "es",
+  },
   server: {
     proxy: {
       "/proxy/replicate": {

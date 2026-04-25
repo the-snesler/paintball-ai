@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useGalleryStore } from "~/stores/galleryStore";
+import { useSettingsStore } from "~/stores/settingsStore";
 import { GalleryHeader } from "./GalleryHeader";
 import { MasonryGrid, MasonryFrame } from "./MasonryGrid";
 import { GalleryImageCard } from "./GalleryImageCard";
@@ -9,9 +10,14 @@ import type { GalleryItem } from "~/types";
 import { formatRelativeDate } from "~/lib/util";
 import { getFirstCreatedAt, groupItemsByPrompt } from "~/lib/galleryGrouping";
 import { stripVariationSections } from "~/lib/promptVariations";
+import { cosine } from "~/lib/embeddingMath";
 import NumberFlow from "@number-flow/react";
 import { useAttachSelectedItemsToGeneration } from "~/hooks/useAttachSelectedItemsToGeneration";
 import { useGalleryDerivedIndexes } from "~/hooks/useGalleryDerivedIndexes";
+import { useQueryEmbedding } from "~/hooks/useQueryEmbedding";
+import { logger } from "~/lib/logging";
+
+const SEMANTIC_THRESHOLD = 0.1;
 
 export function Gallery({ viewMode }: { viewMode: "grid" | "timeline" }) {
   const items = useGalleryStore((s) => s.items);
@@ -23,18 +29,48 @@ export function Gallery({ viewMode }: { viewMode: "grid" | "timeline" }) {
   const totalCount = useGalleryStore((s) => s.totalCount);
   const searchQuery = useGalleryStore((s) => s.searchQuery);
   const setSearchQuery = useGalleryStore((s) => s.setSearchQuery);
+  const semanticSearchEnabled = useSettingsStore((s) => s.semanticSearchEnabled);
   const { itemsByPrompt } = useGalleryDerivedIndexes();
+
+  const queryEmbedding = useQueryEmbedding(searchQuery, semanticSearchEnabled);
 
   const filteredItems = useMemo(() => {
     if (!searchQuery.trim()) return items;
     const q = searchQuery.trim().toLowerCase();
-    return items.filter(
+    const substringMatches = items.filter(
       (item) =>
         item.prompt.toLowerCase().includes(q) ||
         (item.basePrompt?.toLowerCase().includes(q) ?? false) ||
         item.modelName.toLowerCase().includes(q)
     );
-  }, [items, searchQuery]);
+
+    logger.debug("Substring search results", {
+      query: searchQuery,
+      count: substringMatches.length,
+    });
+
+    if (!semanticSearchEnabled || !queryEmbedding) return substringMatches;
+
+    const substringIds = new Set(substringMatches.map((i) => i.id));
+    const semanticMatches: GalleryItem[] = [];
+    const scored: Array<{ item: GalleryItem; score: number }> = [];
+    for (const item of items) {
+      if (item.status !== "completed") continue;
+      if (!item.embedding || item.embedding.length === 0) continue;
+      const score = cosine(queryEmbedding, item.embedding);
+      if (score >= SEMANTIC_THRESHOLD) scored.push({ item, score });
+      if (substringIds.has(item.id) && score < SEMANTIC_THRESHOLD) scored.push({ item, score });
+    }
+    scored.sort((a, b) => b.score - a.score);
+    for (const { item } of scored) semanticMatches.push(item);
+
+    logger.debug("Merged search results", {
+      query: searchQuery,
+      count: semanticMatches.length,
+    });
+
+    return semanticMatches;
+  }, [items, searchQuery, semanticSearchEnabled, queryEmbedding]);
 
   const filteredItemsByPrompt = useMemo(
     () => (searchQuery.trim() ? groupItemsByPrompt(filteredItems) : itemsByPrompt),

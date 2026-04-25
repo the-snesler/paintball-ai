@@ -30,6 +30,7 @@ import { WideIconButton } from "./WideIconButton";
 import { findSessionForImage, getReferenceImagesByIds, saveReferenceImage } from "~/lib/db";
 import type { ReferenceImage, StoredEditorSession } from "~/types";
 import { Accordion } from "@base-ui/react/accordion";
+import { logger } from "~/lib/logging";
 
 export function Lightbox() {
   const navigate = useNavigate();
@@ -228,9 +229,10 @@ export function Lightbox() {
     galleryImage?.generationTimeMs != null
       ? `${(galleryImage.generationTimeMs / 1000).toFixed(1)}s`
       : undefined,
-  ]
-    .filter(Boolean)
-    .join(" • ");
+    galleryImage?.embedding ? "Has embedding" : undefined,
+  ].filter(Boolean);
+
+  logger.debug("embedding", galleryImage?.embedding);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -240,9 +242,9 @@ export function Lightbox() {
       {/* Close button */}
       <button
         onClick={closeLightbox}
-        className="absolute top-4 right-4 z-20 rounded-lg bg-surface-raised/80 p-2 transition-colors hover:bg-surface-overlay"
+        className="bg-surface-raised/80 hover:bg-surface-overlay absolute top-4 right-4 z-20 rounded-lg p-2 transition-colors"
       >
-        <X className="h-6 w-6 text-text-secondary" />
+        <X className="text-text-secondary h-6 w-6" />
       </button>
 
       {/* Navigation arrows */}
@@ -250,21 +252,21 @@ export function Lightbox() {
         <>
           <button
             onClick={() => navigateLightbox("prev")}
-            className="absolute left-4 z-20 rounded-full bg-surface-raised/80 p-3 transition-colors hover:bg-surface-overlay"
+            className="bg-surface-raised/80 hover:bg-surface-overlay absolute left-4 z-20 rounded-full p-3 transition-colors"
           >
-            <ChevronLeft className="h-6 w-6 text-text-secondary" />
+            <ChevronLeft className="text-text-secondary h-6 w-6" />
           </button>
           <button
             onClick={() => navigateLightbox("next")}
-            className="absolute right-4 z-20 rounded-full bg-surface-raised/80 p-3 transition-colors hover:bg-surface-overlay"
+            className="bg-surface-raised/80 hover:bg-surface-overlay absolute right-4 z-20 rounded-full p-3 transition-colors"
           >
-            <ChevronRight className="h-6 w-6 text-text-secondary" />
+            <ChevronRight className="text-text-secondary h-6 w-6" />
           </button>
         </>
       )}
 
       {/* Modal */}
-      <div className="animate-fade-in relative z-10 flex max-h-[90vh] max-w-[90vw] flex-col overflow-hidden overflow-y-auto rounded-xl bg-surface-raised shadow-2xl inset-shadow-sm inset-shadow-white/5 lg:flex-row lg:items-stretch">
+      <div className="animate-fade-in bg-surface-raised relative z-10 flex max-h-[90vh] max-w-[90vw] flex-col overflow-hidden overflow-y-auto rounded-xl shadow-2xl inset-shadow-sm inset-shadow-white/5 lg:flex-row lg:items-stretch">
         {/* Image */}
         <img
           src={imageSrc}
@@ -274,10 +276,10 @@ export function Lightbox() {
 
         {/* Info panel */}
         {galleryImage && (
-          <div className="flex shrink-0 flex-col border-t border-border-subtle lg:w-96 lg:border-t-0 lg:border-l xl:w-md">
+          <div className="border-border-subtle flex shrink-0 flex-col border-t lg:w-96 lg:border-t-0 lg:border-l xl:w-md">
             {/* Header */}
-            <div className="flex items-center justify-between gap-2 border-b border-border-subtle p-4">
-              <h2 className="truncate text-lg font-semibold text-text-primary">
+            <div className="border-border-subtle flex items-center justify-between gap-2 border-b p-4">
+              <h2 className="text-text-primary truncate text-lg font-semibold">
                 {galleryImage.modelName}
               </h2>
               <div className="flex items-center gap-1">
@@ -324,31 +326,35 @@ export function Lightbox() {
             </div>
 
             {/* Body */}
-            <div className="flex-1 space-y-4 overflow-y-auto p-4">
+            <div className="flex-1 space-y-2 overflow-y-auto p-4">
               {/* Metadata */}
               {topMetadataRow && (
-                <div className="flex flex-wrap items-center gap-2 text-xs text-text-muted">
-                  {topMetadataRow}
+                <div className="text-text-muted flex flex-wrap items-center gap-2 text-xs">
+                  {topMetadataRow.map((meta, i) => (
+                    <span key={i} className="bg-surface-overlay/50 rounded-lg px-2 py-1">
+                      {meta}
+                    </span>
+                  ))}
                 </div>
               )}
 
               {/* Prompt */}
               <div className="space-y-2">
-                <div className="space-y-2 rounded-lg bg-surface-overlay/50 p-3">
-                  <p className="text-sm whitespace-pre-wrap text-text-secondary">
+                <div className="bg-surface-overlay/50 space-y-2 rounded-lg p-3">
+                  <p className="text-text-secondary text-sm whitespace-pre-wrap">
                     {galleryImage.basePrompt ?? galleryImage.prompt}
                   </p>
                   {hasBasePrompt && (
-                    <Accordion.Root className="border-t border-c-border/60 pt-2">
+                    <Accordion.Root className="border-c-border/60 border-t pt-2">
                       <Accordion.Item>
                         <Accordion.Header>
-                          <Accordion.Trigger className="group inline-flex cursor-pointer list-none items-center gap-1 text-xs text-text-muted hover:text-text-tertiary [&::-webkit-details-marker]:hidden">
+                          <Accordion.Trigger className="group text-text-muted hover:text-text-tertiary inline-flex cursor-pointer list-none items-center gap-1 text-xs [&::-webkit-details-marker]:hidden">
                             <span>Show sent prompt</span>
-                            <ChevronDown className="h-4 w-4 -rotate-90 text-text-muted transition-transform duration-200 group-hover:text-text-tertiary group-data-panel-open:rotate-0" />
+                            <ChevronDown className="text-text-muted group-hover:text-text-tertiary h-4 w-4 -rotate-90 transition-transform duration-200 group-data-panel-open:rotate-0" />
                           </Accordion.Trigger>
                         </Accordion.Header>
                         <Accordion.Panel className="h-(--accordion-panel-height) overflow-hidden transition-[height] data-ending-style:h-0 data-starting-style:h-0">
-                          <p className="mt-2 text-xs leading-snug whitespace-pre-wrap text-text-tertiary">
+                          <p className="text-text-tertiary mt-2 text-xs leading-snug whitespace-pre-wrap">
                             {galleryImage.prompt}
                           </p>
                         </Accordion.Panel>
@@ -391,7 +397,7 @@ export function Lightbox() {
 
               {/* Date */}
               {galleryImage.createdAt && (
-                <p className="text-xs text-text-muted">
+                <p className="text-text-muted text-xs">
                   {new Date(galleryImage.createdAt).toLocaleString()}
                 </p>
               )}
@@ -399,7 +405,7 @@ export function Lightbox() {
               {/* Other generations */}
               {promptGroup.length > 1 && (
                 <div className="space-y-2">
-                  <h3 className="text-xs font-medium text-text-tertiary">
+                  <h3 className="text-text-tertiary text-xs font-medium">
                     All outputs ({promptGroup.length})
                   </h3>
                   <div className="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-2">
@@ -413,7 +419,7 @@ export function Lightbox() {
               {/* Reference images */}
               {referenceImages.length > 0 && (
                 <div className="space-y-2">
-                  <h3 className="text-xs font-medium text-text-tertiary">
+                  <h3 className="text-text-tertiary text-xs font-medium">
                     Reference images ({referenceImages.length})
                   </h3>
                   <div className="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-2">
@@ -427,7 +433,7 @@ export function Lightbox() {
                         <button
                           key={img.id}
                           onClick={() => openLightbox({ kind: "reference", image: img })}
-                          className="overflow-hidden rounded-lg bg-surface-overlay transition-all hover:ring-2 hover:ring-c-border"
+                          className="bg-surface-overlay hover:ring-c-border overflow-hidden rounded-lg transition-all hover:ring-2"
                         >
                           <img
                             src={img.url}
@@ -444,7 +450,7 @@ export function Lightbox() {
               {/* Children — generations that used this image as a reference */}
               {childItems.length > 0 && (
                 <div className="space-y-2">
-                  <h3 className="text-xs font-medium text-text-tertiary">
+                  <h3 className="text-text-tertiary text-xs font-medium">
                     Children ({childItems.length})
                   </h3>
                   <div className="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-2">

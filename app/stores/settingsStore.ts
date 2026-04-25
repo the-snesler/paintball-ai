@@ -29,6 +29,7 @@ interface SettingsState {
   requestedOutputCount: number;
   editorContextInjectionEnabled: boolean;
   alwaysImprovePromptEnabled: boolean;
+  semanticSearchEnabled: boolean;
 
   // API key actions
   setApiKey: (provider: ApiKeyProvider, key: string | null) => void;
@@ -79,6 +80,9 @@ interface SettingsState {
 
   // Always improve prompt
   setAlwaysImprovePromptEnabled: (enabled: boolean) => void;
+
+  // Semantic search
+  setSemanticSearchEnabled: (enabled: boolean) => void;
 }
 
 export const useSettingsStore = create<SettingsState>()(
@@ -97,6 +101,7 @@ export const useSettingsStore = create<SettingsState>()(
       requestedOutputCount: 0,
       editorContextInjectionEnabled: true,
       alwaysImprovePromptEnabled: false,
+      semanticSearchEnabled: false,
 
       setApiKey: (provider, key) =>
         set((state) => ({
@@ -253,6 +258,8 @@ export const useSettingsStore = create<SettingsState>()(
 
       setAlwaysImprovePromptEnabled: (enabled) => set({ alwaysImprovePromptEnabled: enabled }),
 
+      setSemanticSearchEnabled: (enabled) => set({ semanticSearchEnabled: enabled }),
+
       incrementRequestedOutputCount: (count = 1) =>
         set((state) => ({
           requestedOutputCount: state.requestedOutputCount + Math.max(0, count),
@@ -260,7 +267,7 @@ export const useSettingsStore = create<SettingsState>()(
     }),
     {
       name: "studio-settings",
-      version: 15,
+      version: 16,
       partialize: (state) => ({
         apiKeys: state.apiKeys,
         models: state.models,
@@ -271,6 +278,7 @@ export const useSettingsStore = create<SettingsState>()(
         requestedOutputCount: state.requestedOutputCount,
         editorContextInjectionEnabled: state.editorContextInjectionEnabled,
         alwaysImprovePromptEnabled: state.alwaysImprovePromptEnabled,
+        semanticSearchEnabled: state.semanticSearchEnabled,
       }),
       migrate: (persisted, version) => {
         let state = persisted as {
@@ -284,6 +292,7 @@ export const useSettingsStore = create<SettingsState>()(
           requestedOutputCount?: number;
           editorContextInjectionEnabled?: boolean;
           alwaysImprovePromptEnabled?: boolean;
+          semanticSearchEnabled?: boolean;
         };
 
         if (version < 3) {
@@ -380,6 +389,7 @@ export const useSettingsStore = create<SettingsState>()(
           requestedOutputCount: state.requestedOutputCount ?? 0,
           editorContextInjectionEnabled: state.editorContextInjectionEnabled ?? true,
           alwaysImprovePromptEnabled: state.alwaysImprovePromptEnabled ?? false,
+          semanticSearchEnabled: state.semanticSearchEnabled ?? false,
         };
       },
     }

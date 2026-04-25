@@ -1,5 +1,6 @@
 import { useCallback } from "react";
 import { getReferenceImagesByIds, saveImage } from "~/lib/db";
+import { enqueueImageEmbedding } from "~/lib/embeddingQueue";
 import { executeGeneration, type GenerationResult } from "~/lib/generation";
 import { createThumbnailBlob } from "~/lib/imageProcessing";
 import { getModel } from "~/lib/models";
@@ -144,6 +145,8 @@ export function useGenerationTask() {
             metadata: result.metadata,
             parentGalleryItemIds: parentGalleryItemIds.length > 0 ? parentGalleryItemIds : undefined,
           });
+
+          enqueueImageEmbedding(itemId);
         })
       );
 

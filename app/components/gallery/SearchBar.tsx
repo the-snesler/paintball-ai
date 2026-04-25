@@ -1,4 +1,5 @@
 import { Search, X } from "lucide-react";
+import { useSettingsStore } from "~/stores/settingsStore";
 
 interface SearchBarProps {
   value: string;
@@ -6,6 +7,11 @@ interface SearchBarProps {
 }
 
 export function SearchBar({ value, onChange }: SearchBarProps) {
+  const semanticSearchEnabled = useSettingsStore((s) => s.semanticSearchEnabled);
+  const placeholder = semanticSearchEnabled
+    ? "Search prompts and image content..."
+    : "Search prompts...";
+
   return (
     <div className="relative flex items-center">
       <Search className="pointer-events-none absolute top-1/2 left-2.5 h-3.5 w-3.5 -translate-y-1/2 text-text-muted" />
@@ -13,7 +19,7 @@ export function SearchBar({ value, onChange }: SearchBarProps) {
         type="text"
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        placeholder="Search prompts..."
+        placeholder={placeholder}
         className={`h-8 w-full rounded-lg border border-c-border bg-surface-raised py-1.5 text-sm text-text-primary placeholder-text-muted transition-colors focus:border-purple-500 focus:ring-1 focus:ring-purple-500 focus:outline-none ${value ? "pr-7 pl-8" : "pr-3 pl-8"}`}
       />
       {value && (

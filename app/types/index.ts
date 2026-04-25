@@ -114,6 +114,10 @@ export interface CompletedGalleryItemFields {
   metadata: Record<string, unknown>; // Will include thinking traces for gemini 3 models
   /** Gallery item IDs of gallery images used as reference sources for this generation */
   parentGalleryItemIds?: string[];
+  /** Vision embedding for semantic search. Absence means not yet embedded. */
+  embedding?: number[];
+  /** Identifier of the model that produced `embedding`; cleared/recomputed if model changes. */
+  embeddingModelId?: string;
 }
 
 export type CompletedGalleryItem = BaseGalleryItem & CompletedGalleryItemFields;
@@ -148,6 +152,8 @@ export interface StoredImageRecord {
   referenceImageIds: string[];
   parentGalleryItemIds?: string[];
   metadata: Record<string, unknown>;
+  embedding?: number[];
+  embeddingModelId?: string;
 }
 
 export interface AttachSelectedItemsResult {

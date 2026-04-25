@@ -15,6 +15,20 @@ import {
   toDisplayImage,
 } from "~/lib/db";
 import { useLightboxStore } from "./lightboxStore";
+import { useEmbeddingStatusStore } from "./embeddingStatusStore";
+import { enqueueMissingEmbeddings, refreshEmbeddingCounts } from "~/lib/embeddingQueue";
+import { useSettingsStore } from "./settingsStore";
+
+function maybeKickEmbeddingQueue() {
+  if (typeof window === "undefined") return;
+  if (!useSettingsStore.getState().semanticSearchEnabled) {
+    refreshEmbeddingCounts(null);
+    return;
+  }
+  const modelId = useEmbeddingStatusStore.getState().modelId;
+  enqueueMissingEmbeddings(modelId);
+  refreshEmbeddingCounts(modelId);
+}
 
 function getOrphanedReferenceIds(removingIds: Set<string>, allItems: GalleryItem[]): string[] {
   const removingRefs = new Set(
@@ -64,6 +78,7 @@ interface GalleryState {
   deleteSelectedItems: () => Promise<number>;
   downloadSelectedItems: () => number;
   setSearchQuery: (query: string) => void;
+  setItemEmbedding: (id: string, embedding: number[], embeddingModelId: string) => void;
 }
 
 export const useGalleryStore = create<GalleryState>()((set, get) => ({
@@ -93,6 +108,7 @@ export const useGalleryStore = create<GalleryState>()((set, get) => ({
         hasMore: storedImages.length >= PAGE_SIZE,
         totalCount: total,
       });
+      maybeKickEmbeddingQueue();
     } catch (error) {
       console.error("Failed to load images:", error);
     } finally {
@@ -117,6 +133,7 @@ export const useGalleryStore = create<GalleryState>()((set, get) => ({
         dbOffset: state.dbOffset + records.length,
         hasMore: records.length >= PAGE_SIZE,
       }));
+      maybeKickEmbeddingQueue();
     } catch (error) {
       console.error("Failed to load more images:", error);
     } finally {
@@ -275,6 +292,15 @@ export const useGalleryStore = create<GalleryState>()((set, get) => ({
   clearSelection: () => set({ selectedItemIds: [], lastSelectedId: null }),
 
   setSearchQuery: (query) => set({ searchQuery: query }),
+
+  setItemEmbedding: (id, embedding, embeddingModelId) =>
+    set((state) => ({
+      items: state.items.map((item) =>
+        item.id === id && item.status === "completed"
+          ? { ...item, embedding, embeddingModelId }
+          : item
+      ),
+    })),
 
   deleteSelectedItems: async () => {
     const state = get();

@@ -7,7 +7,7 @@ import type {
 import { createThumbnailBlob } from "./imageProcessing";
 
 const DB_NAME = "studio-image-gallery";
-const DB_VERSION = 3;
+const DB_VERSION = 4;
 
 const STORES = {
   images: "images",
@@ -64,6 +64,10 @@ export async function initDB(): Promise<IDBDatabase> {
         const sessionStore = db.createObjectStore(STORES.sessions, { keyPath: "id" });
         sessionStore.createIndex("by_gallery_item", "sourceGalleryItemId", { unique: false });
       }
+
+      // v4: no schema change required; `embedding` and `embeddingModelId` are
+      // optional fields on existing records. Bumping the version allows future
+      // additions to hook the upgrade path.
     };
   });
 }
@@ -205,6 +209,71 @@ export async function deleteImage(id: string): Promise<void> {
   store.delete(id);
 
   await awaitTransaction(transaction, undefined);
+}
+
+export async function updateImageEmbedding(
+  id: string,
+  embedding: number[],
+  embeddingModelId: string
+): Promise<void> {
+  const db = await initDB();
+
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(STORES.images, "readwrite");
+    const store = transaction.objectStore(STORES.images);
+    const getReq = store.get(id);
+
+    getReq.onerror = () => reject(getReq.error);
+    getReq.onsuccess = () => {
+      const record = getReq.result as StoredImageRecord | undefined;
+      if (!record) {
+        // Image was deleted between embedding start and finish — drop silently.
+        resolve();
+        return;
+      }
+      record.embedding = embedding;
+      record.embeddingModelId = embeddingModelId;
+      store.put(record);
+    };
+
+    transaction.oncomplete = () => resolve();
+    transaction.onerror = () => reject(transaction.error);
+    transaction.onabort = () => reject(transaction.error);
+  });
+}
+
+export async function getEmbeddingCounts(
+  modelId: string | null
+): Promise<{ total: number; indexed: number }> {
+  const db = await initDB();
+
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(STORES.images, "readonly");
+    const store = transaction.objectStore(STORES.images);
+    const request = store.openCursor();
+
+    let total = 0;
+    let indexed = 0;
+
+    request.onerror = () => reject(request.error);
+    request.onsuccess = () => {
+      const cursor = request.result;
+      if (!cursor) {
+        resolve({ total, indexed });
+        return;
+      }
+      const record = cursor.value as StoredImageRecord;
+      total++;
+      if (
+        record.embedding &&
+        record.embedding.length > 0 &&
+        (!modelId || record.embeddingModelId === modelId)
+      ) {
+        indexed++;
+      }
+      cursor.continue();
+    };
+  });
 }
 
 export async function getImageCount(): Promise<number> {

@@ -10,6 +10,7 @@ import {
   Archive,
   Download,
   Upload,
+  Sparkles,
 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { GalleryHeader } from "~/components/gallery/GalleryHeader";
@@ -17,8 +18,11 @@ import { useSettingsStore } from "~/stores/settingsStore";
 import { useGalleryStore } from "~/stores/galleryStore";
 import { getImageCount } from "~/lib/db";
 import { exportAllImages, importFromZip } from "~/lib/exportImport";
+import { enqueueMissingEmbeddings, refreshEmbeddingCounts } from "~/lib/embeddingQueue";
+import { useEmbeddingStatusStore } from "~/stores/embeddingStatusStore";
 import type { ApiKeyProvider } from "~/types";
 import { Switch } from "~/components/ui/Switch";
+import { SemanticSearchStatus } from "./SemanticSearchStatus";
 
 const providers: { id: ApiKeyProvider; name: string; description: string; link: string }[] = [
   {
@@ -47,11 +51,23 @@ export function SettingsModal() {
   const setApiKey = useSettingsStore((s) => s.setApiKey);
   const editorContextInjectionEnabled = useSettingsStore((s) => s.editorContextInjectionEnabled);
   const alwaysImprovePromptEnabled = useSettingsStore((s) => s.alwaysImprovePromptEnabled);
+  const semanticSearchEnabled = useSettingsStore((s) => s.semanticSearchEnabled);
   const setDesktopNotificationsEnabled = useSettingsStore((s) => s.setDesktopNotificationsEnabled);
   const setEditorContextInjectionEnabled = useSettingsStore(
     (s) => s.setEditorContextInjectionEnabled
   );
   const setAlwaysImprovePromptEnabled = useSettingsStore((s) => s.setAlwaysImprovePromptEnabled);
+  const setSemanticSearchEnabled = useSettingsStore((s) => s.setSemanticSearchEnabled);
+  const semanticModelId = useEmbeddingStatusStore((s) => s.modelId);
+
+  const handleToggleSemanticSearch = (enabled: boolean) => {
+    setSemanticSearchEnabled(enabled);
+    if (enabled) {
+      // Kick off model preload + backfill of any missing embeddings.
+      enqueueMissingEmbeddings(semanticModelId);
+      refreshEmbeddingCounts(semanticModelId);
+    }
+  };
 
   const apiKeysDetailsRef = useRef<HTMLDetailsElement | null>(null);
   const desktopNotificationsDetailsRef = useRef<HTMLDetailsElement | null>(null);
@@ -111,7 +127,7 @@ export function SettingsModal() {
   };
 
   return (
-    <main className="flex h-full flex-1 flex-col overflow-hidden bg-surface">
+    <main className="bg-surface flex h-full flex-1 flex-col overflow-hidden">
       <GalleryHeader title="Settings" />
 
       {/* Content */}
@@ -120,17 +136,17 @@ export function SettingsModal() {
         <details ref={apiKeysDetailsRef} className="group space-y-3" open>
           <summary className="flex w-full cursor-pointer list-none items-center justify-between text-left [&::-webkit-details-marker]:hidden">
             <div className="flex items-center gap-2">
-              <KeyRound className="h-4 w-4 text-accent-muted" />
+              <KeyRound className="text-accent-muted h-4 w-4" />
               <span className="text-sm font-medium">API Keys</span>
               {apiKeys.google && apiKeys.replicate && apiKeys.openai && (
                 <Check className="h-4 w-4 text-green-500" />
               )}
             </div>
-            <ChevronDown className="h-4 w-4 -rotate-90 text-text-tertiary transition-transform duration-200 group-open:rotate-0" />
+            <ChevronDown className="text-text-tertiary h-4 w-4 -rotate-90 transition-transform duration-200 group-open:rotate-0" />
           </summary>
 
           <div className="space-y-3 pl-6">
-            <p className="text-xs text-text-muted">Keys are stored locally in your browser.</p>
+            <p className="text-text-muted text-xs">Keys are stored locally in your browser.</p>
             {providers.map((provider) => (
               <ApiKeyInput
                 key={provider.id}
@@ -149,18 +165,18 @@ export function SettingsModal() {
         <details ref={desktopNotificationsDetailsRef} className="group space-y-3" open>
           <summary className="flex w-full cursor-pointer list-none items-center justify-between text-left [&::-webkit-details-marker]:hidden">
             <div className="flex items-center gap-2">
-              <Bell className="h-4 w-4 text-accent-muted" />
+              <Bell className="text-accent-muted h-4 w-4" />
               <span className="text-sm font-medium">Desktop notifications</span>
               {desktopNotificationsEnabled && notificationPermission === "granted" && (
                 <Check className="h-4 w-4 text-green-500" />
               )}
             </div>
-            <ChevronDown className="h-4 w-4 -rotate-90 text-text-tertiary transition-transform duration-200 group-open:rotate-0" />
+            <ChevronDown className="text-text-tertiary h-4 w-4 -rotate-90 transition-transform duration-200 group-open:rotate-0" />
           </summary>
 
-          <div className="ml-6 space-y-3 rounded-lg border border-border-subtle bg-surface-raised/60 p-3">
+          <div className="border-border-subtle bg-surface-raised/60 ml-6 space-y-3 rounded-lg border p-3">
             <label className="flex items-center justify-between gap-3">
-              <span className="text-sm text-text-secondary">
+              <span className="text-text-secondary text-sm">
                 Notify when generations complete in background
               </span>
               <Switch
@@ -171,7 +187,7 @@ export function SettingsModal() {
               />
             </label>
 
-            <p className="text-xs text-text-muted">
+            <p className="text-text-muted text-xs">
               {notificationPermission === "unsupported"
                 ? "Desktop notifications are not supported in this browser."
                 : notificationPermission === "granted"
@@ -186,7 +202,7 @@ export function SettingsModal() {
                 type="button"
                 onClick={requestNotificationPermission}
                 disabled={requestingPermission}
-                className="rounded-lg bg-surface-overlay px-3 py-1.5 text-xs font-medium text-text-secondary transition-colors hover:bg-surface-interactive disabled:cursor-not-allowed disabled:opacity-60"
+                className="bg-surface-overlay text-text-secondary hover:bg-surface-interactive rounded-lg px-3 py-1.5 text-xs font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {requestingPermission ? "Requesting..." : "Request permission"}
               </button>
@@ -194,50 +210,81 @@ export function SettingsModal() {
           </div>
         </details>
 
+        {/* Semantic Search Section */}
+        <details className="group space-y-3" open>
+          <summary className="flex w-full cursor-pointer list-none items-center justify-between text-left [&::-webkit-details-marker]:hidden">
+            <div className="flex items-center gap-2">
+              <Sparkles className="text-accent-muted h-4 w-4" />
+              <span className="text-sm font-medium">Semantic image search</span>
+              {semanticSearchEnabled && <Check className="h-4 w-4 text-green-500" />}
+            </div>
+            <ChevronDown className="text-text-tertiary h-4 w-4 -rotate-90 transition-transform duration-200 group-open:rotate-0" />
+          </summary>
+
+          <div className="border-border-subtle bg-surface-raised/60 ml-6 space-y-3 rounded-lg border p-3">
+            <label className="flex items-center justify-between gap-3">
+              <span className="text-text-secondary text-sm">Enable semantic image search</span>
+              <Switch
+                checked={semanticSearchEnabled}
+                onChange={(e) => handleToggleSemanticSearch(e.target.checked)}
+                aria-label="Toggle semantic image search"
+              />
+            </label>
+
+            <p className="text-text-muted text-xs">
+              Downloads a ~400MB model on first use and runs it locally. Embeddings are computed in
+              the background while you wait for generations and let you search by image content as
+              well as prompt text. All processing stays in your browser.
+            </p>
+
+            {semanticSearchEnabled && <SemanticSearchStatus />}
+          </div>
+        </details>
+
         {/* Text Generation Section */}
         <details className="group space-y-3" open>
           <summary className="flex w-full cursor-pointer list-none items-center justify-between text-left [&::-webkit-details-marker]:hidden">
             <div className="flex items-center gap-2">
-              <MessageSquareText className="h-4 w-4 text-accent-muted" />
+              <MessageSquareText className="text-accent-muted h-4 w-4" />
               <span className="text-sm font-medium">Text generation</span>
               {(apiKeys.google || apiKeys.replicate) && (
                 <Check className="h-4 w-4 text-green-500" />
               )}
             </div>
-            <ChevronDown className="h-4 w-4 -rotate-90 text-text-tertiary transition-transform duration-200 group-open:rotate-0" />
+            <ChevronDown className="text-text-tertiary h-4 w-4 -rotate-90 transition-transform duration-200 group-open:rotate-0" />
           </summary>
 
-          <div className="ml-6 space-y-3 rounded-lg border border-border-subtle bg-surface-raised/60 p-3">
-            <p className="text-xs text-text-muted">
+          <div className="border-border-subtle bg-surface-raised/60 ml-6 space-y-3 rounded-lg border p-3">
+            <p className="text-text-muted text-xs">
               The active text model is chosen in the sidebar. These settings control how it's used.
             </p>
 
             <div className="space-y-3">
               <label className="flex items-center justify-between gap-3">
-                <span className="text-sm text-text-secondary">Always improve prompt</span>
+                <span className="text-text-secondary text-sm">Always improve prompt</span>
                 <Switch
                   checked={alwaysImprovePromptEnabled}
                   onChange={(e) => setAlwaysImprovePromptEnabled(e.target.checked)}
                   aria-label="Toggle always improve prompt"
                 />
               </label>
-              <p className="text-xs text-text-muted">
+              <p className="text-text-muted text-xs">
                 Silently pass every prompt through the text model before generation. Composes with
                 variations: prompt → improve → variations → image requests. Your original prompt is
                 preserved and shown as the primary prompt in the lightbox.
               </p>
             </div>
 
-            <div className="space-y-3 border-t border-border-subtle pt-3">
+            <div className="border-border-subtle space-y-3 border-t pt-3">
               <label className="flex items-center justify-between gap-3">
-                <span className="text-sm text-text-secondary">Editor context briefs</span>
+                <span className="text-text-secondary text-sm">Editor context briefs</span>
                 <Switch
                   checked={editorContextInjectionEnabled}
                   onChange={(e) => setEditorContextInjectionEnabled(e.target.checked)}
                   aria-label="Toggle editor context injection"
                 />
               </label>
-              <p className="text-xs text-text-muted">
+              <p className="text-text-muted text-xs">
                 After each edit, an AI summary of your editing intent is generated and prepended to
                 subsequent prompts. This helps maintain style and character consistency across
                 multiple edits.
