@@ -43,6 +43,7 @@ export function useEditorGeneration() {
       resolution: Resolution;
       quality: string | null;
       numberOfImages: number;
+      skipAutoImprove?: boolean;
       onItemsCreated: (itemIds: string[]) => void;
       onPromptPrepared?: (prompt: string) => void;
     }): Promise<void> => {
@@ -58,6 +59,7 @@ export function useEditorGeneration() {
         resolution,
         quality,
         numberOfImages,
+        skipAutoImprove,
         onItemsCreated,
         onPromptPrepared,
       } = params;
@@ -158,7 +160,7 @@ export function useEditorGeneration() {
         prompt: instruction,
         totalTasks: taskSlots.length,
         images: allReferences.map((r) => r.blob),
-        improvePrompt: alwaysImprovePromptEnabled,
+        improvePrompt: alwaysImprovePromptEnabled && !skipAutoImprove,
         onStageChange: (stage) => {
           updatePendingPhase(taskIds, stage);
         },

@@ -1,4 +1,4 @@
-import { ImagePlus, Loader2, Sparkles, X, Wand2 } from "lucide-react";
+import { ImagePlus, Loader2, Sparkles, Undo2, X, Wand2 } from "lucide-react";
 import { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
   DndContext,
@@ -77,6 +77,8 @@ function SortableReferenceImage({
 export function PromptInput() {
   const prompt = useGenerationStore((s) => s.currentPrompt);
   const setPrompt = useGenerationStore((s) => s.setPrompt);
+  const basePrompt = useGenerationStore((s) => s.currentBasePrompt);
+  const setBasePrompt = useGenerationStore((s) => s.setBasePrompt);
   const referenceImages = useGenerationStore((s) => s.currentReferenceImages);
   const addReferenceImage = useGenerationStore((s) => s.addReferenceImage);
   const removeReferenceImage = useGenerationStore((s) => s.removeReferenceImage);
@@ -256,17 +258,25 @@ export function PromptInput() {
 
   const handleImprovePrompt = useCallback(async () => {
     if (!prompt.trim() || isImproving) return;
+    const snapshot = prompt;
     setIsImproving(true);
     try {
       const images = referenceImages.length > 0 ? referenceImages.map((r) => r.blob) : undefined;
       const improved = await callTextModel(IMPROVE_PROMPT_SYSTEM, prompt, images);
       setPrompt(improved.trim());
+      setBasePrompt(snapshot);
     } catch {
       // Leave prompt unchanged on failure
     } finally {
       setIsImproving(false);
     }
-  }, [prompt, isImproving, setPrompt, referenceImages]);
+  }, [prompt, isImproving, setPrompt, setBasePrompt, referenceImages]);
+
+  const handleUndoImprove = useCallback(() => {
+    if (basePrompt === null) return;
+    setPrompt(basePrompt);
+    setBasePrompt(null);
+  }, [basePrompt, setPrompt, setBasePrompt]);
 
   useLayoutEffect(() => {
     if (supportsFieldSizing) return;
@@ -364,19 +374,30 @@ export function PromptInput() {
             />
           </label>
 
-          <button
-            type="button"
-            onClick={handleImprovePrompt}
-            disabled={!isTextModelAvailable() || !prompt.trim() || isImproving}
-            className="inline-flex items-center gap-1 text-xs text-zinc-400 transition-colors hover:text-zinc-300 disabled:cursor-not-allowed disabled:text-zinc-600"
-          >
-            {isImproving ? (
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-            ) : (
-              <Sparkles className="h-3.5 w-3.5" />
-            )}
-            {isImproving ? "Improving..." : "Improve"}
-          </button>
+          {basePrompt !== null ? (
+            <button
+              type="button"
+              onClick={handleUndoImprove}
+              className="inline-flex items-center gap-1 text-xs text-zinc-400 transition-colors hover:text-zinc-300"
+            >
+              <Undo2 className="h-3.5 w-3.5" />
+              Undo improve
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={handleImprovePrompt}
+              disabled={!isTextModelAvailable() || !prompt.trim() || isImproving}
+              className="inline-flex items-center gap-1 text-xs text-zinc-400 transition-colors hover:text-zinc-300 disabled:cursor-not-allowed disabled:text-zinc-600"
+            >
+              {isImproving ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Sparkles className="h-3.5 w-3.5" />
+              )}
+              {isImproving ? "Improving..." : "Improve"}
+            </button>
+          )}
         </div>
       </div>
     </section>

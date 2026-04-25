@@ -1,4 +1,4 @@
-import { ArrowUp, ImagePlus, Loader2, ScanSearch, Sparkles, Wand2, X } from "lucide-react";
+import { ArrowUp, ImagePlus, Loader2, ScanSearch, Sparkles, Undo2, Wand2, X } from "lucide-react";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
   DndContext,
@@ -84,6 +84,8 @@ interface EditorInputBarProps {
 export function EditorInputBar({ onSourceFile }: EditorInputBarProps) {
   const instruction = useEditorStore((s) => s.instruction);
   const setInstruction = useEditorStore((s) => s.setInstruction);
+  const instructionBasePrompt = useEditorStore((s) => s.instructionBasePrompt);
+  const setInstructionBasePrompt = useEditorStore((s) => s.setInstructionBasePrompt);
   const sourceBlob = useEditorStore((s) => s.sourceBlob);
   const selectedItemId = useEditorStore((s) => s.selectedItemId);
   const isGenerating = useEditorStore((s) => s.isGenerating);
@@ -388,7 +390,7 @@ export function EditorInputBar({ onSourceFile }: EditorInputBarProps) {
 
       await generateEdit({
         instruction: finalInstruction,
-        basePrompt: text,
+        basePrompt: instructionBasePrompt ?? text,
         referenceBlob: canvasBlob,
         referenceId: refId,
         sourceGalleryItemId: canvasSourceGalleryItemId,
@@ -398,6 +400,7 @@ export function EditorInputBar({ onSourceFile }: EditorInputBarProps) {
         resolution,
         quality,
         numberOfImages,
+        skipAutoImprove: instructionBasePrompt !== null,
         onItemsCreated: (itemIds) => {
           for (const id of itemIds) {
             addItemToTurn(turnId, id);
@@ -442,17 +445,25 @@ export function EditorInputBar({ onSourceFile }: EditorInputBarProps) {
   const handleImprove = useCallback(async () => {
     if (!instruction.trim() || isImproving) return;
     const canvasBlob = getCanvasBlob();
+    const snapshot = instruction;
     setIsImproving(true);
     try {
       const images = canvasBlob ? [canvasBlob] : undefined;
       const improved = await callTextModel(IMPROVE_PROMPT_SYSTEM, instruction, images);
       setInstruction(improved.trim());
+      setInstructionBasePrompt(snapshot);
     } catch {
       // Leave instruction unchanged on failure
     } finally {
       setIsImproving(false);
     }
-  }, [instruction, isImproving, getCanvasBlob, setInstruction]);
+  }, [instruction, isImproving, getCanvasBlob, setInstruction, setInstructionBasePrompt]);
+
+  const handleUndoImprove = useCallback(() => {
+    if (instructionBasePrompt === null) return;
+    setInstruction(instructionBasePrompt);
+    setInstructionBasePrompt(null);
+  }, [instructionBasePrompt, setInstruction, setInstructionBasePrompt]);
 
   const handleAnalyze = useCallback(async () => {
     const canvasBlob = getCanvasBlob();
@@ -635,22 +646,35 @@ export function EditorInputBar({ onSourceFile }: EditorInputBarProps) {
                   </button>
                 </Tooltip>
 
-                {/* Improve button */}
-                <Tooltip content="Use AI to improve your instruction">
-                  <button
-                    type="button"
-                    onClick={() => void handleImprove()}
-                    disabled={!isTextModelAvailable() || !instruction.trim() || isImproving}
-                    className="flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs text-zinc-500 transition-colors hover:bg-zinc-700/60 hover:text-zinc-300 disabled:cursor-not-allowed disabled:opacity-40"
-                  >
-                    {isImproving ? (
-                      <Loader2 className="h-3 w-3 animate-spin" />
-                    ) : (
-                      <Wand2 className="h-3 w-3" />
-                    )}
-                    {isImproving ? "Improving…" : "Improve"}
-                  </button>
-                </Tooltip>
+                {/* Improve / Undo improve button */}
+                {instructionBasePrompt !== null ? (
+                  <Tooltip content="Restore your original instruction">
+                    <button
+                      type="button"
+                      onClick={handleUndoImprove}
+                      className="flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs text-zinc-500 transition-colors hover:bg-zinc-700/60 hover:text-zinc-300"
+                    >
+                      <Undo2 className="h-3 w-3" />
+                      Undo improve
+                    </button>
+                  </Tooltip>
+                ) : (
+                  <Tooltip content="Use AI to improve your instruction">
+                    <button
+                      type="button"
+                      onClick={() => void handleImprove()}
+                      disabled={!isTextModelAvailable() || !instruction.trim() || isImproving}
+                      className="flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs text-zinc-500 transition-colors hover:bg-zinc-700/60 hover:text-zinc-300 disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                      {isImproving ? (
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                      ) : (
+                        <Wand2 className="h-3 w-3" />
+                      )}
+                      {isImproving ? "Improving…" : "Improve"}
+                    </button>
+                  </Tooltip>
+                )}
 
                 {/* Attach references button */}
                 {referenceEnabled && hasSource && (

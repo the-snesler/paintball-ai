@@ -13,6 +13,7 @@ export function useImageGeneration() {
   const models = useSettingsStore((s) => s.models);
 
   const prompt = useGenerationStore((s) => s.currentPrompt);
+  const basePrompt = useGenerationStore((s) => s.currentBasePrompt);
   const modelSelections = useGenerationStore((s) => s.currentModelSelections);
   const aspectRatio = useGenerationStore((s) => s.currentAspectRatio);
   const resolution = useGenerationStore((s) => s.currentResolution);
@@ -157,7 +158,7 @@ export function useImageGeneration() {
         prompt: originalPrompt,
         totalTasks,
         images: imageBlobs.length > 0 ? imageBlobs : undefined,
-        improvePrompt: alwaysImprovePromptEnabled,
+        improvePrompt: alwaysImprovePromptEnabled && basePrompt === null,
         variationsEnabled,
         avoidPastVariations,
         galleryItemsForAvoid: items,
@@ -167,7 +168,7 @@ export function useImageGeneration() {
       });
 
       const anyTransformApplied = preparedPrompts.improved || preparedPrompts.usedVariations;
-      const groupPrompt = anyTransformApplied ? originalPrompt : undefined;
+      const groupPrompt = basePrompt ?? (anyTransformApplied ? originalPrompt : undefined);
 
       const tasks: GenerationTask[] = taskSlots.map((slot, taskIndex) => {
         const taskPrompt = preparedPrompts.prompts[taskIndex] ?? originalPrompt;
@@ -213,6 +214,7 @@ export function useImageGeneration() {
     }
   }, [
     prompt,
+    basePrompt,
     modelSelections,
     aspectRatio,
     resolution,

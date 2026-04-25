@@ -17,6 +17,7 @@ interface EditorState {
 
   // Input
   instruction: string;
+  instructionBasePrompt: string | null;
 
   // Analysis
   isAnalyzing: boolean;
@@ -53,6 +54,7 @@ interface EditorState {
   addItemToTurn: (turnId: string, itemId: string) => void;
   selectItem: (id: string | null) => void;
   setInstruction: (text: string) => void;
+  setInstructionBasePrompt: (text: string | null) => void;
   setAnalyzing: (val: boolean) => void;
   setAnalysisResult: (text: string | null) => void;
   setIsGenerating: (val: boolean) => void;
@@ -85,6 +87,7 @@ const INITIAL_STATE = {
   turns: [],
   selectedItemId: null,
   instruction: "",
+  instructionBasePrompt: null as string | null,
   referenceImages: [],
   isAnalyzing: false,
   analysisResult: null,
@@ -160,6 +163,7 @@ export const useEditorStore = create<EditorState>()((set, get) => {
         turns: [],
         selectedItemId: null,
         instruction: "",
+        instructionBasePrompt: null,
         referenceImages: [],
         analysisResult: null,
         isGenerating: false,
@@ -194,6 +198,7 @@ export const useEditorStore = create<EditorState>()((set, get) => {
         selectedItemId,
         referenceImages,
         instruction: "",
+        instructionBasePrompt: null,
         analysisResult: null,
         isGenerating: false,
         isAnalyzing: false,
@@ -237,7 +242,13 @@ export const useEditorStore = create<EditorState>()((set, get) => {
       persistSession();
     },
 
-    setInstruction: (instruction) => set({ instruction }),
+    setInstruction: (instruction) =>
+      set((state) => ({
+        instruction,
+        instructionBasePrompt: instruction.length === 0 ? null : state.instructionBasePrompt,
+      })),
+
+    setInstructionBasePrompt: (instructionBasePrompt) => set({ instructionBasePrompt }),
 
     setAnalyzing: (isAnalyzing) => set({ isAnalyzing }),
 
