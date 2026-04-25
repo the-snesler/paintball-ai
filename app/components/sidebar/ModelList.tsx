@@ -1,4 +1,4 @@
-import { CirclePlus, CircleQuestionMark, Layers } from "lucide-react";
+import { Layers } from "lucide-react";
 import NumberFlow from "@number-flow/react";
 import { ModelItem } from "./ModelItem";
 import { CollapsibleSection } from "./CollapsibleSection";
@@ -18,6 +18,7 @@ export function ModelList() {
 
   return (
     <CollapsibleSection
+      value="models"
       icon={<Layers className="h-4 w-4" />}
       title="Models"
       tooltip="Models available for generation. Add more models and providers in Settings."

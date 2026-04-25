@@ -32,6 +32,11 @@ interface EditorState {
   // Session persistence
   currentSessionId: string | null;
 
+  // Transient navigation hint: lets entry points (e.g. lightbox upscale button)
+  // ask the editor sidebar to open a specific panel on the next mount/visit.
+  // Consumers should clear this after reading.
+  pendingFocusedPanel: "upscalers" | null;
+
   // Actions
   setSource: (params: {
     blob: Blob;
@@ -58,6 +63,7 @@ interface EditorState {
   setAnalyzing: (val: boolean) => void;
   setAnalysisResult: (text: string | null) => void;
   setIsGenerating: (val: boolean) => void;
+  setPendingFocusedPanel: (panel: "upscalers" | null) => void;
   addReferenceImage: (image: ReferenceImage) => void;
   removeReferenceImage: (id: string) => void;
   reorderReferenceImages: (fromId: string, toId: string) => void;
@@ -93,6 +99,7 @@ const INITIAL_STATE = {
   analysisResult: null,
   isGenerating: false,
   currentSessionId: null,
+  pendingFocusedPanel: null as "upscalers" | null,
 };
 
 export const useEditorStore = create<EditorState>()((set, get) => {
@@ -255,6 +262,8 @@ export const useEditorStore = create<EditorState>()((set, get) => {
     setAnalysisResult: (analysisResult) => set({ analysisResult }),
 
     setIsGenerating: (isGenerating) => set({ isGenerating }),
+
+    setPendingFocusedPanel: (pendingFocusedPanel) => set({ pendingFocusedPanel }),
 
     addReferenceImage: (image) => {
       set((state) => ({

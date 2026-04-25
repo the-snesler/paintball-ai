@@ -25,7 +25,6 @@ import {
   useReuseGalleryItemBasePrompt,
   useReuseGalleryItemPrompt,
 } from "~/hooks/useReuseGalleryItemPrompt";
-import { useUpscale } from "~/hooks/useUpscale";
 import { IconButton } from "./IconButton";
 import { WideIconButton } from "./WideIconButton";
 import { findSessionForImage, getReferenceImagesByIds, saveReferenceImage } from "~/lib/db";
@@ -46,16 +45,13 @@ export function Lightbox() {
   const { getPromptGroupForItem, getChildItems, getItemById } = useGalleryDerivedIndexes();
   const setEditorSource = useEditorStore((s) => s.setSource);
   const clearForSessionRestore = useEditorStore((s) => s.clearForSessionRestore);
+  const setPendingFocusedPanel = useEditorStore((s) => s.setPendingFocusedPanel);
 
   const [referenceImages, setReferenceImages] = useState<ReferenceImage[]>([]);
   const [linkedSession, setLinkedSession] = useState<StoredEditorSession | null>(null);
-  const [showUpscalePicker, setShowUpscalePicker] = useState(false);
   const [copySuccess, setCopySuccess] = useState(false);
   const [copyRawSuccess, setCopyRawSuccess] = useState(false);
-  const { status: upscaleStatus, error: upscaleError, upscale } = useUpscale();
   const replicateKey = useSettingsStore((s) => s.apiKeys.replicate);
-  const upscalers = useSettingsStore((s) => s.upscalers);
-  const enabledUpscalers = replicateKey ? upscalers.filter((u) => u.enabled) : [];
 
   useEffect(() => {
     if (!galleryImage || galleryImage.referenceImageIds.length === 0) {
@@ -80,10 +76,6 @@ export function Lightbox() {
       loaded.forEach((url) => URL.revokeObjectURL(url));
       setReferenceImages([]);
     };
-  }, [galleryImage?.id]);
-
-  useEffect(() => {
-    setShowUpscalePicker(false);
   }, [galleryImage?.id]);
 
   // Check whether this image is part of any editor session
@@ -166,46 +158,56 @@ export function Lightbox() {
     closeLightbox();
   }, [galleryImage, hasBasePrompt, reuseGalleryItemBasePrompt, closeLightbox]);
 
-  const handleSendToEditor = useCallback(async () => {
-    if (!galleryImage || galleryImage.status !== "completed") return;
+  const goToEditor = useCallback(
+    async (focusPanel: "upscalers" | null) => {
+      if (!galleryImage || galleryImage.status !== "completed") return;
 
-    if (linkedSession) {
-      // Restore the existing session: save + clear current in-memory state, set the
-      // target session in localStorage, then let EditorView's restore effect handle it.
-      localStorage.setItem("editorSessionId", linkedSession.id);
-      clearForSessionRestore();
+      // Set the navigation hint *before* navigation so the editor sidebar reads it on mount.
+      setPendingFocusedPanel(focusPanel);
+
+      if (linkedSession) {
+        // Restore the existing session: save + clear current in-memory state, set the
+        // target session in localStorage, then let EditorView's restore effect handle it.
+        localStorage.setItem("editorSessionId", linkedSession.id);
+        clearForSessionRestore();
+        closeLightbox();
+        navigate("/editor");
+        return;
+      }
+
+      const refId = crypto.randomUUID();
+      try {
+        await saveReferenceImage({
+          id: refId,
+          blob: galleryImage.originalBlob,
+          name: `${galleryImage.modelName} - ${galleryImage.prompt.slice(0, 40)}`,
+          sourceGalleryItemId: galleryImage.id,
+        });
+      } catch {
+        // continue without saved reference
+      }
+      setEditorSource({
+        blob: galleryImage.originalBlob,
+        prompt: galleryImage.prompt,
+        galleryItemId: galleryImage.id,
+        referenceId: refId,
+      });
       closeLightbox();
       navigate("/editor");
-      return;
-    }
+    },
+    [
+      galleryImage,
+      linkedSession,
+      clearForSessionRestore,
+      setEditorSource,
+      setPendingFocusedPanel,
+      closeLightbox,
+      navigate,
+    ]
+  );
 
-    const refId = crypto.randomUUID();
-    try {
-      await saveReferenceImage({
-        id: refId,
-        blob: galleryImage.originalBlob,
-        name: `${galleryImage.modelName} - ${galleryImage.prompt.slice(0, 40)}`,
-        sourceGalleryItemId: galleryImage.id,
-      });
-    } catch {
-      // continue without saved reference
-    }
-    setEditorSource({
-      blob: galleryImage.originalBlob,
-      prompt: galleryImage.prompt,
-      galleryItemId: galleryImage.id,
-      referenceId: refId,
-    });
-    closeLightbox();
-    navigate("/editor");
-  }, [
-    galleryImage,
-    linkedSession,
-    clearForSessionRestore,
-    setEditorSource,
-    closeLightbox,
-    navigate,
-  ]);
+  const handleSendToEditor = useCallback(() => goToEditor(null), [goToEditor]);
+  const handleUpscale = useCallback(() => goToEditor("upscalers"), [goToEditor]);
 
   const handleDelete = useCallback(async () => {
     if (!galleryImage) return;
@@ -294,19 +296,19 @@ export function Lightbox() {
                     onClick={handleSendToEditor}
                   />
                 )}
-                <WideIconButton
-                  icon={<ImageUpscale className="h-4 w-4" />}
-                  title={"Upscale"}
-                  tooltip={
-                    !replicateKey ? "Upscaling requires a Replicate API key" : "Upscale this image"
-                  }
-                  onClick={() => setShowUpscalePicker((v) => !v)}
-                  disabled={
-                    !replicateKey ||
-                    galleryImage.status !== "completed" ||
-                    upscaleStatus === "running"
-                  }
-                />
+                {location.pathname !== "/editor" && (
+                  <WideIconButton
+                    icon={<ImageUpscale className="h-4 w-4" />}
+                    title="Upscale"
+                    tooltip={
+                      !replicateKey
+                        ? "Upscaling requires a Replicate API key"
+                        : "Open in editor with upscalers"
+                    }
+                    onClick={handleUpscale}
+                    disabled={!replicateKey || galleryImage.status !== "completed"}
+                  />
+                )}
                 <IconButton
                   icon={<Download className="h-4 w-4" />}
                   title="Download"
@@ -323,40 +325,6 @@ export function Lightbox() {
 
             {/* Body */}
             <div className="flex-1 space-y-4 overflow-y-auto p-4">
-              {/* Upscale picker */}
-              {showUpscalePicker && galleryImage.status === "completed" && (
-                <div className="space-y-2 rounded-lg border border-zinc-700 bg-zinc-800/50 p-3">
-                  <p className="text-xs font-medium text-zinc-400">Upscale with</p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {enabledUpscalers.length === 0 ? (
-                      <p className="text-xs text-zinc-500">
-                        No upscalers enabled. Enable or add one in Settings.
-                      </p>
-                    ) : (
-                      enabledUpscalers.map((u) => (
-                        <button
-                          key={u.id}
-                          disabled={upscaleStatus === "running"}
-                          onClick={() => {
-                            upscale(galleryImage, u);
-                            setShowUpscalePicker(false);
-                          }}
-                          className="rounded-md bg-zinc-700 px-2.5 py-1 text-xs text-zinc-300 transition-colors hover:bg-zinc-600 disabled:cursor-not-allowed disabled:bg-zinc-700/50 disabled:text-zinc-600"
-                        >
-                          {u.name}
-                        </button>
-                      ))
-                    )}
-                  </div>
-                  {upscaleStatus === "running" && (
-                    <p className="text-xs text-zinc-500">Upscaling…</p>
-                  )}
-                  {upscaleStatus === "error" && upscaleError && (
-                    <p className="text-xs text-red-400">{upscaleError}</p>
-                  )}
-                </div>
-              )}
-
               {/* Metadata */}
               {topMetadataRow && (
                 <div className="flex flex-wrap items-center gap-2 text-xs text-zinc-500">

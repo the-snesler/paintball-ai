@@ -2,15 +2,19 @@ import { useCallback } from "react";
 import { useSettingsStore } from "~/stores/settingsStore";
 import { useGalleryStore } from "~/stores/galleryStore";
 import { getModel } from "~/lib/models";
-import { saveReferenceImage } from "~/lib/db";
+import { saveImage, saveReferenceImage } from "~/lib/db";
 import { preparePromptBatch } from "~/lib/promptPreparation";
-import type { AspectRatio, GalleryItem, Resolution } from "~/types";
+import { createThumbnailBlob } from "~/lib/imageProcessing";
+import { executeUpscale } from "~/lib/upscaling";
+import type { AspectRatio, GalleryItem, Resolution, StoredUpscaler } from "~/types";
 import { useGenerationTask, type GenerationTask } from "~/hooks/useGenerationTask";
 
 export function useEditorGeneration() {
   const models = useSettingsStore((s) => s.models);
   const alwaysImprovePromptEnabled = useSettingsStore((s) => s.alwaysImprovePromptEnabled);
+  const replicateKey = useSettingsStore((s) => s.apiKeys.replicate);
   const addItems = useGalleryStore((s) => s.addItems);
+  const updateItem = useGalleryStore((s) => s.updateItem);
   const updatePendingPromptFields = useGalleryStore((s) => s.updatePendingPromptFields);
   const updatePendingPhase = useGalleryStore((s) => s.updatePendingPhase);
   const { runTasks } = useGenerationTask();
@@ -213,5 +217,90 @@ export function useEditorGeneration() {
     ]
   );
 
-  return { generateEdit };
+  /**
+   * Run an upscale as an editor turn. Synchronously creates a pending gallery
+   * item and calls `onItemsCreated` before any async work begins, mirroring
+   * `generateEdit`'s contract so the caller can register the turn first.
+   *
+   * No prompt prep, no model loop — single fixed upscaler, single output.
+   */
+  const generateUpscale = useCallback(
+    async (params: {
+      referenceBlob: Blob;
+      referenceId: string;
+      sourceGalleryItemId?: string;
+      upscaler: StoredUpscaler;
+      onItemsCreated: (itemIds: string[]) => void;
+    }): Promise<void> => {
+      const { referenceBlob, referenceId, sourceGalleryItemId, upscaler, onItemsCreated } = params;
+      if (!replicateKey) return;
+
+      const itemId = crypto.randomUUID();
+      const modelName = `${upscaler.name} ↑`;
+      const instruction = `Upscale with ${upscaler.name}`;
+
+      const pendingItem: GalleryItem = {
+        id: itemId,
+        status: "generating",
+        modelId: upscaler.id,
+        modelName,
+        prompt: instruction,
+        aspectRatio: null,
+        resolution: null,
+        referenceImageIds: [referenceId],
+        retryCount: 0,
+      };
+
+      addItems([pendingItem]);
+      onItemsCreated([itemId]);
+
+      try {
+        const result = await executeUpscale(referenceBlob, upscaler, replicateKey);
+
+        const thumbnailBlob = await createThumbnailBlob(result.blob, 400);
+        const createdAt = Date.now();
+        const metadata = {
+          upscaledFrom: sourceGalleryItemId,
+          upscaler: upscaler.id,
+          upscaleLabel: upscaler.name,
+        };
+
+        await saveImage({
+          id: itemId,
+          originalBlob: result.blob,
+          thumbnailBlob,
+          prompt: instruction,
+          modelId: upscaler.id,
+          modelName,
+          aspectRatio: null,
+          resolution: null,
+          width: result.width,
+          height: result.height,
+          createdAt,
+          referenceImageIds: [referenceId],
+          parentGalleryItemIds: sourceGalleryItemId ? [sourceGalleryItemId] : undefined,
+          metadata,
+        });
+
+        updateItem(itemId, {
+          status: "completed",
+          originalBlob: result.blob,
+          originalUrl: URL.createObjectURL(result.blob),
+          thumbnailBlob,
+          thumbnailUrl: URL.createObjectURL(thumbnailBlob),
+          width: result.width,
+          height: result.height,
+          createdAt,
+          metadata,
+          parentGalleryItemIds: sourceGalleryItemId ? [sourceGalleryItemId] : undefined,
+        });
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Upscale failed";
+        updateItem(itemId, { status: "failed", error: message, canRetry: false });
+      }
+    },
+    [addItems, replicateKey, updateItem]
+  );
+
+  return { generateEdit, generateUpscale };
 }

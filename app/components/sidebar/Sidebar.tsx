@@ -2,6 +2,7 @@ import { Expand, Layers, MessageSquareText, X } from "lucide-react";
 import { useLocation } from "react-router";
 import { PromptInput } from "./PromptInput";
 import { ModelList } from "./ModelList";
+import { UpscalerList } from "./UpscalerList";
 import { AspectRatioSection } from "./AspectRatioSection";
 import { ResolutionSection } from "./ResolutionSection";
 import { QualitySection } from "./QualitySection";
@@ -19,7 +20,9 @@ import SortableUpscalerItem from "../settings/SortableUpscalerItem";
 import TextModelItem from "../settings/TextModelItem";
 import { hasProviderAccess } from "~/lib/providers";
 import { useSettingsStore } from "~/stores/settingsStore";
-import { useCallback } from "react";
+import { useEditorStore } from "~/stores/editorStore";
+import { useCallback, useEffect, useState } from "react";
+import { Accordion } from "@base-ui/react/accordion";
 import {
   DndContext,
   closestCenter,
@@ -57,7 +60,9 @@ function GallerySidebarContent() {
         <PromptInput />
         <PromptVariationsToggle />
         <AvoidPastVariationsToggle />
-        <ModelList />
+        <Accordion.Root defaultValue={["models"]}>
+          <ModelList />
+        </Accordion.Root>
         <AspectRatioSection />
         <ResolutionSection />
         <QualitySection />
@@ -71,10 +76,33 @@ function GallerySidebarContent() {
 }
 
 function EditorSidebarContent() {
+  // Models and Upscale Models share an accordion group: only one open at a time.
+  const [openPanels, setOpenPanels] = useState<string[]>(["models"]);
+  const [highlightUpscalers, setHighlightUpscalers] = useState(false);
+  const pendingFocusedPanel = useEditorStore((s) => s.pendingFocusedPanel);
+  const setPendingFocusedPanel = useEditorStore((s) => s.setPendingFocusedPanel);
+
+  useEffect(() => {
+    if (pendingFocusedPanel !== "upscalers") return;
+    setOpenPanels(["upscalers"]);
+    setHighlightUpscalers(true);
+    setPendingFocusedPanel(null);
+    const timer = setTimeout(() => setHighlightUpscalers(false), 1500);
+    return () => clearTimeout(timer);
+  }, [pendingFocusedPanel, setPendingFocusedPanel]);
+
   return (
     <div className="flex-1 space-y-6 overflow-y-auto py-4 pr-1 pl-4 [scrollbar-gutter:stable]">
       <RecentSessions />
-      <ModelList />
+      <Accordion.Root
+        multiple={false}
+        value={openPanels}
+        onValueChange={(value) => setOpenPanels(value as string[])}
+        className="space-y-6"
+      >
+        <ModelList />
+        <UpscalerList highlight={highlightUpscalers} />
+      </Accordion.Root>
       <AspectRatioSection />
       <ResolutionSection />
       <QualitySection />
