@@ -67,18 +67,18 @@ export function NotificationPermissionPrompt() {
   };
 
   return (
-    <div className="fixed right-4 bottom-4 z-40 w-[min(24rem,calc(100vw-2rem))] rounded-xl border border-zinc-800 bg-zinc-900/95 p-4 shadow-xl backdrop-blur">
+    <div className="fixed right-4 bottom-4 z-40 w-[min(24rem,calc(100vw-2rem))] rounded-xl border border-border-subtle bg-surface-raised/95 p-4 shadow-xl backdrop-blur">
       <div className="flex items-start gap-3">
-        <div className="mt-0.5 rounded-lg bg-zinc-800 p-2">
-          <Bell className="h-4 w-4 text-purple-400" />
+        <div className="mt-0.5 rounded-lg bg-surface-overlay p-2">
+          <Bell className="h-4 w-4 text-accent-muted" />
         </div>
 
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-medium text-zinc-100">Desktop notifications</p>
-          <p className="mt-1 text-xs leading-relaxed text-zinc-400">
+          <p className="text-sm font-medium text-text-primary">Desktop notifications</p>
+          <p className="mt-1 text-xs leading-relaxed text-text-tertiary">
             Get notified when image generations finish while this tab is in the background.
           </p>
-          <p className="mt-2 text-[11px] text-zinc-500">
+          <p className="mt-2 text-[11px] text-text-muted">
             You can also enable this later in Settings.
           </p>
 
@@ -94,7 +94,7 @@ export function NotificationPermissionPrompt() {
             <button
               type="button"
               onClick={dismissNotificationPrompt}
-              className="rounded-lg bg-zinc-800 px-3 py-1.5 text-xs font-medium text-zinc-200 transition-colors hover:bg-zinc-700"
+              className="rounded-lg bg-surface-overlay px-3 py-1.5 text-xs font-medium text-text-secondary transition-colors hover:bg-surface-interactive"
             >
               Dismiss
             </button>
@@ -104,7 +104,7 @@ export function NotificationPermissionPrompt() {
         <button
           type="button"
           onClick={dismissNotificationPrompt}
-          className="rounded-md p-1 text-zinc-500 transition-colors hover:bg-zinc-800 hover:text-zinc-300"
+          className="rounded-md p-1 text-text-muted transition-colors hover:bg-surface-overlay hover:text-text-secondary"
           aria-label="Dismiss notification prompt"
         >
           <X className="h-4 w-4" />

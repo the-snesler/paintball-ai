@@ -26,11 +26,11 @@ export function NumberOfImagesSection() {
   return (
     <section>
       <div className="mb-2 flex items-center gap-2">
-        <span className="text-zinc-500">
+        <span className="text-text-muted">
           <Images className="h-4 w-4" />
         </span>
-        <h2 className="text-xs font-medium tracking-wide text-zinc-400 uppercase">Images / call</h2>
-        <span className="ml-auto text-xs font-medium text-zinc-300 tabular-nums">
+        <h2 className="text-xs font-medium tracking-wide text-text-tertiary uppercase">Images / call</h2>
+        <span className="ml-auto text-xs font-medium text-text-secondary tabular-nums">
           {numberOfImages}
         </span>
       </div>
@@ -43,11 +43,11 @@ export function NumberOfImagesSection() {
         onChange={(e) => setNumberOfImages(Number(e.target.value))}
         className="h-1.5 w-full cursor-pointer appearance-none rounded-full"
         style={{
-          background: `linear-gradient(to right, var(--color-purple-500) 0%, var(--color-purple-500) ${((numberOfImages - 1) / (max - 1)) * 100}%, var(--color-zinc-800) ${((numberOfImages - 1) / (max - 1)) * 100}%, var(--color-zinc-800) 100%)
+          background: `linear-gradient(to right, var(--color-purple-500) 0%, var(--color-purple-500) ${((numberOfImages - 1) / (max - 1)) * 100}%, var(--color-surface-overlay) ${((numberOfImages - 1) / (max - 1)) * 100}%, var(--color-surface-overlay) 100%)
           `,
         }}
       />
-      <div className="mt-1 flex justify-between text-[10px] text-zinc-500 tabular-nums">
+      <div className="mt-1 flex justify-between text-[10px] text-text-muted tabular-nums">
         <span>1</span>
         <span>{Math.max(1, max)}</span>
       </div>

@@ -29,7 +29,7 @@ function CapabilityBadge({
   if (!enabled) return null;
   return (
     <Tooltip content={label} placement="top" delay={200}>
-      <span className="inline-flex cursor-help items-center gap-1 rounded bg-zinc-700/50 px-1.5 py-0.5 text-[10px] text-zinc-400">
+      <span className="inline-flex cursor-help items-center gap-1 rounded bg-surface-interactive/50 px-1.5 py-0.5 text-[10px] text-text-tertiary">
         <Icon className="h-2.5 w-2.5" />
       </span>
     </Tooltip>
@@ -98,16 +98,16 @@ export default function ModelToggleItem({
 
   return (
     <div
-      className={`flex items-center gap-1 rounded-lg border border-zinc-700/50 bg-zinc-800/50 p-2 py-2.5 ${
+      className={`flex items-center gap-1 rounded-lg border border-c-border/50 bg-surface-overlay/50 p-2 py-2.5 ${
         !hasApiKey ? "opacity-50" : ""
       }`}
     >
       {dragHandleProps ? (
         <button
           {...dragHandleProps}
-          className="shrink-0 cursor-grab touch-none text-zinc-600 hover:text-zinc-400 active:cursor-grabbing"
+          className="shrink-0 cursor-grab touch-none text-text-muted hover:text-text-tertiary active:cursor-grabbing"
         >
-          <div className="mr-2 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-zinc-700 text-zinc-400">
+          <div className="mr-2 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-surface-interactive text-text-tertiary">
             {model.icon ? (
               <SVG src={model.icon} className="h-5 w-5" />
             ) : (
@@ -116,16 +116,16 @@ export default function ModelToggleItem({
           </div>
         </button>
       ) : (
-        <div className="mr-2 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-zinc-700 text-zinc-400">
+        <div className="mr-2 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-surface-interactive text-text-tertiary">
           {model.icon ? <SVG src={model.icon} className="h-5 w-5" /> : <Box className="h-4 w-4" />}
         </div>
       )}
 
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-medium text-zinc-100">{model.name}</p>
+        <p className="truncate text-sm font-medium text-text-primary">{model.name}</p>
         <div className="mt-0.5 flex items-center gap-1">
           <Tooltip content={provider.label} placement="top" delay={200}>
-            <span className="text-zinc-40 inline-flex cursor-help items-center gap-1 rounded bg-purple-700/50 px-1.5 py-0.5 text-[10px] text-purple-400">
+            <span className="text-text-tertiary inline-flex cursor-help items-center gap-1 rounded bg-purple-700/50 px-1.5 py-0.5 text-[10px] text-accent-muted">
               <SVG src={provider.iconPath} className="h-2.5 w-2.5 overflow-visible" />
             </span>
           </Tooltip>
@@ -164,7 +164,7 @@ export default function ModelToggleItem({
             type="button"
             onClick={handleRefetch}
             disabled={isRefetching || !hasApiKey}
-            className={`shrink-0 p-1 text-zinc-500 transition-colors hover:text-purple-400 disabled:cursor-not-allowed disabled:opacity-50 ${needsRefetch ? "text-yellow-400" : ""}`}
+            className={`shrink-0 p-1 text-text-muted transition-colors hover:text-accent-muted disabled:cursor-not-allowed disabled:opacity-50 ${needsRefetch ? "text-yellow-400" : ""}`}
           >
             <RefreshCw className={`h-4 w-4 ${isRefetching ? "animate-spin" : ""}`} />
           </button>
@@ -174,7 +174,7 @@ export default function ModelToggleItem({
       {model.isCustom && (
         <button
           onClick={() => removeCustomModel(model.id)}
-          className="shrink-0 p-1 text-zinc-500 transition-colors hover:text-red-400"
+          className="shrink-0 p-1 text-text-muted transition-colors hover:text-red-400"
           title="Remove model"
         >
           <Trash2 className="h-4 w-4" />

@@ -75,7 +75,7 @@ export function LoadingCard({ item }: LoadingCardProps) {
 
   return (
     <div
-      className="animate-fade-in relative overflow-hidden rounded-lg bg-zinc-900"
+      className="animate-fade-in relative overflow-hidden rounded-lg bg-surface-raised"
       style={{ aspectRatio }}
     >
       {/* Animated background for generating/pending */}
@@ -94,7 +94,7 @@ export function LoadingCard({ item }: LoadingCardProps) {
           className="absolute top-2 right-2 z-10 rounded-full bg-black/60 p-1.5 transition-colors hover:bg-black/80"
           aria-label="Dismiss error"
         >
-          <X className="h-4 w-4 text-zinc-400" />
+          <X className="h-4 w-4 text-text-tertiary" />
         </button>
       )}
 

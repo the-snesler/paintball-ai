@@ -84,7 +84,7 @@ export function GenerateButton() {
           className={`flex w-full items-center justify-center gap-2 rounded-lg border-2 px-4 py-3 font-medium transition-all ${
             canGenerate
               ? "-translate-y-1 cursor-pointer border-purple-500 bg-purple-600 text-white shadow-lg hover:-translate-y-2 hover:border-purple-400 hover:bg-purple-500 active:translate-y-0"
-              : "translate-y-0 cursor-not-allowed border-zinc-700 bg-zinc-800 text-zinc-500"
+              : "translate-y-0 cursor-not-allowed border-c-border bg-surface-overlay text-text-muted"
           }`}
         >
           {isLockedForCurrentParams ? (
@@ -111,7 +111,7 @@ export function GenerateButton() {
         </button>
       </div>
       <div className="flex w-full justify-center">
-        <span className="text-xs text-zinc-400">
+        <span className="text-xs text-text-tertiary">
           <NumberFlow
             value={totalImages}
             format={{ useGrouping: false }}
@@ -125,7 +125,7 @@ export function GenerateButton() {
           <button
             onClick={handleClear}
             disabled={!canClear}
-            className="text-center text-red-400 hover:cursor-pointer hover:underline disabled:text-zinc-400 disabled:hover:cursor-not-allowed disabled:hover:no-underline"
+            className="text-center text-red-400 hover:cursor-pointer hover:underline disabled:text-text-tertiary disabled:hover:cursor-not-allowed disabled:hover:no-underline"
           >
             Clear
           </button>

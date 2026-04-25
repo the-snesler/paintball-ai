@@ -12,7 +12,7 @@ export function Switch({ wrapperClassName = "", ...inputProps }: SwitchProps) {
       } ${wrapperClassName}`}
     >
       <input type="checkbox" className="peer sr-only" {...inputProps} />
-      <div className="peer h-5 w-9 rounded-full bg-zinc-700 transition-colors peer-checked:bg-purple-600 peer-focus:outline-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 after:absolute after:start-0.5 after:top-0.5 after:h-4 after:w-4 after:rounded-full after:bg-zinc-400 after:transition-all after:content-[''] peer-checked:after:translate-x-full peer-checked:after:border-white peer-checked:after:bg-white rtl:peer-checked:after:-translate-x-full" />
+      <div className="peer bg-surface-interactive peer-checked:bg-accent after:bg-text-tertiary h-5 w-9 rounded-full transition-colors peer-focus:outline-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 after:absolute after:start-0.5 after:top-0.5 after:h-4 after:w-4 after:rounded-full after:transition-all after:content-[''] peer-checked:after:translate-x-full peer-checked:after:border-white peer-checked:after:bg-white rtl:peer-checked:after:-translate-x-full" />
     </label>
   );
 }

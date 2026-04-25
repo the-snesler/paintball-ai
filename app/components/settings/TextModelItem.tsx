@@ -25,7 +25,7 @@ export default function TextModelItem({
       className={`flex items-center gap-1 rounded-lg border p-2.5 transition-colors ${
         model.enabled
           ? "border-purple-600/50 bg-purple-900/20"
-          : "border-zinc-700/50 bg-zinc-800/50"
+          : "border-c-border/50 bg-surface-overlay/50"
       } ${!hasApiKey ? "opacity-50" : ""}`}
     >
       <button
@@ -38,27 +38,27 @@ export default function TextModelItem({
       >
         <div
           className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${
-            model.enabled ? "bg-purple-800 text-purple-400" : "bg-zinc-700 text-zinc-400"
+            model.enabled ? "bg-purple-800 text-accent-muted" : "bg-surface-interactive text-text-tertiary"
           }`}
         >
           {model.icon ? <SVG src={model.icon} className="h-5 w-5" /> : <Box className="h-4 w-4" />}
         </div>
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-medium text-zinc-100">{model.name}</p>
+          <p className="truncate text-sm font-medium text-text-primary">{model.name}</p>
           <div className="mt-0.5 flex items-center gap-1">
             <Tooltip
               content={model.provider === "google" ? "Google" : "Replicate"}
               placement="top"
               delay={200}
             >
-              <span className="text-zinc-40 inline-flex cursor-help items-center gap-1 rounded bg-purple-700/50 px-1.5 py-0.5 text-[10px] text-purple-400">
+              <span className="text-text-tertiary inline-flex cursor-help items-center gap-1 rounded bg-purple-700/50 px-1.5 py-0.5 text-[10px] text-accent-muted">
                 <SVG
                   src={`/icons/${model.provider}.svg`}
                   className="h-2.5 w-2.5 overflow-visible"
                 />
               </span>
             </Tooltip>
-            <span className="truncate text-[10px] text-zinc-500">{model.modelId}</span>
+            <span className="truncate text-[10px] text-text-muted">{model.modelId}</span>
           </div>
         </div>
       </button>
@@ -67,7 +67,7 @@ export default function TextModelItem({
         <button
           type="button"
           onClick={() => removeCustomTextModel(model.id)}
-          className="shrink-0 p-1 text-zinc-500 transition-colors hover:text-red-400"
+          className="shrink-0 p-1 text-text-muted transition-colors hover:text-red-400"
           title="Remove model"
         >
           <Trash2 className="h-4 w-4" />
@@ -83,7 +83,7 @@ export default function TextModelItem({
         className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 transition-colors disabled:cursor-not-allowed ${
           model.enabled
             ? "border-purple-500 bg-purple-500 text-white"
-            : "border-zinc-600 hover:border-zinc-500"
+            : "border-c-border hover:border-c-border"
         }`}
         aria-label={`Select ${model.name}`}
       >

@@ -94,17 +94,17 @@ export function RecentSessions() {
   return (
     <section>
       <div className="mb-2 flex items-center gap-2">
-        <span className="text-zinc-500">
+        <span className="text-text-muted">
           <Clock className="h-4 w-4" />
         </span>
-        <h2 className="text-xs font-medium tracking-wide text-zinc-400 uppercase">
+        <h2 className="text-xs font-medium tracking-wide text-text-tertiary uppercase">
           Recent Sessions
         </h2>
         {hasMore && (
           <button
             type="button"
             onClick={() => setExpanded((v) => !v)}
-            className="ml-auto flex items-center gap-1 rounded text-xs text-zinc-500 transition-colors hover:text-zinc-300"
+            className="ml-auto flex items-center gap-1 rounded text-xs text-text-muted transition-colors hover:text-text-secondary"
             aria-expanded={expanded}
           >
             <span>{expanded ? "Show less" : `+${sessions.length - COLLAPSED_COUNT} more`}</span>
@@ -123,7 +123,7 @@ export function RecentSessions() {
             "flex w-full items-center gap-2.5 rounded-lg p-2 text-left transition-colors",
             {
               "cursor-default border border-purple-500/40 bg-purple-500/10": isNewSession,
-              "border border-transparent hover:bg-zinc-800": !isNewSession,
+              "border border-transparent hover:bg-surface-overlay": !isNewSession,
             }
           )}
         >
@@ -131,22 +131,22 @@ export function RecentSessions() {
             className={clsx(
               "flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-md",
               {
-                "bg-zinc-800": !isNewSession,
+                "bg-surface-overlay": !isNewSession,
                 "bg-purple-500/10": isNewSession,
               }
             )}
           >
             <Plus
               className={clsx("h-6 w-6", {
-                "text-zinc-500": !isNewSession,
-                "text-purple-400": isNewSession,
+                "text-text-muted": !isNewSession,
+                "text-accent-muted": isNewSession,
               })}
             />
           </div>
 
           {/* Text */}
           <div className="min-w-0 flex-1">
-            <p className="truncate text-xs text-zinc-200">New Session</p>
+            <p className="truncate text-xs text-text-secondary">New Session</p>
           </div>
         </button>
 
@@ -172,12 +172,12 @@ export function RecentSessions() {
                 "flex w-full items-center gap-2.5 rounded-lg p-2 text-left transition-colors",
                 {
                   "cursor-default border border-purple-500/40 bg-purple-500/10": isActive,
-                  "border border-transparent hover:bg-zinc-800": !isActive,
+                  "border border-transparent hover:bg-surface-overlay": !isActive,
                 }
               )}
             >
               {/* Thumbnail */}
-              <div className="h-9 w-9 shrink-0 overflow-hidden rounded-md bg-zinc-800">
+              <div className="h-9 w-9 shrink-0 overflow-hidden rounded-md bg-surface-overlay">
                 {thumbUrl ? (
                   <img src={thumbUrl} alt="" className="h-full w-full object-cover" />
                 ) : (
@@ -187,14 +187,14 @@ export function RecentSessions() {
 
               {/* Text */}
               <div className="min-w-0 flex-1">
-                <p className="truncate text-xs text-zinc-200">
+                <p className="truncate text-xs text-text-secondary">
                   {session.sourcePrompt || "Untitled session"}
                 </p>
-                <p className="mt-0.5 text-[10px] text-zinc-500">
+                <p className="mt-0.5 text-[10px] text-text-muted">
                   {session.turns.length === 1 ? "1 turn" : `${session.turns.length} turns`}
                   {" · "}
                   {formatRelativeDate(session.savedAt)}
-                  {isActive && <span className="ml-1.5 font-medium text-purple-400">active</span>}
+                  {isActive && <span className="ml-1.5 font-medium text-accent-muted">active</span>}
                 </p>
               </div>
             </button>

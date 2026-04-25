@@ -24,14 +24,14 @@ export function PromptVariationsToggle() {
 
   const tooltipContent = (
     <>
-      <p className="mb-1.5 font-medium text-zinc-100">Prompt Variations</p>
+      <p className="mb-1.5 font-medium text-text-primary">Prompt Variations</p>
       <p>Generate unique prompts for each image by adding variable sections to your prompt:</p>
-      <code className="my-1.5 block rounded bg-zinc-900 px-2 py-1 text-zinc-400">
+      <code className="my-1.5 block rounded bg-surface-raised px-2 py-1 text-text-tertiary">
         {"{{sunset: vary time of day}}"}
       </code>
       <p>
         The text model will replace each{" "}
-        <code className="rounded bg-zinc-900 px-1 text-zinc-400">{"{{}}"}</code> section with a
+        <code className="rounded bg-surface-raised px-1 text-text-tertiary">{"{{}}"}</code> section with a
         unique variation per image. It will use the example text before the colon as a base for
         generating variations, and the text after the colon as instructions for how to vary it.
       </p>
@@ -48,14 +48,14 @@ export function PromptVariationsToggle() {
   return (
     <div className="flex items-center justify-between">
       <div className="flex items-center gap-2">
-        <span className="text-zinc-500">
+        <span className="text-text-muted">
           <Shuffle className="h-4 w-4" />
         </span>
-        <span className="text-xs font-medium tracking-wide text-zinc-400 uppercase">
+        <span className="text-xs font-medium tracking-wide text-text-tertiary uppercase">
           Prompt Variations
         </span>
         <Tooltip content={tooltipContent} placement="bottom-start">
-          <span className="cursor-help text-zinc-600 transition-colors hover:text-zinc-400">
+          <span className="cursor-help text-text-muted transition-colors hover:text-text-tertiary">
             <Info className="h-3 w-3" />
           </span>
         </Tooltip>

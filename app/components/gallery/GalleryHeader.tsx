@@ -25,8 +25,8 @@ export function GalleryHeader({
   const openEditor = () => navigate("/editor");
 
   return (
-    <header className="flex h-18 items-center gap-2 border-b border-zinc-800 px-6 py-4">
-      <h2 className="truncate text-sm font-medium tracking-wide text-zinc-400 uppercase">
+    <header className="flex h-18 items-center gap-2 border-b border-border-subtle px-6 py-4">
+      <h2 className="truncate text-sm font-medium tracking-wide text-text-tertiary uppercase">
         {title ? (
           title
         ) : (
@@ -55,7 +55,7 @@ export function GalleryHeader({
       )}
 
       <div className="flex items-center gap-1">
-        <div className="flex items-center gap-1 rounded-lg bg-zinc-900 p-1">
+        <div className="flex items-center gap-1 rounded-lg bg-surface-raised p-1">
           <ViewModeButton
             onClick={openGallery}
             isActive={location.pathname === "/"}
@@ -75,8 +75,8 @@ export function GalleryHeader({
           title="Open Editor"
           className={`flex h-8 w-8 items-center justify-center rounded-md transition-colors ${
             location.pathname === "/editor"
-              ? "bg-zinc-800 text-zinc-100"
-              : "text-zinc-400 hover:bg-zinc-800 hover:text-zinc-300"
+              ? "bg-surface-overlay text-text-primary"
+              : "text-text-tertiary hover:bg-surface-overlay hover:text-text-secondary"
           }`}
         >
           <FilePenLine className="h-4 w-4" />
@@ -86,8 +86,8 @@ export function GalleryHeader({
           aria-label="Settings"
           className={`flex h-8 w-8 items-center justify-center rounded-md transition-colors ${
             location.pathname === "/settings"
-              ? "bg-zinc-800 text-zinc-100"
-              : "text-zinc-400 hover:bg-zinc-800 hover:text-zinc-300"
+              ? "bg-surface-overlay text-text-primary"
+              : "text-text-tertiary hover:bg-surface-overlay hover:text-text-secondary"
           }`}
         >
           <Settings className="h-4 w-4" />
@@ -113,8 +113,8 @@ function ViewModeButton({
       onClick={onClick}
       className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
         isActive
-          ? "bg-zinc-800 text-zinc-100"
-          : "text-zinc-400 hover:bg-zinc-800 hover:text-zinc-300"
+          ? "bg-surface-overlay text-text-primary"
+          : "text-text-tertiary hover:bg-surface-overlay hover:text-text-secondary"
       }`}
     >
       {icon}

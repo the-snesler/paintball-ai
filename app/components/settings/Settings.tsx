@@ -111,7 +111,7 @@ export function SettingsModal() {
   };
 
   return (
-    <main className="flex h-full flex-1 flex-col overflow-hidden bg-zinc-950">
+    <main className="flex h-full flex-1 flex-col overflow-hidden bg-surface">
       <GalleryHeader title="Settings" />
 
       {/* Content */}
@@ -120,17 +120,17 @@ export function SettingsModal() {
         <details ref={apiKeysDetailsRef} className="group space-y-3" open>
           <summary className="flex w-full cursor-pointer list-none items-center justify-between text-left [&::-webkit-details-marker]:hidden">
             <div className="flex items-center gap-2">
-              <KeyRound className="h-4 w-4 text-purple-400" />
+              <KeyRound className="h-4 w-4 text-accent-muted" />
               <span className="text-sm font-medium">API Keys</span>
               {apiKeys.google && apiKeys.replicate && apiKeys.openai && (
                 <Check className="h-4 w-4 text-green-500" />
               )}
             </div>
-            <ChevronDown className="h-4 w-4 -rotate-90 text-zinc-400 transition-transform duration-200 group-open:rotate-0" />
+            <ChevronDown className="h-4 w-4 -rotate-90 text-text-tertiary transition-transform duration-200 group-open:rotate-0" />
           </summary>
 
           <div className="space-y-3 pl-6">
-            <p className="text-xs text-zinc-500">Keys are stored locally in your browser.</p>
+            <p className="text-xs text-text-muted">Keys are stored locally in your browser.</p>
             {providers.map((provider) => (
               <ApiKeyInput
                 key={provider.id}
@@ -149,18 +149,18 @@ export function SettingsModal() {
         <details ref={desktopNotificationsDetailsRef} className="group space-y-3" open>
           <summary className="flex w-full cursor-pointer list-none items-center justify-between text-left [&::-webkit-details-marker]:hidden">
             <div className="flex items-center gap-2">
-              <Bell className="h-4 w-4 text-purple-400" />
+              <Bell className="h-4 w-4 text-accent-muted" />
               <span className="text-sm font-medium">Desktop notifications</span>
               {desktopNotificationsEnabled && notificationPermission === "granted" && (
                 <Check className="h-4 w-4 text-green-500" />
               )}
             </div>
-            <ChevronDown className="h-4 w-4 -rotate-90 text-zinc-400 transition-transform duration-200 group-open:rotate-0" />
+            <ChevronDown className="h-4 w-4 -rotate-90 text-text-tertiary transition-transform duration-200 group-open:rotate-0" />
           </summary>
 
-          <div className="ml-6 space-y-3 rounded-lg border border-zinc-800 bg-zinc-900/60 p-3">
+          <div className="ml-6 space-y-3 rounded-lg border border-border-subtle bg-surface-raised/60 p-3">
             <label className="flex items-center justify-between gap-3">
-              <span className="text-sm text-zinc-200">
+              <span className="text-sm text-text-secondary">
                 Notify when generations complete in background
               </span>
               <Switch
@@ -171,7 +171,7 @@ export function SettingsModal() {
               />
             </label>
 
-            <p className="text-xs text-zinc-500">
+            <p className="text-xs text-text-muted">
               {notificationPermission === "unsupported"
                 ? "Desktop notifications are not supported in this browser."
                 : notificationPermission === "granted"
@@ -186,7 +186,7 @@ export function SettingsModal() {
                 type="button"
                 onClick={requestNotificationPermission}
                 disabled={requestingPermission}
-                className="rounded-lg bg-zinc-800 px-3 py-1.5 text-xs font-medium text-zinc-200 transition-colors hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-60"
+                className="rounded-lg bg-surface-overlay px-3 py-1.5 text-xs font-medium text-text-secondary transition-colors hover:bg-surface-interactive disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {requestingPermission ? "Requesting..." : "Request permission"}
               </button>
@@ -198,46 +198,46 @@ export function SettingsModal() {
         <details className="group space-y-3" open>
           <summary className="flex w-full cursor-pointer list-none items-center justify-between text-left [&::-webkit-details-marker]:hidden">
             <div className="flex items-center gap-2">
-              <MessageSquareText className="h-4 w-4 text-purple-400" />
+              <MessageSquareText className="h-4 w-4 text-accent-muted" />
               <span className="text-sm font-medium">Text generation</span>
               {(apiKeys.google || apiKeys.replicate) && (
                 <Check className="h-4 w-4 text-green-500" />
               )}
             </div>
-            <ChevronDown className="h-4 w-4 -rotate-90 text-zinc-400 transition-transform duration-200 group-open:rotate-0" />
+            <ChevronDown className="h-4 w-4 -rotate-90 text-text-tertiary transition-transform duration-200 group-open:rotate-0" />
           </summary>
 
-          <div className="ml-6 space-y-3 rounded-lg border border-zinc-800 bg-zinc-900/60 p-3">
-            <p className="text-xs text-zinc-500">
+          <div className="ml-6 space-y-3 rounded-lg border border-border-subtle bg-surface-raised/60 p-3">
+            <p className="text-xs text-text-muted">
               The active text model is chosen in the sidebar. These settings control how it's used.
             </p>
 
             <div className="space-y-3">
               <label className="flex items-center justify-between gap-3">
-                <span className="text-sm text-zinc-200">Always improve prompt</span>
+                <span className="text-sm text-text-secondary">Always improve prompt</span>
                 <Switch
                   checked={alwaysImprovePromptEnabled}
                   onChange={(e) => setAlwaysImprovePromptEnabled(e.target.checked)}
                   aria-label="Toggle always improve prompt"
                 />
               </label>
-              <p className="text-xs text-zinc-500">
+              <p className="text-xs text-text-muted">
                 Silently pass every prompt through the text model before generation. Composes with
                 variations: prompt → improve → variations → image requests. Your original prompt is
                 preserved and shown as the primary prompt in the lightbox.
               </p>
             </div>
 
-            <div className="space-y-3 border-t border-zinc-800 pt-3">
+            <div className="space-y-3 border-t border-border-subtle pt-3">
               <label className="flex items-center justify-between gap-3">
-                <span className="text-sm text-zinc-200">Editor context briefs</span>
+                <span className="text-sm text-text-secondary">Editor context briefs</span>
                 <Switch
                   checked={editorContextInjectionEnabled}
                   onChange={(e) => setEditorContextInjectionEnabled(e.target.checked)}
                   aria-label="Toggle editor context injection"
                 />
               </label>
-              <p className="text-xs text-zinc-500">
+              <p className="text-xs text-text-muted">
                 After each edit, an AI summary of your editing intent is generated and prepended to
                 subsequent prompts. This helps maintain style and character consistency across
                 multiple edits.
@@ -307,17 +307,17 @@ function DataSection() {
     <details className="group space-y-3" open>
       <summary className="flex w-full cursor-pointer list-none items-center justify-between text-left [&::-webkit-details-marker]:hidden">
         <div className="flex items-center gap-2">
-          <Archive className="h-4 w-4 text-purple-400" />
+          <Archive className="h-4 w-4 text-accent-muted" />
           <span className="text-sm font-medium">Data</span>
         </div>
-        <ChevronDown className="h-4 w-4 -rotate-90 text-zinc-400 transition-transform duration-200 group-open:rotate-0" />
+        <ChevronDown className="h-4 w-4 -rotate-90 text-text-tertiary transition-transform duration-200 group-open:rotate-0" />
       </summary>
 
-      <div className="ml-6 space-y-3 rounded-lg border border-zinc-800 bg-zinc-900/60 p-3">
-        <p className="text-xs text-zinc-500">
+      <div className="ml-6 space-y-3 rounded-lg border border-border-subtle bg-surface-raised/60 p-3">
+        <p className="text-xs text-text-muted">
           Export or import all images and their metadata as a ZIP file.
           {imageCount !== null && (
-            <span className="ml-1 text-zinc-400">
+            <span className="ml-1 text-text-tertiary">
               {imageCount} image{imageCount !== 1 ? "s" : ""} in gallery.
             </span>
           )}
@@ -328,7 +328,7 @@ function DataSection() {
             type="button"
             onClick={handleExport}
             disabled={exporting || importing || imageCount === 0}
-            className="flex items-center gap-1.5 rounded-lg bg-zinc-800 px-3 py-1.5 text-xs font-medium text-zinc-200 transition-colors hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-60"
+            className="flex items-center gap-1.5 rounded-lg bg-surface-overlay px-3 py-1.5 text-xs font-medium text-text-secondary transition-colors hover:bg-surface-interactive disabled:cursor-not-allowed disabled:opacity-60"
           >
             {exporting ? (
               <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -342,7 +342,7 @@ function DataSection() {
             type="button"
             onClick={() => fileInputRef.current?.click()}
             disabled={exporting || importing}
-            className="flex items-center gap-1.5 rounded-lg bg-zinc-800 px-3 py-1.5 text-xs font-medium text-zinc-200 transition-colors hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-60"
+            className="flex items-center gap-1.5 rounded-lg bg-surface-overlay px-3 py-1.5 text-xs font-medium text-text-secondary transition-colors hover:bg-surface-interactive disabled:cursor-not-allowed disabled:opacity-60"
           >
             {importing ? (
               <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -361,7 +361,7 @@ function DataSection() {
           />
         </div>
 
-        {status && <p className="text-xs text-zinc-400">{status}</p>}
+        {status && <p className="text-xs text-text-tertiary">{status}</p>}
       </div>
     </details>
   );
@@ -389,14 +389,14 @@ function ApiKeyInput({
     <div className="space-y-1.5">
       <div className="flex items-center justify-between">
         <div>
-          <label className="text-sm font-medium text-zinc-200">{name}</label>
-          <p className="text-xs text-zinc-500">
+          <label className="text-sm font-medium text-text-secondary">{name}</label>
+          <p className="text-xs text-text-muted">
             {description} -
             <a
               href={link}
               target="_blank"
               rel="noopener noreferrer"
-              className="ml-1 text-purple-400 hover:underline"
+              className="ml-1 text-accent-muted hover:underline"
             >
               Get API key
             </a>
@@ -410,12 +410,12 @@ function ApiKeyInput({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={`Enter ${name} API key`}
-          className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 pr-10 text-sm text-zinc-100 placeholder-zinc-500 transition-colors focus:border-purple-500 focus:ring-1 focus:ring-purple-500 focus:outline-none"
+          className="w-full rounded-lg border border-c-border bg-surface-overlay px-3 py-2 pr-10 text-sm text-text-primary placeholder-text-muted transition-colors focus:border-purple-500 focus:ring-1 focus:ring-purple-500 focus:outline-none"
         />
         <button
           type="button"
           onClick={() => setShowKey(!showKey)}
-          className="absolute top-1/2 right-2 -translate-y-1/2 p-1 text-zinc-400 transition-colors hover:text-zinc-300"
+          className="absolute top-1/2 right-2 -translate-y-1/2 p-1 text-text-tertiary transition-colors hover:text-text-secondary"
         >
           {showKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
         </button>

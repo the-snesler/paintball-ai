@@ -68,7 +68,7 @@ function GallerySidebarContent() {
         <QualitySection />
         <NumberOfImagesSection />
       </div>
-      <div className="border-t border-zinc-800 p-4">
+      <div className="border-border-subtle border-t p-4">
         <GenerateButton />
       </div>
     </>
@@ -147,10 +147,12 @@ function SettingsSidebarContent() {
   return (
     <div className="flex-1 space-y-2 overflow-y-auto py-4 pr-1 pl-4 [scrollbar-gutter:stable]">
       <div className="flex items-center gap-2">
-        <span className="text-zinc-500">
+        <span className="text-text-muted">
           <Layers className="h-4 w-4" />
         </span>
-        <h2 className="text-xs font-medium tracking-wide text-zinc-400 uppercase">Image Models</h2>
+        <h2 className="text-text-tertiary text-xs font-medium tracking-wide uppercase">
+          Image Models
+        </h2>
       </div>
 
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
@@ -170,10 +172,12 @@ function SettingsSidebarContent() {
       <AddCustomModelButton />
 
       <div className="flex items-center gap-2 pt-4">
-        <span className="text-zinc-500">
+        <span className="text-text-muted">
           <MessageSquareText className="h-4 w-4" />
         </span>
-        <h2 className="text-xs font-medium tracking-wide text-zinc-400 uppercase">Text Model</h2>
+        <h2 className="text-text-tertiary text-xs font-medium tracking-wide uppercase">
+          Text Model
+        </h2>
       </div>
 
       <div className="space-y-1">
@@ -189,10 +193,12 @@ function SettingsSidebarContent() {
       <AddCustomTextModelButton />
 
       <div className="flex items-center gap-2 pt-4">
-        <span className="text-zinc-500">
+        <span className="text-text-muted">
           <Expand className="h-4 w-4" />
         </span>
-        <h2 className="text-xs font-medium tracking-wide text-zinc-400 uppercase">Upscalers</h2>
+        <h2 className="text-text-tertiary text-xs font-medium tracking-wide uppercase">
+          Upscalers
+        </h2>
       </div>
 
       <DndContext
@@ -216,24 +222,24 @@ function SettingsSidebarContent() {
 
 function SidebarHeader({ onClose }: { onClose?: () => void }) {
   return (
-    <div className="flex h-18 items-center justify-between border-b border-zinc-800 bg-linear-to-br from-purple-950 to-zinc-900 px-6 py-4">
+    <div className="border-border-subtle from-accent to-surface-raised flex h-18 items-center justify-between border-b bg-linear-to-br px-6 py-4">
       <div className="flex items-center gap-3">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-purple-700 bg-purple-900">
-          <SVG src={drop} className="h-4 w-4 text-purple-400" />
+        <div className="border-accent bg-accent-muted/50 flex h-8 w-8 items-center justify-center rounded-lg border">
+          <SVG src={drop} className="h-4 w-4 text-white" />
         </div>
         <div className="text-left">
           <h1 className="text-sm font-semibold">Paintball</h1>
-          <p className="text-xs text-zinc-500">AI Image Generator</p>
+          <p className="text-text-tertiary text-xs">AI Image Generator</p>
         </div>
       </div>
       <div className="flex items-center gap-1">
         {onClose && (
           <button
             onClick={onClose}
-            className="rounded-lg p-2 transition-colors hover:bg-zinc-800 md:hidden"
+            className="hover:bg-surface-overlay rounded-lg p-2 transition-colors md:hidden"
             aria-label="Close sidebar"
           >
-            <X className="h-4 w-4 text-zinc-400" />
+            <X className="text-text-tertiary h-4 w-4" />
           </button>
         )}
       </div>
@@ -243,7 +249,7 @@ function SidebarHeader({ onClose }: { onClose?: () => void }) {
 
 export function Sidebar() {
   return (
-    <aside className="hidden h-full w-80 shrink-0 flex-col border-r border-zinc-800 bg-zinc-900 md:flex">
+    <aside className="border-border-subtle bg-surface-raised hidden h-full w-80 shrink-0 flex-col border-r md:flex">
       <SidebarHeader />
       <SidebarContent />
     </aside>
@@ -260,7 +266,7 @@ export function MobileSidebar() {
     <aside
       id={SIDEBAR_POPOVER_ID}
       popover="auto"
-      className="sidebar-popover m-0 flex h-full max-h-full w-80 max-w-[85vw] flex-col border-0 border-r border-zinc-800 bg-zinc-900 p-0"
+      className="sidebar-popover border-border-subtle bg-surface-raised m-0 flex h-full max-h-full w-80 max-w-[85vw] flex-col border-0 border-r p-0"
     >
       <SidebarHeader onClose={handleClose} />
       <SidebarContent />

@@ -5,26 +5,59 @@
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif,
     "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
 
-  /* Custom colors for the app */
-  --color-surface: #18181b;
-  --color-surface-elevated: #27272a;
-  --color-surface-hover: #3f3f46;
-  --color-border: #3f3f46;
-  --color-border-subtle: #27272a;
-  --color-text-primary: #fafafa;
-  --color-text-secondary: #a1a1aa;
-  --color-text-muted: #71717a;
-  --color-accent: #a855f7;
-  --color-accent-hover: #9333ea;
+  --color-surface: var(--surface);
+  --color-surface-raised: var(--surface-raised);
+  --color-surface-overlay: var(--surface-overlay);
+  --color-surface-interactive: var(--surface-interactive);
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-tertiary: var(--text-tertiary);
+  --color-text-muted: var(--text-muted);
+  --color-c-border: var(--c-border);
+  --color-border-subtle: var(--border-subtle);
+  --color-accent: var(--accent);
+  --color-accent-muted: var(--accent-muted);
+}
+
+:root {
+  --surface: #ffffff;
+  --surface-raised: #f4f4f5;
+  --surface-overlay: #e4e4e7;
+  --surface-interactive: #d4d4d8;
+  --text-primary: #18181b;
+  --text-secondary: #3f3f46;
+  --text-tertiary: #71717a;
+  --text-muted: #a1a1aa;
+  --c-border: #d4d4d8;
+  --border-subtle: #e4e4e7;
+  --accent: #9e5ddb;
+  --accent-muted: #765990;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --surface: #09090b;
+    --surface-raised: #18181b;
+    --surface-overlay: #27272a;
+    --surface-interactive: #3f3f46;
+    --text-primary: #fafafa;
+    --text-secondary: #e4e4e7;
+    --text-tertiary: #a1a1aa;
+    --text-muted: #71717a;
+    --c-border: #3f3f46;
+    --border-subtle: #27272a;
+    --accent: #a855f7;
+    --accent-muted: #9333ea;
+  }
 }
 
 html {
-  color-scheme: dark;
+  color-scheme: light dark;
 }
 
 html,
 body {
-  @apply bg-zinc-950 text-zinc-100;
+  @apply bg-surface text-text-primary;
   height: 100%;
   overflow: hidden;
 }
@@ -40,16 +73,16 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  @apply bg-zinc-700 rounded-full;
+  @apply bg-surface-interactive rounded-full;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  @apply bg-zinc-600;
+  @apply bg-c-border;
 }
 
 /* Aspect ratio preview boxes */
 .aspect-preview {
-  @apply border border-zinc-600 rounded-sm;
+  @apply border border-c-border rounded-sm;
 }
 
 .aspect-preview.selected {
@@ -108,9 +141,9 @@ body {
   width: 100%;
   height: 100%;
   border-radius: 0.375rem;
-  background-color: rgb(63 63 70 / 0.78);
+  background-color: var(--surface-interactive);
   backdrop-filter: blur(4px);
-  border: 1px solid rgb(82 82 91 / 0.95);
+  border: 1px solid var(--c-border);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -122,15 +155,15 @@ body {
   font-size: 0.8rem;
   line-height: 1;
   font-weight: 700;
-  color: rgb(250 250 250);
+  color: var(--text-primary);
   opacity: 0;
   transform: scale(0.82);
   transition: opacity 120ms ease, transform 120ms ease;
 }
 
 .gallery-select-checkbox-input:checked + .gallery-select-checkbox-label {
-  border-color: rgb(168 85 247);
-  background-color: rgb(168 85 247);
+  border-color: var(--accent);
+  background-color: var(--accent);
 }
 
 .gallery-select-checkbox-input:checked + .gallery-select-checkbox-label .gallery-select-checkbox-mark {
@@ -139,7 +172,7 @@ body {
 }
 
 .gallery-select-checkbox-input:focus-visible + .gallery-select-checkbox-label {
-  outline: 2px solid rgb(168 85 247 / 0.75);
+  outline: 2px solid color-mix(in oklab, var(--accent) 75%, transparent);
   outline-offset: 2px;
 }
 

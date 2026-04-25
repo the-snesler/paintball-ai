@@ -23,7 +23,7 @@ export function ModelList() {
       title="Models"
       tooltip="Models available for generation. Add more models and providers in Settings."
       badge={
-        <span className="rounded-full bg-zinc-800 px-2 text-xs text-zinc-400">
+        <span className="rounded-full bg-surface-overlay px-2 text-xs text-text-tertiary">
           <NumberFlow
             value={activeCount}
             format={{ useGrouping: false }}
@@ -38,7 +38,7 @@ export function ModelList() {
     >
       <div className="space-y-1">
         {visibleModels.length === 0 ? (
-          <p className="py-4 text-center text-xs text-zinc-500">
+          <p className="py-4 text-center text-xs text-text-muted">
             No models available. Add API keys and enable models in Settings.
           </p>
         ) : (

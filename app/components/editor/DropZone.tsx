@@ -56,7 +56,7 @@ export function DropZone({ onFile }: DropZoneProps) {
         className={`relative flex h-full w-full cursor-pointer flex-col items-center justify-center rounded-2xl border-3 border-dashed transition-all duration-200 ${
           isDragOver
             ? "scale-[1.02] border-purple-500 bg-purple-500/5"
-            : "border-zinc-700 hover:border-zinc-600 hover:bg-zinc-900"
+            : "border-c-border hover:border-c-border hover:bg-surface-raised"
         }`}
       >
         <SineWaveGrid
@@ -71,20 +71,20 @@ export function DropZone({ onFile }: DropZoneProps) {
 
         <div
           className={`z-10 mb-4 flex h-14 w-14 items-center justify-center rounded-2xl transition-colors ${
-            isDragOver ? "bg-purple-500/20" : "bg-zinc-800"
+            isDragOver ? "bg-purple-500/20" : "bg-surface-overlay"
           }`}
         >
           <ImagePlus
             className={`z-10 h-7 w-7 transition-colors ${
-              isDragOver ? "text-purple-400" : "text-zinc-500"
+              isDragOver ? "text-accent-muted" : "text-text-muted"
             }`}
           />
         </div>
 
-        <p className="z-10 mb-1 text-sm font-medium text-zinc-300">
+        <p className="z-10 mb-1 text-sm font-medium text-text-secondary">
           {isDragOver ? "Drop to open in editor" : "Drop an image to start editing"}
         </p>
-        <p className="z-10 text-xs text-zinc-600">or click to browse · paste an image below</p>
+        <p className="z-10 text-xs text-text-muted">or click to browse · paste an image below</p>
       </label>
     </div>
   );

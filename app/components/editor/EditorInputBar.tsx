@@ -68,9 +68,9 @@ function SortableReferenceImage({
           e.stopPropagation();
           onRemove(img.id);
         }}
-        className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full border border-zinc-700 bg-zinc-900 opacity-0 transition-opacity group-hover:opacity-100"
+        className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full border border-c-border bg-surface-raised opacity-0 transition-opacity group-hover:opacity-100"
       >
-        <X className="h-3 w-3 text-zinc-400" />
+        <X className="h-3 w-3 text-text-tertiary" />
       </button>
     </div>
   );
@@ -532,7 +532,7 @@ export function EditorInputBar({ onSourceFile }: EditorInputBarProps) {
 
   return (
     <div ref={barRef} className="absolute right-0 bottom-0 left-0">
-      <div className="bg-linear-to-t from-zinc-950 via-zinc-950/95 to-transparent px-6 pt-8 pb-4">
+      <div className="bg-linear-to-t from-surface via-surface/95 to-transparent px-6 pt-8 pb-4">
         <div className="mx-auto max-w-4xl">
           {/* Textarea */}
           <div
@@ -540,23 +540,23 @@ export function EditorInputBar({ onSourceFile }: EditorInputBarProps) {
             onDragEnter={handleDragEnter}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
-            className={`rounded-xl border bg-zinc-800/80 transition-all duration-200 ${
+            className={`rounded-xl border bg-surface-overlay/80 transition-all duration-200 ${
               isDragOver && referenceEnabled && hasSource
                 ? "border-purple-500 ring-1 ring-purple-500/50"
                 : !hasSource
-                  ? "border-zinc-700/50 opacity-60"
-                  : "border-zinc-700 focus-within:border-zinc-600 focus-within:ring-1 focus-within:ring-zinc-600/50"
+                  ? "border-c-border/50 opacity-60"
+                  : "border-c-border focus-within:border-c-border focus-within:ring-1 focus-within:ring-c-border/50"
             }`}
           >
             {/* Context brief banner */}
             {contextBrief && contextInjectionEnabled && !contextBriefDismissed && (
-              <div className="flex items-start gap-2 border-b border-zinc-700/50 px-4 py-2">
-                <Sparkles className="mt-0.5 h-3 w-3 shrink-0 text-purple-400" />
-                <p className="flex-1 text-xs leading-relaxed text-zinc-400">{contextBrief}</p>
+              <div className="flex items-start gap-2 border-b border-c-border/50 px-4 py-2">
+                <Sparkles className="mt-0.5 h-3 w-3 shrink-0 text-accent-muted" />
+                <p className="flex-1 text-xs leading-relaxed text-text-tertiary">{contextBrief}</p>
                 <button
                   type="button"
                   onClick={() => setContextBriefDismissed(true)}
-                  className="shrink-0 cursor-pointer rounded p-0.5 text-zinc-600 transition-colors hover:text-zinc-400"
+                  className="shrink-0 cursor-pointer rounded p-0.5 text-text-muted transition-colors hover:text-text-tertiary"
                   title="Dismiss context brief for this edit"
                 >
                   <X className="h-3 w-3" />
@@ -578,7 +578,7 @@ export function EditorInputBar({ onSourceFile }: EditorInputBarProps) {
                     : "Select an image above, then describe your edit…"
               }
               rows={1}
-              className="field-sizing-content max-h-48 min-h-11 w-full resize-none rounded-t-xl bg-transparent px-4 pt-3 pb-2 text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none disabled:cursor-not-allowed"
+              className="field-sizing-content max-h-48 min-h-11 w-full resize-none rounded-t-xl bg-transparent px-4 pt-3 pb-2 text-sm text-text-primary placeholder-text-muted focus:outline-none disabled:cursor-not-allowed"
             />
 
             {/* Reference images */}
@@ -609,7 +609,7 @@ export function EditorInputBar({ onSourceFile }: EditorInputBarProps) {
                       ))}
 
                       {isDragOver && referenceImages.length === 0 && (
-                        <div className="col-span-full rounded-lg border-2 border-dashed border-zinc-600 py-8 text-center text-xs text-zinc-400">
+                        <div className="col-span-full rounded-lg border-2 border-dashed border-c-border py-8 text-center text-xs text-text-tertiary">
                           Drop images here
                         </div>
                       )}
@@ -624,8 +624,8 @@ export function EditorInputBar({ onSourceFile }: EditorInputBarProps) {
               {/* Left: model chip + analyze + references */}
               <div className="flex min-w-0 flex-wrap items-center gap-2">
                 {/* Model chip */}
-                <div className="flex max-w-40 items-center gap-1.5 truncate rounded-full bg-zinc-700/60 px-2.5 py-1 text-xs text-zinc-400">
-                  <Sparkles className="h-3 w-3 shrink-0 text-purple-400" />
+                <div className="flex max-w-40 items-center gap-1.5 truncate rounded-full bg-surface-interactive/60 px-2.5 py-1 text-xs text-text-tertiary">
+                  <Sparkles className="h-3 w-3 shrink-0 text-accent-muted" />
                   <span className="truncate">{modelChipLabel}</span>
                 </div>
 
@@ -635,7 +635,7 @@ export function EditorInputBar({ onSourceFile }: EditorInputBarProps) {
                     type="button"
                     onClick={() => void handleAnalyze()}
                     disabled={!hasSource || isAnalyzing || isGenerating}
-                    className="flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs text-zinc-500 transition-colors hover:bg-zinc-700/60 hover:text-zinc-300 disabled:cursor-not-allowed disabled:opacity-40"
+                    className="flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs text-text-muted transition-colors hover:bg-surface-interactive/60 hover:text-text-secondary disabled:cursor-not-allowed disabled:opacity-40"
                   >
                     {isAnalyzing ? (
                       <Loader2 className="h-3 w-3 animate-spin" />
@@ -652,7 +652,7 @@ export function EditorInputBar({ onSourceFile }: EditorInputBarProps) {
                     <button
                       type="button"
                       onClick={handleUndoImprove}
-                      className="flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs text-zinc-500 transition-colors hover:bg-zinc-700/60 hover:text-zinc-300"
+                      className="flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs text-text-muted transition-colors hover:bg-surface-interactive/60 hover:text-text-secondary"
                     >
                       <Undo2 className="h-3 w-3" />
                       Undo improve
@@ -664,7 +664,7 @@ export function EditorInputBar({ onSourceFile }: EditorInputBarProps) {
                       type="button"
                       onClick={() => void handleImprove()}
                       disabled={!isTextModelAvailable() || !instruction.trim() || isImproving}
-                      className="flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs text-zinc-500 transition-colors hover:bg-zinc-700/60 hover:text-zinc-300 disabled:cursor-not-allowed disabled:opacity-40"
+                      className="flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs text-text-muted transition-colors hover:bg-surface-interactive/60 hover:text-text-secondary disabled:cursor-not-allowed disabled:opacity-40"
                     >
                       {isImproving ? (
                         <Loader2 className="h-3 w-3 animate-spin" />
@@ -688,8 +688,8 @@ export function EditorInputBar({ onSourceFile }: EditorInputBarProps) {
                     <label
                       className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs transition-colors ${
                         canAttachMore
-                          ? "cursor-pointer text-zinc-500 hover:bg-zinc-700/60 hover:text-zinc-300"
-                          : "cursor-not-allowed text-zinc-600"
+                          ? "cursor-pointer text-text-muted hover:bg-surface-interactive/60 hover:text-text-secondary"
+                          : "cursor-not-allowed text-text-muted"
                       }`}
                     >
                       <ImagePlus className="h-3 w-3" />
@@ -715,7 +715,7 @@ export function EditorInputBar({ onSourceFile }: EditorInputBarProps) {
                 className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-all duration-150 ${
                   canSubmit
                     ? "-translate-y-0.5 bg-purple-600 text-white shadow-lg shadow-purple-900/40 hover:bg-purple-500 active:translate-y-0"
-                    : "cursor-not-allowed bg-zinc-700/50 text-zinc-600"
+                    : "cursor-not-allowed bg-surface-interactive/50 text-text-muted"
                 }`}
                 title="Send edit (Ctrl+Enter)"
               >

@@ -68,13 +68,13 @@ export function Tooltip({
           >
             <div
               style={isPositioned ? transitionStyles : { opacity: 0 }}
-              className={`${maxWidth} rounded-lg border border-zinc-700 bg-zinc-800 px-2.5 py-1.5 text-[11px] leading-relaxed text-zinc-300 shadow-xl`}
+              className={`${maxWidth} rounded-lg border border-c-border bg-surface-overlay px-2.5 py-1.5 text-[11px] leading-relaxed text-text-secondary shadow-xl`}
             >
               <FloatingArrow
                 ref={arrowRef}
                 context={context}
-                fill="var(--color-zinc-800)"
-                stroke="var(--color-zinc-700)"
+                fill="var(--color-surface-overlay)"
+                stroke="var(--color-c-border)"
                 strokeWidth={0.75}
                 tipRadius={1}
                 width={12}

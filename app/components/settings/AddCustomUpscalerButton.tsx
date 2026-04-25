@@ -94,8 +94,8 @@ export default function AddCustomUpscalerButton() {
           setIsAdding(true);
         }}
         disabled={disabled}
-        className={`flex w-full items-center gap-2 rounded-lg border border-dashed border-zinc-700 p-2.5 text-zinc-400 transition-colors ${
-          disabled ? "cursor-not-allowed opacity-50" : "hover:border-zinc-600 hover:text-zinc-300"
+        className={`flex w-full items-center gap-2 rounded-lg border border-dashed border-c-border p-2.5 text-text-tertiary transition-colors ${
+          disabled ? "cursor-not-allowed opacity-50" : "hover:border-c-border hover:text-text-secondary"
         }`}
       >
         <Plus className="h-4 w-4" />
@@ -105,10 +105,10 @@ export default function AddCustomUpscalerButton() {
   }
 
   return (
-    <div className="space-y-2 rounded-lg border border-zinc-700 bg-zinc-800/50 p-3">
+    <div className="space-y-2 rounded-lg border border-c-border bg-surface-overlay/50 p-3">
       {availableProviders.length > 1 && (
         <div className="space-y-1">
-          <label className="block text-xs font-medium text-zinc-300">Provider</label>
+          <label className="block text-xs font-medium text-text-secondary">Provider</label>
           <select
             value={providerId}
             onChange={(e) => {
@@ -116,7 +116,7 @@ export default function AddCustomUpscalerButton() {
               setError(null);
               resetSearch();
             }}
-            className="w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 focus:outline-none"
+            className="w-full rounded-lg border border-c-border bg-surface-raised px-3 py-2 text-sm text-text-primary focus:border-purple-500 focus:ring-1 focus:ring-purple-500 focus:outline-none"
           >
             {availableProviders.map((p) => (
               <option key={p.id} value={p.id}>
@@ -142,14 +142,14 @@ export default function AddCustomUpscalerButton() {
         <div className="relative">
           <Combobox.Input
             placeholder="Type to search..."
-            className="w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 placeholder-zinc-500 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 focus:outline-none"
+            className="w-full rounded-lg border border-c-border bg-surface-raised px-3 py-2 text-sm text-text-primary placeholder-text-muted focus:border-purple-500 focus:ring-1 focus:ring-purple-500 focus:outline-none"
             onKeyDown={(e) => {
               if (e.key === "Enter" && !open && !loading) handleAdd();
             }}
             ref={inputRef}
           />
           {isSearching && (
-            <Loader2 className="absolute top-2.5 right-2.5 h-4 w-4 animate-spin text-zinc-500" />
+            <Loader2 className="absolute top-2.5 right-2.5 h-4 w-4 animate-spin text-text-muted" />
           )}
         </div>
         <SearchComboboxPopup
@@ -167,15 +167,15 @@ export default function AddCustomUpscalerButton() {
                 {icon ? (
                   <SVG src={icon} className="h-5 w-5 shrink-0" />
                 ) : (
-                  <div className="h-5 w-5 shrink-0 rounded bg-zinc-700" />
+                  <div className="h-5 w-5 shrink-0 rounded bg-surface-interactive" />
                 )}
                 <div className="min-w-0 flex-1">
                   <div className="flex items-baseline gap-1.5">
-                    <p className="truncate text-sm font-medium text-zinc-100">{result.name}</p>
-                    <p className="shrink-0 text-xs text-zinc-500">{owner}</p>
+                    <p className="truncate text-sm font-medium text-text-primary">{result.name}</p>
+                    <p className="shrink-0 text-xs text-text-muted">{owner}</p>
                   </div>
                   {result.description && (
-                    <p className="truncate text-xs text-zinc-400">{result.description}</p>
+                    <p className="truncate text-xs text-text-tertiary">{result.description}</p>
                   )}
                 </div>
               </>
@@ -187,7 +187,7 @@ export default function AddCustomUpscalerButton() {
         <button
           onClick={() => handleAdd()}
           disabled={loading || !inputValue.trim()}
-          className="flex items-center justify-center gap-1.5 rounded-lg bg-purple-600 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-purple-500 disabled:bg-zinc-700 disabled:text-zinc-500"
+          className="flex items-center justify-center gap-1.5 rounded-lg bg-purple-600 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-purple-500 disabled:bg-surface-interactive disabled:text-text-muted"
         >
           {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
           Add
@@ -199,13 +199,13 @@ export default function AddCustomUpscalerButton() {
             setError(null);
             resetSearch();
           }}
-          className="rounded-lg bg-zinc-700 px-3 py-2 text-sm font-medium text-zinc-300 transition-colors hover:bg-zinc-600"
+          className="rounded-lg bg-surface-interactive px-3 py-2 text-sm font-medium text-text-secondary transition-colors hover:bg-c-border"
         >
           Cancel
         </button>
       </div>
       {error && <p className="text-xs text-red-400">{error}</p>}
-      <p className="text-xs text-zinc-500">
+      <p className="text-xs text-text-muted">
         Type to search, or enter a model ID like &quot;nightmareai/real-esrgan&quot;.
       </p>
     </div>

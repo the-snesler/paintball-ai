@@ -26,10 +26,10 @@ export function WideIconButton({
       aria-label={title}
       className={`flex items-center gap-1 rounded-lg p-2 transition-colors ${
         disabled
-          ? "cursor-not-allowed text-zinc-600"
+          ? "cursor-not-allowed text-text-muted"
           : variant === "danger"
             ? "text-red-400 hover:bg-red-500/10"
-            : "text-zinc-300 hover:bg-zinc-800"
+            : "text-text-secondary hover:bg-surface-overlay"
       }`}
     >
       {icon}

@@ -66,9 +66,9 @@ function SortableReferenceImage({
           onRemove(img.id);
         }}
         disabled={!referenceEnabled}
-        className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full border border-zinc-700 bg-zinc-900 opacity-0 transition-opacity group-hover:opacity-100"
+        className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full border border-c-border bg-surface-raised opacity-0 transition-opacity group-hover:opacity-100"
       >
-        <X className="h-3 w-3 text-zinc-400" />
+        <X className="h-3 w-3 text-text-tertiary" />
       </button>
     </div>
   );
@@ -291,8 +291,8 @@ export function PromptInput() {
   return (
     <section>
       <div className="mb-2 flex items-center gap-2">
-        <Wand2 className="h-4 w-4 text-zinc-500" />
-        <h2 className="text-xs font-medium tracking-wide text-zinc-400 uppercase">Prompt</h2>
+        <Wand2 className="h-4 w-4 text-text-muted" />
+        <h2 className="text-xs font-medium tracking-wide text-text-tertiary uppercase">Prompt</h2>
       </div>
 
       <div
@@ -300,10 +300,10 @@ export function PromptInput() {
         onDragEnter={handleDragEnter}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
-        className={`rounded-lg border bg-zinc-800 transition-colors ${
+        className={`rounded-lg border bg-surface-overlay transition-colors ${
           isDragOver && referenceEnabled
             ? "border-purple-500 ring-1 ring-purple-500"
-            : "border-zinc-700"
+            : "border-c-border"
         }`}
       >
         <textarea
@@ -312,7 +312,7 @@ export function PromptInput() {
           onChange={(e) => setPrompt(e.target.value)}
           onPaste={handlePaste}
           placeholder="Describe your image..."
-          className="field-sizing-content max-h-1/2 min-h-24 w-full resize-none rounded-t-lg bg-transparent px-3 pt-2 pb-2 text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none"
+          className="field-sizing-content max-h-1/2 min-h-24 w-full resize-none rounded-t-lg bg-transparent px-3 pt-2 pb-2 text-sm text-text-primary placeholder-text-muted focus:outline-none"
         />
 
         {isExpanded && (
@@ -344,7 +344,7 @@ export function PromptInput() {
                   ))}
 
                   {isDragOver && referenceImages.length === 0 && (
-                    <div className="col-span-3 rounded-lg border-2 border-dashed border-zinc-600 py-4 text-center text-xs text-zinc-400">
+                    <div className="col-span-3 rounded-lg border-2 border-dashed border-c-border py-4 text-center text-xs text-text-tertiary">
                       Drop images here
                     </div>
                   )}
@@ -358,8 +358,8 @@ export function PromptInput() {
           <label
             className={`inline-flex items-center gap-1 text-xs transition-colors ${
               referenceEnabled
-                ? "cursor-pointer text-zinc-400 hover:text-zinc-300"
-                : "cursor-not-allowed text-zinc-600"
+                ? "cursor-pointer text-text-tertiary hover:text-text-secondary"
+                : "cursor-not-allowed text-text-muted"
             }`}
           >
             <ImagePlus className="h-4 w-4" />
@@ -378,7 +378,7 @@ export function PromptInput() {
             <button
               type="button"
               onClick={handleUndoImprove}
-              className="inline-flex items-center gap-1 text-xs text-zinc-400 transition-colors hover:text-zinc-300"
+              className="inline-flex items-center gap-1 text-xs text-text-tertiary transition-colors hover:text-text-secondary"
             >
               <Undo2 className="h-3.5 w-3.5" />
               Undo improve
@@ -388,7 +388,7 @@ export function PromptInput() {
               type="button"
               onClick={handleImprovePrompt}
               disabled={!isTextModelAvailable() || !prompt.trim() || isImproving}
-              className="inline-flex items-center gap-1 text-xs text-zinc-400 transition-colors hover:text-zinc-300 disabled:cursor-not-allowed disabled:text-zinc-600"
+              className="inline-flex items-center gap-1 text-xs text-text-tertiary transition-colors hover:text-text-secondary disabled:cursor-not-allowed disabled:text-text-muted"
             >
               {isImproving ? (
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />

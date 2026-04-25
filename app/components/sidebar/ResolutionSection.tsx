@@ -19,10 +19,10 @@ export function ResolutionSection() {
   return (
     <section>
       <div className="mb-2 flex items-center gap-2">
-        <span className="text-zinc-500">
+        <span className="text-text-muted">
           <Maximize className="h-4 w-4" />
         </span>
-        <h2 className="text-xs font-medium tracking-wide text-zinc-400 uppercase">Resolution</h2>
+        <h2 className="text-xs font-medium tracking-wide text-text-tertiary uppercase">Resolution</h2>
       </div>
       <div className="flex gap-2">
         {RESOLUTIONS_LABELS.map(([label, res]) => {
@@ -38,12 +38,12 @@ export function ResolutionSection() {
                 showSelectedStyle
                   ? "border border-purple-500 bg-purple-500/20 text-purple-300"
                   : pickerEnabled
-                    ? "border border-zinc-700 bg-zinc-800 text-zinc-400 hover:border-zinc-600"
-                    : "cursor-not-allowed border border-zinc-800 bg-zinc-800/50 text-zinc-500 opacity-40"
+                    ? "border border-c-border bg-surface-overlay text-text-tertiary hover:border-c-border"
+                    : "cursor-not-allowed border border-border-subtle bg-surface-overlay/50 text-text-muted opacity-40"
               }`}
             >
               {label}
-              <p className="text-[0.6rem] text-zinc-600">{res} resolution</p>
+              <p className="text-[0.6rem] text-text-muted">{res} resolution</p>
             </button>
           );
         })}

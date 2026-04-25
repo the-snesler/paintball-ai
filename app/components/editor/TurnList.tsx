@@ -97,7 +97,7 @@ function SourceTurn({
   return (
     <div className="animate-fade-in relative flex max-w-4xl flex-col items-center">
       <div className="mb-3 flex items-center gap-2">
-        <span className="text-xs font-medium tracking-wider text-zinc-600 uppercase">Source</span>
+        <span className="text-xs font-medium tracking-wider text-text-muted uppercase">Source</span>
       </div>
 
       <button
@@ -105,8 +105,8 @@ function SourceTurn({
         onClick={onSelect}
         className={`group relative cursor-pointer overflow-hidden rounded-lg transition-all duration-150 ${
           isSelected
-            ? "ring-2 ring-purple-500 ring-offset-2 ring-offset-zinc-950"
-            : "ring-1 ring-zinc-700/50 hover:ring-zinc-600"
+            ? "ring-2 ring-purple-500 ring-offset-2 ring-offset-surface"
+            : "ring-1 ring-c-border/50 hover:ring-c-border"
         }`}
       >
         <img
@@ -118,7 +118,7 @@ function SourceTurn({
 
         {!isLoaded && (
           <div
-            className="absolute inset-0 animate-pulse bg-zinc-800"
+            className="absolute inset-0 animate-pulse bg-surface-overlay"
             style={{ minHeight: "200px" }}
           />
         )}
@@ -163,7 +163,7 @@ function AnalysisTurn({ result, onDismiss }: { result: string; onDismiss: () => 
   return (
     <div className="animate-fade-in">
       <div className="mb-2 flex items-center justify-between gap-2">
-        <p className="text-xs font-medium tracking-wider text-purple-400 uppercase">
+        <p className="text-xs font-medium tracking-wider text-accent-muted uppercase">
           Image Analysis
         </p>
         <div className="flex items-center gap-1">
@@ -172,7 +172,7 @@ function AnalysisTurn({ result, onDismiss }: { result: string; onDismiss: () => 
             className={`flex items-center gap-1 rounded px-2 py-1 text-xs transition-colors ${
               copied
                 ? "text-purple-300"
-                : "text-purple-400 hover:bg-purple-500/10 hover:text-purple-300"
+                : "text-accent-muted hover:bg-purple-500/10 hover:text-purple-300"
             }`}
           >
             {copied && <Check className="h-3 w-3" />}
@@ -180,13 +180,13 @@ function AnalysisTurn({ result, onDismiss }: { result: string; onDismiss: () => 
           </button>
           <button
             onClick={onDismiss}
-            className="rounded p-1 text-zinc-600 transition-colors hover:text-zinc-400"
+            className="rounded p-1 text-text-muted transition-colors hover:text-text-tertiary"
           >
             <X className="h-3.5 w-3.5" />
           </button>
         </div>
       </div>
-      <p className="text-sm leading-relaxed text-zinc-300">{result}</p>
+      <p className="text-sm leading-relaxed text-text-secondary">{result}</p>
     </div>
   );
 }

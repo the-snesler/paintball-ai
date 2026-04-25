@@ -114,7 +114,7 @@ export function UpscalerList({ highlight = false }: UpscalerListProps) {
         tooltip="Click an upscaler to immediately upscale the currently selected image as a new turn."
       >
         {visibleUpscalers.length === 0 ? (
-          <p className="py-4 text-center text-xs text-zinc-500">
+          <p className="py-4 text-center text-xs text-text-muted">
             {replicateKey
               ? "No upscalers enabled. Enable or add one in Settings."
               : "Add a Replicate API key to use upscalers."}
@@ -127,7 +127,7 @@ export function UpscalerList({ highlight = false }: UpscalerListProps) {
                 type="button"
                 disabled={buttonsDisabled}
                 onClick={() => void handleClick(u)}
-                className="cursor-pointer truncate rounded-lg border border-transparent bg-zinc-800/50 px-3 py-2 text-xs text-zinc-200 transition-colors hover:bg-zinc-800 disabled:cursor-not-allowed disabled:bg-zinc-800/30 disabled:text-zinc-500"
+                className="cursor-pointer truncate rounded-lg border border-transparent bg-surface-overlay/50 px-3 py-2 text-xs text-text-secondary transition-colors hover:bg-surface-overlay disabled:cursor-not-allowed disabled:bg-surface-overlay/30 disabled:text-text-muted"
                 title={u.name}
               >
                 {u.name}

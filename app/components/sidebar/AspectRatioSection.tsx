@@ -63,8 +63,8 @@ export function AspectRatioSection() {
           isSelected
             ? "border border-purple-500 bg-purple-500/20"
             : isEnabled
-              ? "border border-zinc-700 bg-zinc-800 hover:border-zinc-600"
-              : "cursor-not-allowed border border-zinc-800 bg-zinc-800/50 opacity-40"
+              ? "border border-c-border bg-surface-overlay hover:border-c-border"
+              : "cursor-not-allowed border border-border-subtle bg-surface-overlay/50 opacity-40"
         }`}
         title={ratio}
       >
@@ -75,7 +75,7 @@ export function AspectRatioSection() {
           isSelected={isSelected}
         />
         <div className="flex-1" />
-        <span className="text-[10px] text-zinc-400">{ratio}</span>
+        <span className="text-[10px] text-text-tertiary">{ratio}</span>
       </button>
     );
   };
@@ -85,15 +85,15 @@ export function AspectRatioSection() {
       <Accordion.Root>
         <Accordion.Item>
           <div className="mb-2 flex items-center gap-2">
-            <span className="text-zinc-500">
+            <span className="text-text-muted">
               <Square className="h-4 w-4" />
             </span>
-            <h2 className="text-xs font-medium tracking-wide text-zinc-400 uppercase">
+            <h2 className="text-xs font-medium tracking-wide text-text-tertiary uppercase">
               Aspect Ratio
             </h2>
             {hasAdditionalRatios && (
               <Accordion.Header className="ml-auto">
-                <Accordion.Trigger className="group flex cursor-pointer items-center gap-1 rounded text-xs text-zinc-500 transition-colors hover:text-zinc-300">
+                <Accordion.Trigger className="group flex cursor-pointer items-center gap-1 rounded text-xs text-text-muted transition-colors hover:text-text-secondary">
                   <span className="group-data-panel-open:hidden">Show more</span>
                   <span className="hidden group-data-panel-open:inline">Show less</span>
                   <ChevronRight className="h-4 w-4 transition-transform duration-200 group-data-panel-open:rotate-90" />
@@ -135,7 +135,7 @@ function AspectRatioPreview({
   return (
     <div
       className={`rounded-sm border-2 ${
-        isSelected ? "border-purple-500 bg-purple-500/20" : "border-zinc-600"
+        isSelected ? "border-purple-500 bg-purple-500/20" : "border-c-border"
       }`}
       style={{ width: `${w}px`, height: `${h}px` }}
     />

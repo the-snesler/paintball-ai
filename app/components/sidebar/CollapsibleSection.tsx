@@ -26,11 +26,11 @@ export function CollapsibleSection({
       <Accordion.Header>
         <Accordion.Trigger className="group mb-2 flex w-full cursor-pointer items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="text-zinc-500">{icon}</span>
-            <h2 className="text-xs font-medium tracking-wide text-zinc-400 uppercase">{title}</h2>
+            <span className="text-text-muted">{icon}</span>
+            <h2 className="text-xs font-medium tracking-wide text-text-tertiary uppercase">{title}</h2>
             {tooltip && (
               <Tooltip content={tooltip} placement="bottom-start">
-                <span className="cursor-help text-zinc-600 transition-colors hover:text-zinc-400">
+                <span className="cursor-help text-text-muted transition-colors hover:text-text-tertiary">
                   <Info className="h-3 w-3" />
                 </span>
               </Tooltip>
@@ -38,7 +38,7 @@ export function CollapsibleSection({
           </div>
           <div className="flex items-center gap-2">
             {badge}
-            <ChevronDown className="h-4 w-4 -rotate-90 text-zinc-500 transition-transform duration-200 group-hover:text-zinc-400 group-data-panel-open:rotate-0" />
+            <ChevronDown className="h-4 w-4 -rotate-90 text-text-muted transition-transform duration-200 group-hover:text-text-tertiary group-data-panel-open:rotate-0" />
           </div>
         </Accordion.Trigger>
       </Accordion.Header>
