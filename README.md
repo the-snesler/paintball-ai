@@ -6,10 +6,14 @@ AI image generation gallery with multi-model support. Runs mostly in the user's 
 
 ## Features
 
-- Multiple concurrent generations from different models
-- Full-resolution originals with lightweight gallery thumbnails (max 400px wide)
+- Multiple concurrent generations from different models, with support for many providers (Replicate, OpenAI, and Google)
+- Editor view: iterate on a single image, with comparison between original and new variations & edit history
+- Semantic search: easily find past images in the gallery, with embeddings done locally in the background
+- Text model support: automatically improve prompts, generate prompts from images, and create variations on prompts
+- Upscaling model support: generate high-resolution images from low-resolution inputs
+- Add literally any image model from Replicate, using text models to adapt to different input and output formats
 - Reference image support for editing workflows
-- Custom aspect ratios
+- Custom aspect ratios and resolutions
 - Masonry gallery layout with grid/list views
 - Drag & drop images from gallery to reference inputs
 - Multi-select gallery actions: bulk delete, bulk download, and bulk attach to prompt references
