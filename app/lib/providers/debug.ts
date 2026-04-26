@@ -38,7 +38,44 @@ function getDebugDimensions(
   };
 }
 
+async function generatePicsumImage(params: GenerationParams): Promise<GenerationResult[]> {
+  const { width, height } = getDebugDimensions(params.aspectRatio, params.resolution);
+  const n = Math.max(1, params.numberOfImages);
+  const results: GenerationResult[] = [];
+
+  for (let i = 0; i < n; i++) {
+    // Append a cache-busting seed so each request in the batch yields a different photo.
+    const seed = Math.floor(Math.random() * 1_000_000);
+    const url = `https://picsum.photos/seed/${seed}/${width}/${height}`;
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`picsum fetch failed: ${response.status} ${response.statusText}`);
+    }
+    const blob = await response.blob();
+    const dimensions = await getImageDimensions(blob);
+
+    results.push({
+      blob,
+      width: dimensions.width,
+      height: dimensions.height,
+      metadata: {
+        debug: true,
+        picsum: true,
+        picsumSeed: seed,
+        generatedAt: new Date().toISOString(),
+        batchIndex: i,
+      },
+    });
+  }
+
+  return results;
+}
+
 async function generateImage(params: GenerationParams): Promise<GenerationResult[]> {
+  if (params.modelId === "debug/picsum") {
+    return generatePicsumImage(params);
+  }
+
   const { width, height } = getDebugDimensions(params.aspectRatio, params.resolution);
   const canvas = document.createElement("canvas");
   canvas.width = width;
@@ -110,9 +147,15 @@ async function generateImage(params: GenerationParams): Promise<GenerationResult
 async function searchModels(query: string, apiKey: string): Promise<SearchResult[]> {
   return [
     {
-      id: "debug/debug-model",
+      id: "debug-model",
       name: "Debug Model",
       description: "A built-in model that generates placeholder images for testing.",
+      icon: "/icons/box.svg",
+    },
+    {
+      id: "picsum",
+      name: "Picsum Photos",
+      description: "Fetches random placeholder photos from picsum.photos for testing.",
       icon: "/icons/box.svg",
     },
   ];
