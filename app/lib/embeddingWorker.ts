@@ -90,20 +90,9 @@ async function loadModel(): Promise<LoadedModel> {
   return modelPromise;
 }
 
-async function rasterizeSvg(blob: Blob): Promise<Blob> {
-  const bitmap = await createImageBitmap(blob);
-  const canvas = new OffscreenCanvas(bitmap.width || 512, bitmap.height || 512);
-  const ctx = canvas.getContext("2d");
-  if (!ctx) throw new Error("OffscreenCanvas 2D context unavailable");
-  ctx.drawImage(bitmap, 0, 0);
-  bitmap.close();
-  return canvas.convertToBlob({ type: "image/png" });
-}
-
 async function embedImage(blob: Blob): Promise<number[]> {
   const { processor, visionModel, RawImage } = await loadModel();
-  const source = blob.type === "image/svg+xml" ? await rasterizeSvg(blob) : blob;
-  const image = await RawImage.fromBlob(source);
+  const image = await RawImage.fromBlob(blob);
   const inputs = await processor(image);
   const { pooler_output } = await visionModel(inputs);
   return Array.from(pooler_output.data);

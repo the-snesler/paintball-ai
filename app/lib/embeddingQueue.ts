@@ -140,16 +140,17 @@ async function processNext() {
   if (!id) return;
   queuedIds.delete(id);
 
-  // Prefer the in-memory blob (avoids a DB read), fall back to IndexedDB
-  // for items past the current pagination window.
+  // Send the thumbnail (400px, already rasterized) rather than the original:
+  // SigLIP resizes to 224 internally, so we lose nothing on quality, and SVG
+  // originals would otherwise crash the worker's image decoder.
   const inMemory = useGalleryStore.getState().items.find((i) => i.id === id);
   let blob: Blob | null = null;
   if (inMemory && inMemory.status === "completed") {
-    blob = inMemory.originalBlob;
+    blob = inMemory.thumbnailBlob;
   } else {
     try {
       const stored = await getImageById(id);
-      blob = stored?.originalBlob ?? null;
+      blob = stored?.thumbnailBlob ?? null;
     } catch (err) {
       useEmbeddingStatusStore.getState().reportEmbedError(
         err instanceof Error ? err.message : "Failed to load image for embedding"
