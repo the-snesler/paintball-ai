@@ -133,8 +133,8 @@ export function SettingsModal() {
       {/* Content */}
       <div className="flex-1 space-y-6 overflow-y-auto p-4">
         {/* API Keys Section */}
-        <details ref={apiKeysDetailsRef} className="group space-y-3" open>
-          <summary className="flex w-full cursor-pointer list-none items-center justify-between text-left [&::-webkit-details-marker]:hidden">
+        <section className="group space-y-3">
+          <div className="flex w-full items-center justify-between text-left">
             <div className="flex items-center gap-2">
               <KeyRound className="text-accent-muted h-4 w-4" />
               <span className="text-sm font-medium">API Keys</span>
@@ -142,8 +142,7 @@ export function SettingsModal() {
                 <Check className="h-4 w-4 text-green-500" />
               )}
             </div>
-            <ChevronDown className="text-text-tertiary h-4 w-4 -rotate-90 transition-transform duration-200 group-open:rotate-0" />
-          </summary>
+          </div>
 
           <div className="space-y-3 pl-6">
             <p className="text-text-muted text-xs">Keys are stored locally in your browser.</p>
@@ -159,11 +158,11 @@ export function SettingsModal() {
               />
             ))}
           </div>
-        </details>
+        </section>
 
         {/* Desktop Notifications Section */}
-        <details ref={desktopNotificationsDetailsRef} className="group space-y-3" open>
-          <summary className="flex w-full cursor-pointer list-none items-center justify-between text-left [&::-webkit-details-marker]:hidden">
+        <section className="group space-y-3">
+          <div className="flex w-full items-center justify-between text-left">
             <div className="flex items-center gap-2">
               <Bell className="text-accent-muted h-4 w-4" />
               <span className="text-sm font-medium">Desktop notifications</span>
@@ -171,8 +170,7 @@ export function SettingsModal() {
                 <Check className="h-4 w-4 text-green-500" />
               )}
             </div>
-            <ChevronDown className="text-text-tertiary h-4 w-4 -rotate-90 transition-transform duration-200 group-open:rotate-0" />
-          </summary>
+          </div>
 
           <div className="border-border-subtle bg-surface-raised/60 ml-6 space-y-3 rounded-lg border p-3">
             <label className="flex items-center justify-between gap-3">
@@ -208,18 +206,17 @@ export function SettingsModal() {
               </button>
             )}
           </div>
-        </details>
+        </section>
 
         {/* Semantic Search Section */}
-        <details className="group space-y-3" open>
-          <summary className="flex w-full cursor-pointer list-none items-center justify-between text-left [&::-webkit-details-marker]:hidden">
+        <section className="group space-y-3">
+          <div className="flex w-full items-center justify-between text-left">
             <div className="flex items-center gap-2">
               <Sparkles className="text-accent-muted h-4 w-4" />
               <span className="text-sm font-medium">Semantic image search</span>
               {semanticSearchEnabled && <Check className="h-4 w-4 text-green-500" />}
             </div>
-            <ChevronDown className="text-text-tertiary h-4 w-4 -rotate-90 transition-transform duration-200 group-open:rotate-0" />
-          </summary>
+          </div>
 
           <div className="border-border-subtle bg-surface-raised/60 ml-6 space-y-3 rounded-lg border p-3">
             <label className="flex items-center justify-between gap-3">
@@ -239,11 +236,11 @@ export function SettingsModal() {
 
             {semanticSearchEnabled && <SemanticSearchStatus />}
           </div>
-        </details>
+        </section>
 
         {/* Text Generation Section */}
-        <details className="group space-y-3" open>
-          <summary className="flex w-full cursor-pointer list-none items-center justify-between text-left [&::-webkit-details-marker]:hidden">
+        <section className="group space-y-3">
+          <div className="flex w-full items-center justify-between text-left">
             <div className="flex items-center gap-2">
               <MessageSquareText className="text-accent-muted h-4 w-4" />
               <span className="text-sm font-medium">Text generation</span>
@@ -251,8 +248,7 @@ export function SettingsModal() {
                 <Check className="h-4 w-4 text-green-500" />
               )}
             </div>
-            <ChevronDown className="text-text-tertiary h-4 w-4 -rotate-90 transition-transform duration-200 group-open:rotate-0" />
-          </summary>
+          </div>
 
           <div className="border-border-subtle bg-surface-raised/60 ml-6 space-y-3 rounded-lg border p-3">
             <p className="text-text-muted text-xs">
@@ -291,7 +287,7 @@ export function SettingsModal() {
               </p>
             </div>
           </div>
-        </details>
+        </section>
 
         {/* Data Section */}
         <DataSection />
@@ -353,20 +349,19 @@ function DataSection() {
   };
 
   return (
-    <details className="group space-y-3" open>
-      <summary className="flex w-full cursor-pointer list-none items-center justify-between text-left [&::-webkit-details-marker]:hidden">
+    <section className="group space-y-3">
+      <div className="flex w-full items-center justify-between text-left">
         <div className="flex items-center gap-2">
-          <Archive className="h-4 w-4 text-accent-muted" />
+          <Archive className="text-accent-muted h-4 w-4" />
           <span className="text-sm font-medium">Data</span>
         </div>
-        <ChevronDown className="h-4 w-4 -rotate-90 text-text-tertiary transition-transform duration-200 group-open:rotate-0" />
-      </summary>
+      </div>
 
-      <div className="ml-6 space-y-3 rounded-lg border border-border-subtle bg-surface-raised/60 p-3">
-        <p className="text-xs text-text-muted">
+      <div className="border-border-subtle bg-surface-raised/60 ml-6 space-y-3 rounded-lg border p-3">
+        <p className="text-text-muted text-xs">
           Export or import all images and their metadata as a ZIP file.
           {imageCount !== null && (
-            <span className="ml-1 text-text-tertiary">
+            <span className="text-text-tertiary ml-1">
               {imageCount} image{imageCount !== 1 ? "s" : ""} in gallery.
             </span>
           )}
@@ -377,7 +372,7 @@ function DataSection() {
             type="button"
             onClick={handleExport}
             disabled={exporting || importing || imageCount === 0}
-            className="flex items-center gap-1.5 rounded-lg bg-surface-overlay px-3 py-1.5 text-xs font-medium text-text-secondary transition-colors hover:bg-surface-interactive disabled:cursor-not-allowed disabled:opacity-60"
+            className="bg-surface-overlay text-text-secondary hover:bg-surface-interactive flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-60"
           >
             {exporting ? (
               <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -391,7 +386,7 @@ function DataSection() {
             type="button"
             onClick={() => fileInputRef.current?.click()}
             disabled={exporting || importing}
-            className="flex items-center gap-1.5 rounded-lg bg-surface-overlay px-3 py-1.5 text-xs font-medium text-text-secondary transition-colors hover:bg-surface-interactive disabled:cursor-not-allowed disabled:opacity-60"
+            className="bg-surface-overlay text-text-secondary hover:bg-surface-interactive flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-60"
           >
             {importing ? (
               <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -410,9 +405,9 @@ function DataSection() {
           />
         </div>
 
-        {status && <p className="text-xs text-text-tertiary">{status}</p>}
+        {status && <p className="text-text-tertiary text-xs">{status}</p>}
       </div>
-    </details>
+    </section>
   );
 }
 
