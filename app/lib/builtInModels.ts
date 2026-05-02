@@ -2,7 +2,7 @@ import type { ModelCapabilities, StoredModel, StoredTextModel, StoredUpscaler } 
 
 export const BUILT_IN_MODELS: StoredModel[] = [
   {
-    id: "gemini-3-pro-image-preview",
+    id: "google/gemini-3-pro-image-preview",
     name: "Gemini 3.0 Pro",
     provider: "google",
     enabled: true,
@@ -27,7 +27,7 @@ export const BUILT_IN_MODELS: StoredModel[] = [
     },
   },
   {
-    id: "gemini-3.1-flash-image-preview",
+    id: "google/gemini-3.1-flash-image-preview",
     name: "Gemini 3.1 Flash",
     provider: "google",
     enabled: true,
@@ -81,7 +81,7 @@ export const BUILT_IN_MODELS: StoredModel[] = [
     },
   },
   {
-    id: "gpt-image-2",
+    id: "openai/gpt-image-2",
     name: "GPT Image 2",
     provider: "openai",
     enabled: true,

@@ -15,7 +15,7 @@ import { useState } from "react";
 import type { StoredModel } from "~/types";
 import { Tooltip } from "~/components/ui/Tooltip";
 import { Switch } from "~/components/ui/Switch";
-import { getProvider, PROVIDERS } from "~/lib/providers";
+import { getProvider, normalizeModelId, providerRequiresApiKey, PROVIDERS } from "~/lib/providers";
 
 function CapabilityBadge({
   icon: Icon,
@@ -45,11 +45,11 @@ export default function ModelToggleItem({
   hasApiKey: boolean;
   dragHandleProps?: React.HTMLAttributes<HTMLButtonElement>;
 }) {
+  const apiKeys = useSettingsStore((s) => s.apiKeys);
   const setModelEnabled = useSettingsStore((s) => s.setModelEnabled);
   const removeCustomModel = useSettingsStore((s) => s.removeCustomModel);
   const updateModelCapabilities = useSettingsStore((s) => s.updateModelCapabilities);
   const updateModelSchemaMapping = useSettingsStore((s) => s.updateModelSchemaMapping);
-  const replicateApiKey = useSettingsStore((s) => s.apiKeys.replicate);
   const [isRefetching, setIsRefetching] = useState(false);
   const [refetchingStatus, setRefetchingStatus] = useState("");
   const [refetchError, setRefetchError] = useState<string | null>(null);
@@ -59,23 +59,19 @@ export default function ModelToggleItem({
     model.isCustom && model.provider === "replicate" && model.schemaFetched === false;
 
   const handleRefetch = async () => {
-    if (!replicateApiKey) {
-      setRefetchError("Add a Replicate API key to re-fetch schema info.");
-      return;
-    }
-
     setIsRefetching(true);
     setRefetchError(null);
 
     try {
-      const replicateId = model.id.replace("replicate/", "");
-      const resolve = getProvider("replicate").resolveImageModel;
-      if (!resolve) throw new Error("Replicate provider can't resolve models");
-      const { capabilities, schemaMapping } = await resolve(
-        replicateId,
-        replicateApiKey,
-        setRefetchingStatus
-      );
+      const provider = model.provider;
+      const modelId = normalizeModelId(model.id, provider);
+      const resolve = getProvider(provider).resolveImageModel;
+      const apiKey = providerRequiresApiKey(model.provider) ? (apiKeys[model.provider] ?? "") : "";
+      if (providerRequiresApiKey(model.provider) && !apiKey) {
+        throw new Error(`No API key for ${model.provider}`);
+      }
+      if (!resolve) throw new Error("Provider can't resolve models");
+      const { capabilities, schemaMapping } = await resolve(modelId, apiKey, setRefetchingStatus);
 
       updateModelCapabilities(model.id, capabilities, true);
       if (schemaMapping) {
@@ -92,7 +88,7 @@ export default function ModelToggleItem({
     ? refetchingStatus
     : needsRefetch
       ? "Schema update available. Click to refresh."
-      : "Custom Replicate model. Click to refresh schema info.";
+      : "Click to refresh schema info.";
 
   const provider = PROVIDERS[model.provider];
 

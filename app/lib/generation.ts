@@ -20,6 +20,7 @@ export interface GenerationParams {
   quality: string | null;
   numberOfImages: number;
   referenceImages: Array<{ id: string; blob: Blob }>;
+  itemIds?: string[];
 }
 
 export interface GenerationResult {

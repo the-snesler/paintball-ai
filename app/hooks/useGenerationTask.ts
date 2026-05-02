@@ -63,6 +63,7 @@ export function useGenerationTask() {
           quality: task.quality,
           numberOfImages: task.numberOfImages,
           referenceImages: task.referenceImages,
+          itemIds: task.itemIds,
         },
         apiKey || undefined
       );

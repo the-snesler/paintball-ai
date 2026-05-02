@@ -1,11 +1,13 @@
-import { useEffect, useState } from "react";
-import { AlertCircle, X, RotateCcw, Clock } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { AlertCircle, X, RotateCcw, Clock, Upload } from "lucide-react";
 import type { GalleryItem } from "~/types";
 import { useGalleryStore } from "~/stores/galleryStore";
 import { useImageGeneration } from "~/hooks/useImageGeneration";
 import NumberFlow from "@number-flow/react";
 import { SineWaveGrid } from "./SineWaveGrid";
 import { getAspectRatioValue } from "~/lib/util";
+import { getImageDimensions } from "~/lib/imageProcessing";
+import { resolveManualItem, rejectManualItem } from "~/lib/providers/debug";
 
 interface LoadingCardProps {
   item: GalleryItem;
@@ -16,10 +18,13 @@ export function LoadingCard({ item }: LoadingCardProps) {
   const { retryItem } = useImageGeneration();
   const [countdown, setCountdown] = useState<number | null>(null);
   const [isRetrying, setIsRetrying] = useState(false);
+  const [isDragOver, setIsDragOver] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const isFailed = item.status === "failed";
   const isWaiting = item.status === "waiting";
   const isGenerating = item.status === "generating" || item.status === "pending";
+  const isManual = item.modelId === "debug/manual";
   const generationLabel =
     item.status === "pending"
       ? item.pendingPhase === "writing"
@@ -56,7 +61,32 @@ export function LoadingCard({ item }: LoadingCardProps) {
 
   const handleDismiss = (e: React.MouseEvent) => {
     e.stopPropagation();
+    if (isManual && !isFailed) rejectManualItem(item.id);
     dismissItem(item.id);
+  };
+
+  const handleManualFile = async (file: File) => {
+    if (!file.type.startsWith("image/")) return;
+    const { width, height } = await getImageDimensions(file);
+    resolveManualItem(item.id, {
+      blob: file,
+      width,
+      height,
+      metadata: { manual: true, generatedAt: new Date().toISOString() },
+    });
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(false);
+    const file = e.dataTransfer.files[0];
+    if (file) handleManualFile(file);
+  };
+
+  const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) handleManualFile(file);
+    e.target.value = "";
   };
 
   const handleRetry = async (e: React.MouseEvent) => {
@@ -79,7 +109,7 @@ export function LoadingCard({ item }: LoadingCardProps) {
       style={{ aspectRatio }}
     >
       {/* Animated background for generating/pending */}
-      {isGenerating && <SineWaveGrid />}
+      {isGenerating && !isManual && <SineWaveGrid />}
 
       {/* Animated background for waiting state (greyscale, darkened) */}
       {isWaiting && <SineWaveGrid frozen />}
@@ -87,12 +117,40 @@ export function LoadingCard({ item }: LoadingCardProps) {
       {/* Failed state background */}
       {isFailed && <div className="absolute inset-0 bg-red-950/30" />}
 
-      {/* Dismiss button for failed generations */}
-      {isFailed && (
+      {/* Manual upload drop zone */}
+      {isManual && !isFailed && (
+        <>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handleFileInput}
+          />
+          <div
+            className={`absolute inset-0 m-2 flex cursor-pointer flex-col items-center justify-center gap-2 rounded-md border-2 border-dashed transition-colors ${
+              isDragOver
+                ? "border-purple-400 bg-purple-500/10"
+                : "border-zinc-600 hover:border-zinc-400"
+            }`}
+            onClick={() => fileInputRef.current?.click()}
+            onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
+            onDragLeave={() => setIsDragOver(false)}
+            onDrop={handleDrop}
+          >
+            <Upload className="h-6 w-6 text-text-tertiary" />
+            <p className="text-sm font-medium text-text-secondary">Drop image here</p>
+            <p className="text-xs text-text-muted">or click to browse</p>
+          </div>
+        </>
+      )}
+
+      {/* Dismiss button — shown for failed generations and manual pending items */}
+      {(isFailed || (isManual && !isFailed)) && (
         <button
           onClick={handleDismiss}
           className="absolute top-2 right-2 z-10 rounded-full bg-black/60 p-1.5 transition-colors hover:bg-black/80"
-          aria-label="Dismiss error"
+          aria-label="Dismiss"
         >
           <X className="h-4 w-4 text-text-tertiary" />
         </button>
@@ -146,7 +204,7 @@ export function LoadingCard({ item }: LoadingCardProps) {
       )}
 
       {/* Generating text overlay */}
-      {isGenerating && (
+      {isGenerating && !isManual && (
         <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
           <p className="text-sm font-medium text-white/80 drop-shadow-lg">{generationLabel}</p>
           {retryCount !== undefined && retryCount > 0 && (

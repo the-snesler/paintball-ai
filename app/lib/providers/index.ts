@@ -51,3 +51,8 @@ export function isTextCapable(provider: Provider): provider is TextCapableProvid
     (provider.id === "google" || provider.id === "replicate")
   );
 }
+
+export function normalizeModelId(id: string, provider: string): string {
+  // strip provider prefix if present
+  return id.startsWith(`${provider}/`) ? id.slice(provider.length + 1) : id;
+}

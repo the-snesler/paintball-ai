@@ -6,6 +6,36 @@ import type { Provider, ResolvedImageModel, SearchResult } from "./types";
 import { DEFAULT_IMAGE_CAPABILITIES } from "../builtInModels";
 import { inferName } from "../modelNames";
 
+type Deferred = {
+  resolve: (r: GenerationResult) => void;
+  reject: (e: Error) => void;
+  promise: Promise<GenerationResult>;
+};
+const manualDeferred = new Map<string, Deferred>();
+
+function getOrCreateDeferred(itemId: string): Deferred {
+  if (!manualDeferred.has(itemId)) {
+    let resolve!: (r: GenerationResult) => void;
+    let reject!: (e: Error) => void;
+    const promise = new Promise<GenerationResult>((res, rej) => {
+      resolve = res;
+      reject = rej;
+    });
+    manualDeferred.set(itemId, { resolve, reject, promise });
+  }
+  return manualDeferred.get(itemId)!;
+}
+
+export function resolveManualItem(itemId: string, result: GenerationResult): void {
+  manualDeferred.get(itemId)?.resolve(result);
+  manualDeferred.delete(itemId);
+}
+
+export function rejectManualItem(itemId: string): void {
+  manualDeferred.get(itemId)?.reject(new Error("Dismissed"));
+  manualDeferred.delete(itemId);
+}
+
 const DEBUG_RESOLUTION_WIDTH: Record<Resolution, number> = {
   "1K": 1024,
   "2K": 2048,
@@ -74,6 +104,11 @@ async function generatePicsumImage(params: GenerationParams): Promise<Generation
 async function generateImage(params: GenerationParams): Promise<GenerationResult[]> {
   if (params.modelId === "debug/picsum") {
     return generatePicsumImage(params);
+  }
+
+  if (params.modelId === "debug/manual") {
+    const ids = params.itemIds ?? [];
+    return Promise.all(ids.map((id) => getOrCreateDeferred(id).promise));
   }
 
   const { width, height } = getDebugDimensions(params.aspectRatio, params.resolution);
@@ -158,6 +193,12 @@ async function searchModels(query: string, apiKey: string): Promise<SearchResult
       description: "Fetches random placeholder photos from picsum.photos for testing.",
       icon: "/icons/box.svg",
     },
+    {
+      id: "manual",
+      name: "Manual Upload",
+      description: "Prompts you to upload an image instead of generating one.",
+      icon: "/icons/box.svg",
+    },
   ];
 }
 
@@ -166,6 +207,18 @@ async function resolveImageModel(
   apiKey: string,
   onProgress?: (status: string) => void
 ): Promise<ResolvedImageModel> {
+  if (modelId === "manual") {
+    return {
+      name: "Manual Upload",
+      capabilities: {
+        supportsAspectRatios: false,
+        supportsResolution: false,
+        supportsReferenceImages: true,
+        maxReferenceImages: 10,
+      },
+      icon: "/icons/box.svg",
+    };
+  }
   return {
     name: inferName(modelId),
     capabilities: DEFAULT_IMAGE_CAPABILITIES,
