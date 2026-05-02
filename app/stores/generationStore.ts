@@ -10,6 +10,7 @@ interface GenerationState {
   currentQuality: string | null;
   currentNumberOfImages: number;
   currentReferenceImages: ReferenceImage[];
+  currentStyleId: string | null;
   variationsEnabled: boolean;
   avoidPastVariations: boolean;
   activeGenerationCount: number;
@@ -31,6 +32,7 @@ interface GenerationState {
   removeReferenceImage: (id: string) => void;
   reorderReferenceImages: (fromId: string, toId: string) => void;
   clearReferenceImages: () => void;
+  setStyleId: (id: string | null) => void;
   startGeneration: (signature: string) => void;
   finishGeneration: (signature: string) => void;
   resetDraft: () => void;
@@ -45,6 +47,7 @@ export const DEFAULT_GENERATION_STATE = {
   currentQuality: null as string | null,
   currentNumberOfImages: 1,
   currentReferenceImages: [],
+  currentStyleId: null as string | null,
   variationsEnabled: false,
   avoidPastVariations: true,
 };
@@ -122,6 +125,8 @@ export const useGenerationStore = create<GenerationState>()((set) => ({
       state.currentReferenceImages.forEach((image) => URL.revokeObjectURL(image.url));
       return { currentReferenceImages: [] };
     }),
+
+  setStyleId: (currentStyleId) => set({ currentStyleId }),
 
   startGeneration: (signature) =>
     set((state) => {

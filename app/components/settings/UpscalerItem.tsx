@@ -1,4 +1,4 @@
-import { GripVertical, Box, Trash2 } from "lucide-react";
+import { Box, Trash2 } from "lucide-react";
 import { useSettingsStore } from "~/stores/settingsStore";
 import SVG from "react-inlinesvg";
 import type { StoredUpscaler } from "~/types";

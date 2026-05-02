@@ -1,5 +1,4 @@
 import {
-  GripVertical,
   Maximize,
   RectangleHorizontal,
   Trash2,
@@ -29,7 +28,7 @@ function CapabilityBadge({
   if (!enabled) return null;
   return (
     <Tooltip content={label} placement="top" delay={200}>
-      <span className="inline-flex cursor-help items-center gap-1 rounded bg-surface-interactive/50 px-1.5 py-0.5 text-[10px] text-text-tertiary">
+      <span className="bg-surface-interactive/50 text-text-tertiary inline-flex cursor-help items-center gap-1 rounded px-1.5 py-0.5 text-[10px]">
         <Icon className="h-2.5 w-2.5" />
       </span>
     </Tooltip>

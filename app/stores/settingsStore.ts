@@ -8,6 +8,7 @@ import {
   mergeWithBuiltInTextModels,
   mergeWithBuiltInUpscalers,
 } from "~/lib/builtInModels";
+import { BUILT_IN_STYLES, mergeWithBuiltInStyles } from "~/lib/builtInStyles";
 import { hasProviderAccess } from "~/lib/providers";
 import type {
   ApiKeyProvider,
@@ -15,6 +16,7 @@ import type {
   ModelCapabilities,
   SchemaMapping,
   StoredModel,
+  StoredStyle,
   StoredTextModel,
   StoredUpscaler,
 } from "~/types";
@@ -24,6 +26,7 @@ interface SettingsState {
   models: StoredModel[];
   textModels: StoredTextModel[];
   upscalers: StoredUpscaler[];
+  styles: StoredStyle[];
   desktopNotificationsEnabled: boolean;
   notificationPromptDismissed: boolean;
   requestedOutputCount: number;
@@ -59,6 +62,16 @@ interface SettingsState {
   addCustomUpscaler: (replicateId: string, name: string, icon?: string) => void;
   removeCustomUpscaler: (id: string) => void;
   reorderUpscalers: (activeId: string, overId: string) => void;
+
+  // Style actions
+  setStyleEnabled: (id: string, enabled: boolean) => void;
+  addCustomStyle: (input: { name: string; text: string; referenceImageId?: string }) => string;
+  updateStyle: (
+    id: string,
+    patch: Partial<Pick<StoredStyle, "name" | "text" | "referenceImageId">>
+  ) => void;
+  removeCustomStyle: (id: string) => void;
+  reorderStyles: (activeId: string, overId: string) => void;
 
   // Text model actions
   selectTextModel: (id: string) => void;
@@ -96,6 +109,7 @@ export const useSettingsStore = create<SettingsState>()(
       models: BUILT_IN_MODELS,
       textModels: BUILT_IN_TEXT_MODELS,
       upscalers: BUILT_IN_UPSCALERS,
+      styles: BUILT_IN_STYLES,
       desktopNotificationsEnabled: false,
       notificationPromptDismissed: false,
       requestedOutputCount: 0,
@@ -249,6 +263,65 @@ export const useSettingsStore = create<SettingsState>()(
           return { upscalers: newUpscalers };
         }),
 
+      setStyleEnabled: (id, enabled) =>
+        set((state) => ({
+          styles: state.styles.map((s) => (s.id === id ? { ...s, enabled } : s)),
+        })),
+
+      addCustomStyle: ({ name, text, referenceImageId }) => {
+        const id = `custom/${crypto.randomUUID()}`;
+        set((state) => ({
+          styles: [
+            ...state.styles,
+            {
+              id,
+              name,
+              text,
+              enabled: true,
+              isCustom: true,
+              ...(referenceImageId && { referenceImageId }),
+            },
+          ],
+        }));
+        return id;
+      },
+
+      updateStyle: (id, patch) =>
+        set((state) => ({
+          styles: state.styles.map((s) => {
+            if (s.id !== id || !s.isCustom) return s;
+            const next: StoredStyle = { ...s };
+            if (patch.name !== undefined) next.name = patch.name;
+            if (patch.text !== undefined) next.text = patch.text;
+            if ("referenceImageId" in patch) {
+              if (patch.referenceImageId) {
+                next.referenceImageId = patch.referenceImageId;
+              } else {
+                delete next.referenceImageId;
+              }
+            }
+            return next;
+          }),
+        })),
+
+      removeCustomStyle: (id) =>
+        set((state) => ({
+          styles: state.styles.some((s) => s.id === id && s.isCustom)
+            ? state.styles.filter((s) => s.id !== id)
+            : state.styles,
+        })),
+
+      reorderStyles: (activeId, overId) =>
+        set((state) => {
+          const oldIndex = state.styles.findIndex((s) => s.id === activeId);
+          const newIndex = state.styles.findIndex((s) => s.id === overId);
+          if (oldIndex === -1 || newIndex === -1) return state;
+          const newStyles = [...state.styles];
+          const [moved] = newStyles.splice(oldIndex, 1);
+          newStyles.splice(newIndex, 0, moved);
+          return { styles: newStyles };
+        }),
+
       setDesktopNotificationsEnabled: (enabled) => set({ desktopNotificationsEnabled: enabled }),
 
       dismissNotificationPrompt: () => set({ notificationPromptDismissed: true }),
@@ -267,12 +340,13 @@ export const useSettingsStore = create<SettingsState>()(
     }),
     {
       name: "studio-settings",
-      version: 16,
+      version: 17,
       partialize: (state) => ({
         apiKeys: state.apiKeys,
         models: state.models,
         textModels: state.textModels,
         upscalers: state.upscalers,
+        styles: state.styles,
         desktopNotificationsEnabled: state.desktopNotificationsEnabled,
         notificationPromptDismissed: state.notificationPromptDismissed,
         requestedOutputCount: state.requestedOutputCount,
@@ -287,6 +361,7 @@ export const useSettingsStore = create<SettingsState>()(
           textModel?: { provider: ApiKeyProvider; modelId: string };
           textModels?: StoredTextModel[];
           upscalers?: StoredUpscaler[];
+          styles?: StoredStyle[];
           desktopNotificationsEnabled?: boolean;
           notificationPromptDismissed?: boolean;
           requestedOutputCount?: number;
@@ -384,6 +459,7 @@ export const useSettingsStore = create<SettingsState>()(
           models: mergeWithBuiltInModels(state.models) ?? BUILT_IN_MODELS,
           textModels: mergeWithBuiltInTextModels(state.textModels) ?? BUILT_IN_TEXT_MODELS,
           upscalers: mergeWithBuiltInUpscalers(state.upscalers) ?? BUILT_IN_UPSCALERS,
+          styles: mergeWithBuiltInStyles(state.styles) ?? BUILT_IN_STYLES,
           desktopNotificationsEnabled: state.desktopNotificationsEnabled ?? false,
           notificationPromptDismissed: state.notificationPromptDismissed ?? false,
           requestedOutputCount: state.requestedOutputCount ?? 0,

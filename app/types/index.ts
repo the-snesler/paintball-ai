@@ -186,6 +186,17 @@ export interface StoredTextModel {
   icon?: string;
 }
 
+// Style types — appended to prompt at generation time
+export interface StoredStyle {
+  id: string; // built-in: stable slug; custom: "custom/<uuid>"
+  name: string;
+  text: string; // appended to prompt; may contain literal "{n}"
+  enabled: boolean;
+  isCustom?: boolean;
+  referenceImageId?: string; // FK into IndexedDB references store
+  icon?: string;
+}
+
 export interface SchemaMapping {
   resolution?: Record<string, string>;
   aspectRatioKey?: string;

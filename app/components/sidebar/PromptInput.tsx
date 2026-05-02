@@ -23,6 +23,7 @@ import { useGalleryStore } from "~/stores/galleryStore";
 import { useGenerationStore } from "~/stores/generationStore";
 import { useLightboxStore } from "~/stores/lightboxStore";
 import { useSettingsStore } from "~/stores/settingsStore";
+import { StyleSelect } from "./StyleSelect";
 
 function SortableReferenceImage({
   img,
@@ -291,8 +292,8 @@ export function PromptInput() {
   return (
     <section>
       <div className="mb-2 flex items-center gap-2">
-        <Wand2 className="h-4 w-4 text-text-muted" />
-        <h2 className="text-xs font-medium tracking-wide text-text-tertiary uppercase">Prompt</h2>
+        <Wand2 className="text-text-muted h-4 w-4" />
+        <h2 className="text-text-tertiary text-xs font-medium tracking-wide uppercase">Prompt</h2>
       </div>
 
       <div
@@ -300,7 +301,7 @@ export function PromptInput() {
         onDragEnter={handleDragEnter}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
-        className={`rounded-lg border bg-surface-overlay transition-colors ${
+        className={`bg-surface-overlay rounded-lg border transition-colors ${
           isDragOver && referenceEnabled
             ? "border-purple-500 ring-1 ring-purple-500"
             : "border-c-border"
@@ -312,7 +313,7 @@ export function PromptInput() {
           onChange={(e) => setPrompt(e.target.value)}
           onPaste={handlePaste}
           placeholder="Describe your image..."
-          className="field-sizing-content max-h-1/2 min-h-24 w-full resize-none rounded-t-lg bg-transparent px-3 pt-2 pb-2 text-sm text-text-primary placeholder-text-muted focus:outline-none"
+          className="text-text-primary placeholder-text-muted field-sizing-content max-h-1/2 min-h-24 w-full resize-none rounded-t-lg bg-transparent px-3 pt-2 pb-2 text-sm focus:outline-none"
         />
 
         {isExpanded && (
@@ -344,7 +345,7 @@ export function PromptInput() {
                   ))}
 
                   {isDragOver && referenceImages.length === 0 && (
-                    <div className="col-span-3 rounded-lg border-2 border-dashed border-c-border py-4 text-center text-xs text-text-tertiary">
+                    <div className="border-c-border text-text-tertiary col-span-3 rounded-lg border-2 border-dashed py-4 text-center text-xs">
                       Drop images here
                     </div>
                   )}
@@ -354,16 +355,16 @@ export function PromptInput() {
           </div>
         )}
 
-        <div className="mx-3 mb-3 flex items-center justify-between">
+        <div className="mx-3 mb-3 flex items-center justify-between gap-3">
           <label
-            className={`inline-flex items-center gap-1 text-xs transition-colors ${
+            className={`inline-flex shrink-0 items-center gap-1 text-xs transition-colors ${
               referenceEnabled
-                ? "cursor-pointer text-text-tertiary hover:text-text-secondary"
-                : "cursor-not-allowed text-text-muted"
+                ? "text-text-tertiary hover:text-text-secondary cursor-pointer"
+                : "text-text-muted cursor-not-allowed"
             }`}
           >
             <ImagePlus className="h-4 w-4" />
-            {referenceImages.length > 0 ? "Attach more" : "Attach references"}
+            Attach
             <input
               type="file"
               accept="image/*"
@@ -378,26 +379,28 @@ export function PromptInput() {
             <button
               type="button"
               onClick={handleUndoImprove}
-              className="inline-flex items-center gap-1 text-xs text-text-tertiary transition-colors hover:text-text-secondary"
+              className="text-text-tertiary hover:text-text-secondary inline-flex items-center gap-1 text-xs transition-colors"
             >
               <Undo2 className="h-3.5 w-3.5" />
-              Undo improve
+              Undo
             </button>
           ) : (
             <button
               type="button"
               onClick={handleImprovePrompt}
               disabled={!isTextModelAvailable() || !prompt.trim() || isImproving}
-              className="inline-flex items-center gap-1 text-xs text-text-tertiary transition-colors hover:text-text-secondary disabled:cursor-not-allowed disabled:text-text-muted"
+              className="text-text-tertiary hover:text-text-secondary disabled:text-text-muted inline-flex items-center gap-1 text-xs transition-colors disabled:cursor-not-allowed"
             >
               {isImproving ? (
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
               ) : (
                 <Sparkles className="h-3.5 w-3.5" />
               )}
-              {isImproving ? "Improving..." : "Improve"}
+              {isImproving ? "Working..." : "Rewrite"}
             </button>
           )}
+
+          <StyleSelect />
         </div>
       </div>
     </section>

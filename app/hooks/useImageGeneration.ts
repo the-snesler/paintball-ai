@@ -2,10 +2,11 @@ import { useCallback } from "react";
 import { useGalleryStore } from "~/stores/galleryStore";
 import { useGenerationStore } from "~/stores/generationStore";
 import { useSettingsStore } from "~/stores/settingsStore";
-import { saveReferenceImage } from "~/lib/db";
+import { getReferenceImagesByIds, saveReferenceImage } from "~/lib/db";
 import { buildGenerationSignature } from "~/lib/generationSignature";
 import { getModel } from "~/lib/models";
 import { preparePromptBatch } from "~/lib/promptPreparation";
+import { applyStyle } from "~/lib/styleApplication";
 import type { GalleryItem } from "~/types";
 import { useGenerationTask, type GenerationTask } from "~/hooks/useGenerationTask";
 
@@ -43,7 +44,12 @@ export function useImageGeneration() {
 
   const generate = useCallback(async () => {
     const variationsEnabled = useGenerationStore.getState().variationsEnabled;
-    const alwaysImprovePromptEnabled = useSettingsStore.getState().alwaysImprovePromptEnabled;
+    const { currentStyleId } = useGenerationStore.getState();
+    const settings = useSettingsStore.getState();
+    const alwaysImprovePromptEnabled = settings.alwaysImprovePromptEnabled;
+    const selectedStyle = currentStyleId
+      ? (settings.styles.find((s) => s.id === currentStyleId && s.enabled) ?? null)
+      : null;
 
     const signature = buildGenerationSignature({
       prompt,
@@ -151,11 +157,29 @@ export function useImageGeneration() {
         }))
       );
 
-      const imageBlobs = referenceImages.map((r) => r.blob);
+      let styleRefBlob: Blob | null = null;
+      let styleRefId: string | null = null;
+      if (selectedStyle?.referenceImageId) {
+        const [loaded] = await getReferenceImagesByIds([selectedStyle.referenceImageId]);
+        if (loaded) {
+          styleRefBlob = loaded.blob;
+          styleRefId = loaded.id;
+          URL.revokeObjectURL(loaded.url);
+        }
+      }
+      const effectiveStyle = styleRefBlob
+        ? selectedStyle
+        : selectedStyle
+          ? { ...selectedStyle, referenceImageId: undefined }
+          : null;
+      const styled = applyStyle(originalPrompt, effectiveStyle, referenceImages.length);
+      const userImageBlobs = referenceImages.map((r) => r.blob);
+      const imageBlobs = styleRefBlob ? [...userImageBlobs, styleRefBlob] : userImageBlobs;
+
       const { avoidPastVariations } = useGenerationStore.getState();
       const { items } = useGalleryStore.getState();
       const preparedPrompts = await preparePromptBatch({
-        prompt: originalPrompt,
+        prompt: styled.prompt,
         totalTasks,
         images: imageBlobs.length > 0 ? imageBlobs : undefined,
         improvePrompt: alwaysImprovePromptEnabled && basePrompt === null,
@@ -167,7 +191,8 @@ export function useImageGeneration() {
         },
       });
 
-      const anyTransformApplied = preparedPrompts.improved || preparedPrompts.usedVariations;
+      const anyTransformApplied =
+        selectedStyle || preparedPrompts.improved || preparedPrompts.usedVariations;
       const groupPrompt = basePrompt ?? (anyTransformApplied ? originalPrompt : undefined);
 
       const tasks: GenerationTask[] = taskSlots.map((slot, taskIndex) => {
@@ -186,11 +211,14 @@ export function useImageGeneration() {
           resolution: slot.resolution,
           quality: slot.quality,
           numberOfImages: slot.numberOfImages,
-          referenceImages: referenceImages.map((r) => ({
-            id: r.id,
-            blob: r.blob,
-            sourceGalleryItemId: r.sourceGalleryItemId,
-          })),
+          referenceImages: [
+            ...referenceImages.map((r) => ({
+              id: r.id,
+              blob: r.blob,
+              sourceGalleryItemId: r.sourceGalleryItemId,
+            })),
+            ...(styleRefBlob && styleRefId ? [{ id: styleRefId, blob: styleRefBlob }] : []), // TODO: style reference images only show up as "inputs" after reloading the page
+          ],
         };
       });
 

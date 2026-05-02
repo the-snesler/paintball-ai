@@ -1,4 +1,4 @@
-import { Expand, Layers, MessageSquareText, X } from "lucide-react";
+import { Expand, Layers, MessageSquareText, Palette, X } from "lucide-react";
 import { useLocation } from "react-router";
 import { PromptInput } from "./PromptInput";
 import { ModelList } from "./ModelList";
@@ -13,9 +13,11 @@ import { AvoidPastVariationsToggle } from "./AvoidPastVariationsToggle";
 import SVG from "react-inlinesvg";
 import drop from "~/drop.svg";
 import AddCustomModelButton from "../settings/AddCustomModelButton";
+import AddCustomStyleButton from "../settings/AddCustomStyleButton";
 import AddCustomTextModelButton from "../settings/AddCustomTextModelButton";
 import AddCustomUpscalerButton from "../settings/AddCustomUpscalerButton";
 import SortableModelItem from "../settings/SortableModelItem";
+import SortableStyleItem from "../settings/SortableStyleItem";
 import SortableUpscalerItem from "../settings/SortableUpscalerItem";
 import TextModelItem from "../settings/TextModelItem";
 import { hasProviderAccess } from "~/lib/providers";
@@ -115,9 +117,11 @@ function SettingsSidebarContent() {
   const models = useSettingsStore((s) => s.models);
   const textModels = useSettingsStore((s) => s.textModels);
   const upscalers = useSettingsStore((s) => s.upscalers);
+  const styles = useSettingsStore((s) => s.styles);
   const apiKeys = useSettingsStore((s) => s.apiKeys);
   const reorderModels = useSettingsStore((s) => s.reorderModels);
   const reorderUpscalers = useSettingsStore((s) => s.reorderUpscalers);
+  const reorderStyles = useSettingsStore((s) => s.reorderStyles);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -142,6 +146,16 @@ function SettingsSidebarContent() {
       }
     },
     [reorderUpscalers]
+  );
+
+  const handleStyleDragEnd = useCallback(
+    (event: DragEndEvent) => {
+      const { active, over } = event;
+      if (over && active.id !== over.id) {
+        reorderStyles(active.id as string, over.id as string);
+      }
+    },
+    [reorderStyles]
   );
 
   return (
@@ -216,6 +230,29 @@ function SettingsSidebarContent() {
       </DndContext>
 
       <AddCustomUpscalerButton />
+
+      <div className="flex items-center gap-2 pt-4">
+        <span className="text-text-muted">
+          <Palette className="h-4 w-4" />
+        </span>
+        <h2 className="text-text-tertiary text-xs font-medium tracking-wide uppercase">Styles</h2>
+      </div>
+
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragEnd={handleStyleDragEnd}
+      >
+        <SortableContext items={styles.map((s) => s.id)} strategy={verticalListSortingStrategy}>
+          <div className="space-y-1">
+            {styles.map((style) => (
+              <SortableStyleItem key={style.id} style={style} />
+            ))}
+          </div>
+        </SortableContext>
+      </DndContext>
+
+      <AddCustomStyleButton />
     </div>
   );
 }
