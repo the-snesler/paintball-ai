@@ -11,9 +11,10 @@ import { resolveManualItem, rejectManualItem } from "~/lib/providers/debug";
 
 interface LoadingCardProps {
   item: GalleryItem;
+  variant?: "gallery" | "editor";
 }
 
-export function LoadingCard({ item }: LoadingCardProps) {
+export function LoadingCard({ item, variant = "gallery" }: LoadingCardProps) {
   const dismissItem = useGalleryStore((s) => s.dismissItem);
   const { retryItem } = useImageGeneration();
   const [countdown, setCountdown] = useState<number | null>(null);
@@ -21,6 +22,7 @@ export function LoadingCard({ item }: LoadingCardProps) {
   const [isDragOver, setIsDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const isEditor = variant === "editor";
   const isFailed = item.status === "failed";
   const isWaiting = item.status === "waiting";
   const isGenerating = item.status === "generating" || item.status === "pending";
@@ -105,7 +107,7 @@ export function LoadingCard({ item }: LoadingCardProps) {
 
   return (
     <div
-      className="animate-fade-in relative overflow-hidden rounded-lg bg-surface-raised"
+      className={`bg-surface-raised relative overflow-hidden rounded-lg ${isEditor ? "ring-border-subtle ring-1" : "animate-fade-in"}`}
       style={{ aspectRatio }}
     >
       {/* Animated background for generating/pending */}
@@ -134,13 +136,16 @@ export function LoadingCard({ item }: LoadingCardProps) {
                 : "border-zinc-600 hover:border-zinc-400"
             }`}
             onClick={() => fileInputRef.current?.click()}
-            onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
+            onDragOver={(e) => {
+              e.preventDefault();
+              setIsDragOver(true);
+            }}
             onDragLeave={() => setIsDragOver(false)}
             onDrop={handleDrop}
           >
-            <Upload className="h-6 w-6 text-text-tertiary" />
-            <p className="text-sm font-medium text-text-secondary">Drop image here</p>
-            <p className="text-xs text-text-muted">or click to browse</p>
+            <Upload className="text-text-tertiary h-6 w-6" />
+            <p className="text-text-secondary text-sm font-medium">Drop image here</p>
+            <p className="text-text-muted text-xs">or click to browse</p>
           </div>
         </>
       )}
@@ -152,7 +157,7 @@ export function LoadingCard({ item }: LoadingCardProps) {
           className="absolute top-2 right-2 z-10 rounded-full bg-black/60 p-1.5 transition-colors hover:bg-black/80"
           aria-label="Dismiss"
         >
-          <X className="h-4 w-4 text-text-tertiary" />
+          <X className="text-text-tertiary h-4 w-4" />
         </button>
       )}
 
@@ -190,7 +195,7 @@ export function LoadingCard({ item }: LoadingCardProps) {
               {item.error || "Generation failed"}
             </p>
           </div>
-          {item.canRetry && (
+          {!isEditor && item.canRetry && (
             <button
               onClick={handleRetry}
               disabled={isRetrying}

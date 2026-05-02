@@ -1,4 +1,5 @@
 import { Check, Layers2, Link2, Maximize2, Square } from "lucide-react";
+import { LoadingCard } from "~/components/gallery/LoadingCard";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useGalleryStore } from "~/stores/galleryStore";
 import { useEditorStore } from "~/stores/editorStore";
@@ -7,7 +8,6 @@ import { useDiffStore } from "~/stores/diffStore";
 import type { EditorTurn } from "~/types";
 import { SineWaveGrid } from "~/components/gallery/SineWaveGrid";
 import { useGalleryDerivedIndexes } from "~/hooks/useGalleryDerivedIndexes";
-import { getAspectRatioValue } from "~/lib/util";
 
 interface TurnProps {
   turn: EditorTurn;
@@ -138,7 +138,7 @@ export function Turn({ turn, turnIndex, isFirst = false }: TurnProps) {
               );
             }
 
-            return <EditorLoadingCard key={item.id} item={item} />;
+            return <LoadingCard key={item.id} item={item} variant="editor" />;
           })
         )}
       </div>
@@ -266,50 +266,5 @@ function EditorImageCard({
         <div className="absolute inset-0 bg-white/0 transition-colors group-hover:bg-white/5" />
       )}
     </button>
-  );
-}
-
-function EditorLoadingCard({
-  item,
-}: {
-  item: ReturnType<typeof useGalleryStore.getState>["items"][number];
-}) {
-  const isFailed = item.status === "failed";
-  const isWaiting = item.status === "waiting";
-  const isGenerating = item.status === "generating" || item.status === "pending";
-
-  return (
-    <div
-      className="relative overflow-hidden rounded-lg bg-surface-raised ring-1 ring-border-subtle"
-      style={{ aspectRatio: getAspectRatioValue(item.aspectRatio) }}
-    >
-      {isGenerating && <SineWaveGrid />}
-      {isWaiting && <SineWaveGrid frozen />}
-      {isFailed && <div className="absolute inset-0 bg-red-950/30" />}
-
-      {isGenerating && (
-        <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-          <p className="text-xs font-medium text-white/80 drop-shadow-lg">Generating...</p>
-        </div>
-      )}
-
-      {isWaiting && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center p-3">
-          <p className="text-xs font-medium text-white/70">Rate limited</p>
-        </div>
-      )}
-
-      {isFailed && (
-        <div className="absolute inset-0 flex items-center justify-center p-3">
-          <p className="line-clamp-3 text-center text-xs leading-snug text-red-300">
-            {item.error || "Generation failed"}
-          </p>
-        </div>
-      )}
-
-      <div className="absolute bottom-2 left-2 rounded bg-black/60 px-2 py-0.5 text-xs text-white/70 backdrop-blur-sm">
-        {item.modelName}
-      </div>
-    </div>
   );
 }
