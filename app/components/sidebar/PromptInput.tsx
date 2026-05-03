@@ -317,8 +317,37 @@ export function PromptInput() {
           className="text-text-primary placeholder-text-muted field-sizing-content max-h-1/2 min-h-24 w-full resize-none rounded-t-lg bg-transparent px-3 pt-2 pb-2 text-sm focus:outline-none"
         />
 
+        <div className="items-left mx-3 flex justify-between gap-3">
+          {basePrompt !== null ? (
+            <button
+              type="button"
+              onClick={handleUndoImprove}
+              className="text-text-tertiary hover:text-text-secondary inline-flex items-center gap-1 text-xs transition-colors"
+            >
+              <Undo2 className="h-3.5 w-3.5" />
+              Undo
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={handleImprovePrompt}
+              disabled={!isTextModelAvailable() || !prompt.trim() || isImproving}
+              className="text-text-tertiary hover:text-text-secondary disabled:text-text-muted inline-flex items-center gap-1 text-xs transition-colors disabled:cursor-not-allowed"
+            >
+              {isImproving ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Sparkles className="h-3.5 w-3.5" />
+              )}
+              {isImproving ? "Working..." : "Rewrite"}
+            </button>
+          )}
+        </div>
+
+        <div className="border-c-border/50 my-3 border-t" />
+
         {isExpanded && (
-          <div className="px-3 py-2">
+          <div className="px-3">
             <DndContext
               sensors={refDndSensors}
               collisionDetection={closestCenter}
@@ -356,7 +385,7 @@ export function PromptInput() {
           </div>
         )}
 
-        <div className="mx-3 mb-3 flex items-center justify-between gap-3">
+        <div className="mx-3 my-3 flex items-center justify-between gap-3">
           <label
             className={`inline-flex shrink-0 items-center gap-1 text-xs transition-colors ${
               referenceEnabled
@@ -375,31 +404,6 @@ export function PromptInput() {
               className="hidden"
             />
           </label>
-
-          {basePrompt !== null ? (
-            <button
-              type="button"
-              onClick={handleUndoImprove}
-              className="text-text-tertiary hover:text-text-secondary inline-flex items-center gap-1 text-xs transition-colors"
-            >
-              <Undo2 className="h-3.5 w-3.5" />
-              Undo
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={handleImprovePrompt}
-              disabled={!isTextModelAvailable() || !prompt.trim() || isImproving}
-              className="text-text-tertiary hover:text-text-secondary disabled:text-text-muted inline-flex items-center gap-1 text-xs transition-colors disabled:cursor-not-allowed"
-            >
-              {isImproving ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              ) : (
-                <Sparkles className="h-3.5 w-3.5" />
-              )}
-              {isImproving ? "Working..." : "Rewrite"}
-            </button>
-          )}
 
           <CharacterSelect />
           <StyleSelect />
