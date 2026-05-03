@@ -2,12 +2,10 @@ import { useCallback } from "react";
 import { useGalleryStore } from "~/stores/galleryStore";
 import { useGenerationStore } from "~/stores/generationStore";
 import { useSettingsStore } from "~/stores/settingsStore";
-import { getReferenceImagesByIds, saveReferenceImage } from "~/lib/db";
+import { saveReferenceImage } from "~/lib/db";
 import { buildGenerationSignature } from "~/lib/generationSignature";
 import { getModel, getStrictReferenceImageLimit } from "~/lib/models";
 import { preparePromptBatch } from "~/lib/promptPreparation";
-import { applyPromptAdditions } from "~/lib/styleApplication";
-import { computeReferencePrecedence } from "~/lib/referencePrecedence";
 import type { GalleryItem } from "~/types";
 import { useGenerationTask, type GenerationTask } from "~/hooks/useGenerationTask";
 
@@ -157,74 +155,19 @@ export function useImageGeneration() {
         }))
       );
 
-      // Load style reference blob
-      let styleRefBlob: Blob | null = null;
-      let styleRefId: string | null = null;
-      if (selectedStyle?.referenceImageId) {
-        const [loaded] = await getReferenceImagesByIds([selectedStyle.referenceImageId]);
-        if (loaded) {
-          styleRefBlob = loaded.blob;
-          styleRefId = loaded.id;
-          URL.revokeObjectURL(loaded.url);
-        }
-      }
-
-      // Load character reference blobs
-      let characterRefBlobs: Array<{ id: string; blob: Blob }> = [];
-      if (selectedCharacter?.referenceImageIds.length) {
-        const loaded = await getReferenceImagesByIds(selectedCharacter.referenceImageIds);
-        characterRefBlobs = loaded.map((r) => {
-          URL.revokeObjectURL(r.url);
-          return { id: r.id, blob: r.blob };
-        });
-      }
-
-      // Effective style (no ref image if blob failed to load)
-      const effectiveStyle = styleRefBlob
-        ? selectedStyle
-        : selectedStyle
-          ? { ...selectedStyle, referenceImageId: undefined }
-          : null;
-
-      // Compute prompt with character + style appended
-      const additions = applyPromptAdditions(
-        originalPrompt,
-        selectedCharacter,
-        effectiveStyle,
-        referenceImages.length
-      );
-
-      // Apply reference precedence across all selected models
       const selectedModelIds = Object.entries(modelSelections)
         .filter(([, c]) => c > 0)
         .map(([id]) => id);
       const strictLimit = getStrictReferenceImageLimit(models, selectedModelIds);
-      const precedence = computeReferencePrecedence({
-        manualCount: referenceImages.length,
-        styleHasRef: styleRefBlob !== null,
-        characterRefCount: characterRefBlobs.length,
-        limit: strictLimit,
-      });
-
-      // Build final ordered reference list respecting precedence
-      const finalManual = referenceImages.slice(0, precedence.keepManual);
-      const finalStyleRef: Array<{ id: string; blob: Blob }> =
-        precedence.keepStyle && styleRefBlob && styleRefId
-          ? [{ id: styleRefId, blob: styleRefBlob }]
-          : [];
-      const finalCharacterRefs = characterRefBlobs.slice(0, precedence.keepCharacter);
-      const finalImageBlobs = [
-        ...finalManual.map((r) => r.blob),
-        ...finalStyleRef.map((r) => r.blob),
-        ...finalCharacterRefs.map((r) => r.blob),
-      ];
-
       const { avoidPastVariations } = useGenerationStore.getState();
       const { items } = useGalleryStore.getState();
       const preparedPrompts = await preparePromptBatch({
-        prompt: additions.prompt,
+        prompt: originalPrompt,
         totalTasks,
-        images: finalImageBlobs.length > 0 ? finalImageBlobs : undefined,
+        manualReferenceImages: referenceImages,
+        style: selectedStyle,
+        character: selectedCharacter,
+        referenceLimit: strictLimit,
         improvePrompt: alwaysImprovePromptEnabled && basePrompt === null,
         variationsEnabled,
         avoidPastVariations,
@@ -235,21 +178,13 @@ export function useImageGeneration() {
       });
 
       const anyTransformApplied =
-        selectedStyle || selectedCharacter || preparedPrompts.improved || preparedPrompts.usedVariations;
+        preparedPrompts.addedPromptAdditions ||
+        preparedPrompts.improved ||
+        preparedPrompts.usedVariations;
       const groupPrompt = basePrompt ?? (anyTransformApplied ? originalPrompt : undefined);
 
-      const allRefEntries = [
-        ...finalManual.map((r) => ({
-          id: r.id,
-          blob: r.blob,
-          sourceGalleryItemId: r.sourceGalleryItemId,
-        })),
-        ...finalStyleRef,
-        ...finalCharacterRefs,
-      ];
-
       const tasks: GenerationTask[] = taskSlots.map((slot, taskIndex) => {
-        const taskPrompt = preparedPrompts.prompts[taskIndex] ?? additions.prompt;
+        const taskPrompt = preparedPrompts.prompts[taskIndex] ?? originalPrompt;
         const taskReplacements = preparedPrompts.variationReplacementsByTask?.[taskIndex];
 
         return {
@@ -264,7 +199,7 @@ export function useImageGeneration() {
           resolution: slot.resolution,
           quality: slot.quality,
           numberOfImages: slot.numberOfImages,
-          referenceImages: allRefEntries,
+          referenceImages: preparedPrompts.referenceImages,
         };
       });
 

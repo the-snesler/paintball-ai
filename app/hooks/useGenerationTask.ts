@@ -143,6 +143,7 @@ export function useGenerationTask() {
             height: result.height,
             createdAt,
             generationTimeMs,
+            referenceImageIds: task.referenceImages.map((r) => r.id),
             metadata: result.metadata,
             parentGalleryItemIds: parentGalleryItemIds.length > 0 ? parentGalleryItemIds : undefined,
           });

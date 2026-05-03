@@ -37,23 +37,23 @@ export interface AppliedAdditions {
 /**
  * Append character text and style text to the prompt.
  * Order: user → character.text → style.text
- * Style {n} resolves to manualReferenceCount + 1 (style sits right after manual refs).
+ * Style {n} resolves to currentReferenceCount + 1 (style sits right after existing refs).
  */
 export function applyPromptAdditions(
   prompt: string,
   character: StoredCharacter | null,
   style: StoredStyle | null,
-  manualReferenceCount: number
+  currentReferenceCount: number
 ): AppliedAdditions {
   let result = prompt.trimEnd();
 
   if (character?.text.trim()) {
     const sep = result.length > 0 ? "\n\n" : "";
-    result = `${result}${sep}${character.text.trim()}`;
+    result = `${result}${sep}Character: ${character.text.trim()}`;
   }
 
   const styleHasImage = Boolean(style?.referenceImageId);
-  const styleImagePosition = manualReferenceCount + 1;
+  const styleImagePosition = currentReferenceCount + 1;
 
   if (style?.text) {
     const resolvedStyleText = styleHasImage
@@ -61,7 +61,7 @@ export function applyPromptAdditions(
       : style.text.replaceAll("{n}", "");
     if (resolvedStyleText.trim()) {
       const sep = result.length > 0 ? "\n\n" : "";
-      result = `${result}${sep}${resolvedStyleText.trim()}`;
+      result = `${result}${sep}Style: ${resolvedStyleText.trim()}`;
     }
   }
 

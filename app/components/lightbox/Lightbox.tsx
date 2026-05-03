@@ -77,7 +77,7 @@ export function Lightbox() {
       loaded.forEach((url) => URL.revokeObjectURL(url));
       setReferenceImages([]);
     };
-  }, [galleryImage?.id]);
+  }, [galleryImage?.id, galleryImage?.referenceImageIds.join("|")]);
 
   // Check whether this image is part of any editor session
   useEffect(() => {
