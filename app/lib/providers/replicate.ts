@@ -110,7 +110,7 @@ async function generateText(args: TextGenerationArgs, apiKey: string): Promise<s
 
   // Replicate doesn't support prefills, so we just concatenate it to the user prompt.
   if (prefill) {
-    userPrompt = prefill + "\n" + userPrompt;
+    userPrompt = userPrompt + "\n\n" + prefill;
   }
 
   let output;
