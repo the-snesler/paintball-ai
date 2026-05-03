@@ -24,6 +24,7 @@ import { useGenerationStore } from "~/stores/generationStore";
 import { useLightboxStore } from "~/stores/lightboxStore";
 import { useSettingsStore } from "~/stores/settingsStore";
 import { StyleSelect } from "./StyleSelect";
+import { CharacterSelect } from "./CharacterSelect";
 
 function SortableReferenceImage({
   img,
@@ -400,6 +401,7 @@ export function PromptInput() {
             </button>
           )}
 
+          <CharacterSelect />
           <StyleSelect />
         </div>
       </div>

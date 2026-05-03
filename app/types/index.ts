@@ -186,6 +186,16 @@ export interface StoredTextModel {
   icon?: string;
 }
 
+// Character types — subject bundle with text + reference images
+export interface StoredCharacter {
+  id: string; // "character/<uuid>"
+  name: string;
+  text: string; // appended to prompt before style text
+  enabled: boolean;
+  referenceImageIds: string[]; // 0..N FKs into IndexedDB references store
+  icon?: string;
+}
+
 // Style types — appended to prompt at generation time
 export interface StoredStyle {
   id: string; // built-in: stable slug; custom: "custom/<uuid>"

@@ -1,12 +1,14 @@
-import { Sparkles, Loader2, KeyRound } from "lucide-react";
+import { Sparkles, Loader2, KeyRound, AlertTriangle } from "lucide-react";
 import { useNavigate } from "react-router";
 import { useGenerationStore } from "~/stores/generationStore";
 import { useSettingsStore } from "~/stores/settingsStore";
 import { useImageGeneration } from "~/hooks/useImageGeneration";
 import { buildGenerationSignature } from "~/lib/generationSignature";
-import { getModel } from "~/lib/models";
+import { getModel, getStrictReferenceImageLimit } from "~/lib/models";
 import { hasProviderAccess } from "~/lib/providers";
 import { hasVariationSections } from "~/lib/promptVariations";
+import { computeReferencePrecedence } from "~/lib/referencePrecedence";
+import { Tooltip } from "~/components/ui/Tooltip";
 import NumberFlow from "@number-flow/react";
 
 export function GenerateButton() {
@@ -19,17 +21,19 @@ export function GenerateButton() {
   const referenceImages = useGenerationStore((s) => s.currentReferenceImages);
   const quality = useGenerationStore((s) => s.currentQuality);
   const numberOfImages = useGenerationStore((s) => s.currentNumberOfImages);
+  const currentStyleId = useGenerationStore((s) => s.currentStyleId);
+  const currentCharacterId = useGenerationStore((s) => s.currentCharacterId);
   const models = useSettingsStore((s) => s.models);
   const apiKeys = useSettingsStore((s) => s.apiKeys);
+  const styles = useSettingsStore((s) => s.styles);
+  const characters = useSettingsStore((s) => s.characters);
   const navigate = useNavigate();
 
   const { generate } = useImageGeneration();
 
-  // Calculate stats
   const activeModels = Object.entries(modelSelections).filter(([, count]) => count > 0);
   const totalImages = activeModels.reduce((sum, [, count]) => sum + count, 0);
 
-  // Check if we have API keys for selected models
   const missingKeys = activeModels.some(([modelId]) => {
     const model = getModel(models, modelId);
     return model && !hasProviderAccess(apiKeys, model.provider);
@@ -43,6 +47,8 @@ export function GenerateButton() {
     referenceImages,
     quality,
     numberOfImages,
+    styleId: currentStyleId,
+    characterId: currentCharacterId,
   });
 
   const isLastSubmittedActive =
@@ -59,6 +65,37 @@ export function GenerateButton() {
     prompt.trim().length > 0 && totalImages > 0 && !isLockedForCurrentParams && !variationsBlocking;
 
   const canClear = prompt.trim().length !== 0 || totalImages > 0;
+
+  // Compute reference-drop warning
+  const selectedStyle = currentStyleId
+    ? (styles.find((s) => s.id === currentStyleId && s.enabled) ?? null)
+    : null;
+  const selectedCharacter = currentCharacterId
+    ? (characters.find((c) => c.id === currentCharacterId && c.enabled) ?? null)
+    : null;
+  const selectedModelIds = activeModels.map(([id]) => id);
+  const strictLimit = getStrictReferenceImageLimit(models, selectedModelIds);
+  const precedence = computeReferencePrecedence({
+    manualCount: referenceImages.length,
+    styleHasRef: Boolean(selectedStyle?.referenceImageId),
+    characterRefCount: selectedCharacter?.referenceImageIds.length ?? 0,
+    limit: strictLimit,
+  });
+  const totalDropped = precedence.totalDropped;
+
+  const refWarningTooltip =
+    totalDropped > 0
+      ? (() => {
+          const limit = strictLimit === null ? 0 : strictLimit === Infinity ? "unlimited" : strictLimit;
+          const parts: string[] = [`Model${selectedModelIds.length > 1 ? "s" : ""} accept${selectedModelIds.length === 1 ? "s" : ""} ${limit} reference${limit === 1 ? "" : "s"}.`];
+          if (precedence.droppedManual > 0)
+            parts.push(`Dropping ${precedence.droppedManual} manual reference${precedence.droppedManual === 1 ? "" : "s"}.`);
+          if (precedence.droppedStyle > 0) parts.push("Dropping style reference.");
+          if (precedence.droppedCharacter > 0)
+            parts.push(`Dropping ${precedence.droppedCharacter} character reference${precedence.droppedCharacter === 1 ? "" : "s"}.`);
+          return parts.join(" ");
+        })()
+      : null;
 
   const handleGenerate = () => {
     if (missingKeys) {
@@ -110,6 +147,16 @@ export function GenerateButton() {
           )}
         </button>
       </div>
+      {refWarningTooltip && (
+        <div className="flex w-full justify-center">
+          <Tooltip content={refWarningTooltip} placement="top" maxWidth="max-w-72">
+            <span className="inline-flex cursor-default items-center gap-1 text-xs text-red-400">
+              <AlertTriangle className="h-3 w-3 shrink-0" />
+              {totalDropped} reference{totalDropped === 1 ? "" : "s"} will be dropped
+            </span>
+          </Tooltip>
+        </div>
+      )}
       <div className="flex w-full justify-center">
         <span className="text-xs text-text-tertiary">
           <NumberFlow

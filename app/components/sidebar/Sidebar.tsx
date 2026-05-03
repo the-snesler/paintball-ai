@@ -1,4 +1,4 @@
-import { Expand, Layers, MessageSquareText, Palette, X } from "lucide-react";
+import { Expand, Layers, MessageSquareText, Palette, Users, X } from "lucide-react";
 import { useLocation } from "react-router";
 import { PromptInput } from "./PromptInput";
 import { ModelList } from "./ModelList";
@@ -18,8 +18,10 @@ import AddCustomTextModelButton from "../settings/AddCustomTextModelButton";
 import AddCustomUpscalerButton from "../settings/AddCustomUpscalerButton";
 import SortableModelItem from "../settings/SortableModelItem";
 import SortableStyleItem from "../settings/SortableStyleItem";
+import SortableCharacterItem from "../settings/SortableCharacterItem";
 import SortableUpscalerItem from "../settings/SortableUpscalerItem";
 import TextModelItem from "../settings/TextModelItem";
+import { Link } from "react-router";
 import { hasProviderAccess } from "~/lib/providers";
 import { useSettingsStore } from "~/stores/settingsStore";
 import { useEditorStore } from "~/stores/editorStore";
@@ -118,10 +120,12 @@ function SettingsSidebarContent() {
   const textModels = useSettingsStore((s) => s.textModels);
   const upscalers = useSettingsStore((s) => s.upscalers);
   const styles = useSettingsStore((s) => s.styles);
+  const characters = useSettingsStore((s) => s.characters);
   const apiKeys = useSettingsStore((s) => s.apiKeys);
   const reorderModels = useSettingsStore((s) => s.reorderModels);
   const reorderUpscalers = useSettingsStore((s) => s.reorderUpscalers);
   const reorderStyles = useSettingsStore((s) => s.reorderStyles);
+  const reorderCharacters = useSettingsStore((s) => s.reorderCharacters);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -156,6 +160,16 @@ function SettingsSidebarContent() {
       }
     },
     [reorderStyles]
+  );
+
+  const handleCharacterDragEnd = useCallback(
+    (event: DragEndEvent) => {
+      const { active, over } = event;
+      if (over && active.id !== over.id) {
+        reorderCharacters(active.id as string, over.id as string);
+      }
+    },
+    [reorderCharacters]
   );
 
   return (
@@ -253,6 +267,39 @@ function SettingsSidebarContent() {
       </DndContext>
 
       <AddCustomStyleButton />
+
+      <div className="flex items-center gap-2 pt-4">
+        <span className="text-text-muted">
+          <Users className="h-4 w-4" />
+        </span>
+        <h2 className="text-text-tertiary text-xs font-medium tracking-wide uppercase">
+          Characters
+        </h2>
+      </div>
+
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragEnd={handleCharacterDragEnd}
+      >
+        <SortableContext
+          items={characters.map((c) => c.id)}
+          strategy={verticalListSortingStrategy}
+        >
+          <div className="space-y-1">
+            {characters.map((character) => (
+              <SortableCharacterItem key={character.id} character={character} />
+            ))}
+          </div>
+        </SortableContext>
+      </DndContext>
+
+      <Link
+        to="/characters/new"
+        className="border-c-border text-text-tertiary hover:text-text-secondary flex w-full items-center justify-center gap-1 rounded-lg border border-dashed px-3 py-2 text-xs transition-colors"
+      >
+        + Add character
+      </Link>
     </div>
   );
 }

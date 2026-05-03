@@ -4,9 +4,10 @@ import { useGenerationStore } from "~/stores/generationStore";
 import { useSettingsStore } from "~/stores/settingsStore";
 import { getReferenceImagesByIds, saveReferenceImage } from "~/lib/db";
 import { buildGenerationSignature } from "~/lib/generationSignature";
-import { getModel } from "~/lib/models";
+import { getModel, getStrictReferenceImageLimit } from "~/lib/models";
 import { preparePromptBatch } from "~/lib/promptPreparation";
-import { applyStyle } from "~/lib/styleApplication";
+import { applyPromptAdditions } from "~/lib/styleApplication";
+import { computeReferencePrecedence } from "~/lib/referencePrecedence";
 import type { GalleryItem } from "~/types";
 import { useGenerationTask, type GenerationTask } from "~/hooks/useGenerationTask";
 
@@ -44,11 +45,14 @@ export function useImageGeneration() {
 
   const generate = useCallback(async () => {
     const variationsEnabled = useGenerationStore.getState().variationsEnabled;
-    const { currentStyleId } = useGenerationStore.getState();
+    const { currentStyleId, currentCharacterId } = useGenerationStore.getState();
     const settings = useSettingsStore.getState();
     const alwaysImprovePromptEnabled = settings.alwaysImprovePromptEnabled;
     const selectedStyle = currentStyleId
       ? (settings.styles.find((s) => s.id === currentStyleId && s.enabled) ?? null)
+      : null;
+    const selectedCharacter = currentCharacterId
+      ? (settings.characters.find((c) => c.id === currentCharacterId && c.enabled) ?? null)
       : null;
 
     const signature = buildGenerationSignature({
@@ -59,10 +63,11 @@ export function useImageGeneration() {
       quality,
       numberOfImages,
       referenceImages,
+      styleId: currentStyleId,
+      characterId: currentCharacterId,
     });
 
-    // Count total API calls synchronously. One task = one API call, but a single
-    // batch-capable task may produce multiple gallery items.
+    // Count total API calls synchronously.
     let totalTasks = 0;
     for (const [modelId, count] of Object.entries(modelSelections)) {
       if (count === 0) continue;
@@ -71,8 +76,6 @@ export function useImageGeneration() {
     }
     if (totalTasks === 0) return;
 
-    // Build pending items + task skeletons using the user's original prompt.
-    // Final prompts will be patched in once the improve/variation pipeline completes.
     const originalPrompt = prompt;
     const taskSlots: Array<{
       itemIds: string[];
@@ -141,9 +144,6 @@ export function useImageGeneration() {
     if (taskSlots.length === 0) return;
     const taskIds = taskSlots.flatMap((slot) => slot.itemIds);
 
-    // Show loading cards immediately and register the generation. The prompt-prep
-    // pipeline runs concurrently — by the time pending items become `generating`,
-    // their prompts have already been patched with the final text.
     addItems(pendingItems);
     startGeneration(signature);
 
@@ -157,6 +157,7 @@ export function useImageGeneration() {
         }))
       );
 
+      // Load style reference blob
       let styleRefBlob: Blob | null = null;
       let styleRefId: string | null = null;
       if (selectedStyle?.referenceImageId) {
@@ -167,21 +168,63 @@ export function useImageGeneration() {
           URL.revokeObjectURL(loaded.url);
         }
       }
+
+      // Load character reference blobs
+      let characterRefBlobs: Array<{ id: string; blob: Blob }> = [];
+      if (selectedCharacter?.referenceImageIds.length) {
+        const loaded = await getReferenceImagesByIds(selectedCharacter.referenceImageIds);
+        characterRefBlobs = loaded.map((r) => {
+          URL.revokeObjectURL(r.url);
+          return { id: r.id, blob: r.blob };
+        });
+      }
+
+      // Effective style (no ref image if blob failed to load)
       const effectiveStyle = styleRefBlob
         ? selectedStyle
         : selectedStyle
           ? { ...selectedStyle, referenceImageId: undefined }
           : null;
-      const styled = applyStyle(originalPrompt, effectiveStyle, referenceImages.length);
-      const userImageBlobs = referenceImages.map((r) => r.blob);
-      const imageBlobs = styleRefBlob ? [...userImageBlobs, styleRefBlob] : userImageBlobs;
+
+      // Compute prompt with character + style appended
+      const additions = applyPromptAdditions(
+        originalPrompt,
+        selectedCharacter,
+        effectiveStyle,
+        referenceImages.length
+      );
+
+      // Apply reference precedence across all selected models
+      const selectedModelIds = Object.entries(modelSelections)
+        .filter(([, c]) => c > 0)
+        .map(([id]) => id);
+      const strictLimit = getStrictReferenceImageLimit(models, selectedModelIds);
+      const precedence = computeReferencePrecedence({
+        manualCount: referenceImages.length,
+        styleHasRef: styleRefBlob !== null,
+        characterRefCount: characterRefBlobs.length,
+        limit: strictLimit,
+      });
+
+      // Build final ordered reference list respecting precedence
+      const finalManual = referenceImages.slice(0, precedence.keepManual);
+      const finalStyleRef: Array<{ id: string; blob: Blob }> =
+        precedence.keepStyle && styleRefBlob && styleRefId
+          ? [{ id: styleRefId, blob: styleRefBlob }]
+          : [];
+      const finalCharacterRefs = characterRefBlobs.slice(0, precedence.keepCharacter);
+      const finalImageBlobs = [
+        ...finalManual.map((r) => r.blob),
+        ...finalStyleRef.map((r) => r.blob),
+        ...finalCharacterRefs.map((r) => r.blob),
+      ];
 
       const { avoidPastVariations } = useGenerationStore.getState();
       const { items } = useGalleryStore.getState();
       const preparedPrompts = await preparePromptBatch({
-        prompt: styled.prompt,
+        prompt: additions.prompt,
         totalTasks,
-        images: imageBlobs.length > 0 ? imageBlobs : undefined,
+        images: finalImageBlobs.length > 0 ? finalImageBlobs : undefined,
         improvePrompt: alwaysImprovePromptEnabled && basePrompt === null,
         variationsEnabled,
         avoidPastVariations,
@@ -192,11 +235,21 @@ export function useImageGeneration() {
       });
 
       const anyTransformApplied =
-        selectedStyle || preparedPrompts.improved || preparedPrompts.usedVariations;
+        selectedStyle || selectedCharacter || preparedPrompts.improved || preparedPrompts.usedVariations;
       const groupPrompt = basePrompt ?? (anyTransformApplied ? originalPrompt : undefined);
 
+      const allRefEntries = [
+        ...finalManual.map((r) => ({
+          id: r.id,
+          blob: r.blob,
+          sourceGalleryItemId: r.sourceGalleryItemId,
+        })),
+        ...finalStyleRef,
+        ...finalCharacterRefs,
+      ];
+
       const tasks: GenerationTask[] = taskSlots.map((slot, taskIndex) => {
-        const taskPrompt = preparedPrompts.prompts[taskIndex] ?? originalPrompt;
+        const taskPrompt = preparedPrompts.prompts[taskIndex] ?? additions.prompt;
         const taskReplacements = preparedPrompts.variationReplacementsByTask?.[taskIndex];
 
         return {
@@ -211,19 +264,10 @@ export function useImageGeneration() {
           resolution: slot.resolution,
           quality: slot.quality,
           numberOfImages: slot.numberOfImages,
-          referenceImages: [
-            ...referenceImages.map((r) => ({
-              id: r.id,
-              blob: r.blob,
-              sourceGalleryItemId: r.sourceGalleryItemId,
-            })),
-            ...(styleRefBlob && styleRefId ? [{ id: styleRefId, blob: styleRefBlob }] : []), // TODO: style reference images only show up as "inputs" after reloading the page
-          ],
+          referenceImages: allRefEntries,
         };
       });
 
-      // Patch the already-visible pending items with their final prompt data so
-      // the gallery records match what gets sent to the model.
       updatePendingPromptFields(
         tasks.flatMap((t) =>
           t.itemIds.map((id) => ({

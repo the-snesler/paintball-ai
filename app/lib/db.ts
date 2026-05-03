@@ -362,6 +362,17 @@ export async function deleteReferenceImage(id: string): Promise<void> {
   await awaitTransaction(transaction, undefined);
 }
 
+export async function deleteReferenceImagesByIds(ids: string[]): Promise<void> {
+  if (ids.length === 0) return;
+  const db = await initDB();
+
+  const transaction = db.transaction(STORES.references, "readwrite");
+  const store = transaction.objectStore(STORES.references);
+  for (const id of ids) store.delete(id);
+
+  await awaitTransaction(transaction, undefined);
+}
+
 export async function getAllReferenceImages(): Promise<Omit<ReferenceImage, "url">[]> {
   const db = await initDB();
 
