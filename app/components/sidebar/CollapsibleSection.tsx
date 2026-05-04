@@ -24,22 +24,23 @@ export function CollapsibleSection({
   return (
     <Accordion.Item value={value}>
       <Accordion.Header>
-        <Accordion.Trigger className="group mb-2 flex w-full cursor-pointer items-center justify-between">
+        <Accordion.Trigger className="group mb-2 flex w-full cursor-pointer items-center">
           <div className="flex items-center gap-2">
             <span className="text-text-muted">{icon}</span>
-            <h2 className="text-xs font-medium tracking-wide text-text-tertiary uppercase">{title}</h2>
+            <h2 className="text-text-tertiary text-xs font-medium tracking-wide uppercase">
+              {title}
+            </h2>
             {tooltip && (
               <Tooltip content={tooltip} placement="bottom-start">
-                <span className="cursor-help text-text-muted transition-colors hover:text-text-tertiary">
+                <span className="text-text-muted hover:text-text-tertiary cursor-help transition-colors">
                   <Info className="h-3 w-3" />
                 </span>
               </Tooltip>
             )}
           </div>
-          <div className="flex items-center gap-2">
-            {badge}
-            <ChevronDown className="h-4 w-4 -rotate-90 text-text-muted transition-transform duration-200 group-hover:text-text-tertiary group-data-panel-open:rotate-0" />
-          </div>
+          <div className="grow" />
+          {badge}
+          <ChevronDown className="text-text-muted group-hover:text-text-tertiary h-4 w-4 -rotate-90 transition-transform duration-200 group-data-panel-open:rotate-0" />
         </Accordion.Trigger>
       </Accordion.Header>
       <Accordion.Panel className="h-(--accordion-panel-height) overflow-hidden transition-[height] duration-200 data-ending-style:h-0 data-starting-style:h-0">

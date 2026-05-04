@@ -102,40 +102,34 @@ export function UpscalerList({ highlight = false }: UpscalerListProps) {
   const buttonsDisabled = isGenerating || !hasSource;
 
   return (
-    <div
-      className={`rounded-lg p-1 transition-[box-shadow,background-color] duration-500 ${
-        highlight ? "bg-purple-500/10 ring-2 ring-purple-400/70" : ""
-      }`}
+    <CollapsibleSection
+      value="upscalers"
+      icon={<Expand className="h-4 w-4" />}
+      title="Upscale Models"
+      tooltip="Click an upscaler to immediately upscale the currently selected image as a new turn."
     >
-      <CollapsibleSection
-        value="upscalers"
-        icon={<Expand className="h-4 w-4" />}
-        title="Upscale Models"
-        tooltip="Click an upscaler to immediately upscale the currently selected image as a new turn."
-      >
-        {visibleUpscalers.length === 0 ? (
-          <p className="py-4 text-center text-xs text-text-muted">
-            {replicateKey
-              ? "No upscalers enabled. Enable or add one in Settings."
-              : "Add a Replicate API key to use upscalers."}
-          </p>
-        ) : (
-          <div className="grid grid-cols-2 gap-2">
-            {visibleUpscalers.map((u) => (
-              <button
-                key={u.id}
-                type="button"
-                disabled={buttonsDisabled}
-                onClick={() => void handleClick(u)}
-                className="cursor-pointer truncate rounded-lg border border-transparent bg-surface-overlay/50 px-3 py-2 text-xs text-text-secondary transition-colors hover:bg-surface-overlay disabled:cursor-not-allowed disabled:bg-surface-overlay/30 disabled:text-text-muted"
-                title={u.name}
-              >
-                {u.name}
-              </button>
-            ))}
-          </div>
-        )}
-      </CollapsibleSection>
-    </div>
+      {visibleUpscalers.length === 0 ? (
+        <p className="text-text-muted py-4 text-center text-xs">
+          {replicateKey
+            ? "No upscalers enabled. Enable or add one in Settings."
+            : "Add a Replicate API key to use upscalers."}
+        </p>
+      ) : (
+        <div className="grid grid-cols-2 gap-2">
+          {visibleUpscalers.map((u) => (
+            <button
+              key={u.id}
+              type="button"
+              disabled={buttonsDisabled}
+              onClick={() => void handleClick(u)}
+              className="bg-surface-overlay/50 text-text-secondary hover:bg-surface-overlay disabled:bg-surface-overlay/30 disabled:text-text-muted cursor-pointer truncate rounded-lg border border-transparent px-3 py-2 text-xs transition-colors disabled:cursor-not-allowed"
+              title={u.name}
+            >
+              {u.name}
+            </button>
+          ))}
+        </div>
+      )}
+    </CollapsibleSection>
   );
 }

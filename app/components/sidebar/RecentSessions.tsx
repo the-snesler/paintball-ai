@@ -109,7 +109,7 @@ export function RecentSessions() {
           >
             <span>{expanded ? "Show less" : `+${sessions.length - COLLAPSED_COUNT} more`}</span>
             <ChevronRight
-              className={`h-4 w-4 transition-transform ${expanded ? "-rotate-90" : ""}`}
+              className={`h-4 w-4 transition-transform ${expanded ? "rotate-90" : ""}`}
             />
           </button>
         )}
