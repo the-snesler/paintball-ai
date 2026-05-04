@@ -64,6 +64,7 @@ export const CHARACTER_REFERENCE_IMAGE_SYSTEM = `Create a clean 16:9 character r
 
 Rules:
 - Three poses: front, profile, rear arranged left to right along the left 2/3rds of the image
+- The rear pose should show the back of the character's torso. This may neccessitate hiding the character's hair in that view only, if it is long.
 - Right 1/3rd: 3x2 (3 wide) grid of facial expressions stacked atop 3x2 grid of detail close-ups (e.g. hair, distinctive features) for a total of 12 small reference images
 - Use a simple unobtrusive background
 - Prioritize stable physical identity over dramatic scene, lighting, or composition
