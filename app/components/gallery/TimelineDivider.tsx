@@ -1,3 +1,5 @@
+import { Tooltip } from "../ui/Tooltip";
+
 interface TimelineDividerProps {
   dateLabel: string;
   outputCount: number;
@@ -6,15 +8,13 @@ interface TimelineDividerProps {
 
 export function TimelineDivider({ dateLabel, outputCount, prompt }: TimelineDividerProps) {
   return (
-    <div className="mb-3 not-group-first:mt-10">
-      <div className="flex items-center gap-2 font-medium text-text-muted">
-        <span>{dateLabel}</span>
-        <span>·</span>
-        <span className="text-xs">
-          {outputCount} {outputCount === 1 ? "output" : "outputs"}
-        </span>
-      </div>
-      <p className="text mt-1 text-text-secondary">{prompt}</p>
+    <div className="not-group-first:mt-5">
+      <p className="text-text-muted text-xs font-medium">
+        {`${dateLabel} · ${outputCount} ${outputCount === 1 ? "output" : "outputs"}`}
+      </p>
+      <Tooltip content={prompt}>
+        <p className="text text-text-secondary mt-1 truncate text-sm">{prompt}</p>
+      </Tooltip>
     </div>
   );
 }
