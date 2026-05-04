@@ -85,7 +85,12 @@ export async function preparePromptBatch(
   const effectiveImages = textModelImages.length > 0 ? textModelImages : images;
   let improved = false;
 
-  if (improvePrompt && isTextModelAvailable()) {
+  if (
+    improvePrompt &&
+    isTextModelAvailable() &&
+    !(workingPrompt.length > 1000 && !promptAdditions.added)
+  ) {
+    // Avoid improving if the prompt is already long and we didn't add anything, as it's unlikely to help and may make it worse
     onStageChange?.("writing");
     try {
       const result = await callTextModel(IMPROVE_PROMPT_SYSTEM, workingPrompt, effectiveImages);
