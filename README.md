@@ -2,7 +2,8 @@
 
 AI image generation gallery with multi-model support. Runs mostly in the user's browser, proxies requests to Replicate via a Cloudflare Worker.
 
-<img width="1699" height="1062" alt="image" src="https://github.com/user-attachments/assets/67b51663-bdb3-4997-8194-e7a33cfdf85e" />
+<img width="1918" height="1257" alt="image" src="https://github.com/user-attachments/assets/a27ca757-7947-4269-96cd-82ca45b20f3e" />
+
 
 ## Features
 
@@ -25,6 +26,11 @@ AI image generation gallery with multi-model support. Runs mostly in the user's 
 - Replicate API
 - Tailwind CSS
 - Zustand
+
+## Screenshots
+<img width="1942" height="1357" alt="image" src="https://github.com/user-attachments/assets/1fe4e1b5-8d45-47cc-bc52-038f9348a563" />
+
+<img width="1942" height="1357" alt="Screenshot 2026-05-04 at 10-22-17 Paintball - AI Image Generation" src="https://github.com/user-attachments/assets/85d6d8b4-aae6-413e-8983-36e206ab6a87" />
 
 ## Setup
 
