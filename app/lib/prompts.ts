@@ -40,6 +40,7 @@ Apply these when relevant to elevate output quality:
 
 ## Rules
 - Return ONLY the improved prompt text, nothing else
+- If the prompt is already well-written and specific, it is acceptable to return it as-is. You may still make small improvements to add clarity or detail. Above all, you should not simplify or reduce detail in an attempt to "fix" a prompt that isn't broken.
 - Do not include any preamble, explanation, or commentary
 - Keep the core intent of the original prompt`;
 
