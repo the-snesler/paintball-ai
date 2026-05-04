@@ -6,6 +6,7 @@ import { toRateLimitError } from "~/lib/retry";
 import type { AspectRatio } from "~/types";
 import type { Provider, ResolvedImageModel, SearchResult } from "./types";
 import { inferName } from "../modelNames";
+import { normalizeModelId } from ".";
 
 function openaiBaseUrl(): string {
   return new URL("/proxy/openai/v1", window.location.origin).toString();
@@ -50,6 +51,7 @@ async function generateImage(
 ): Promise<GenerationResult[]> {
   if (!apiKey) throw new Error("No API key for openai");
   const client = createClient(apiKey);
+  const modelId = normalizeModelId(params.modelId, "openai");
 
   const size = resolveSize(params.aspectRatio);
   const n = Math.max(1, params.numberOfImages);
@@ -67,7 +69,7 @@ async function generateImage(
       );
 
       const response = await client.images.edit({
-        model: params.modelId,
+        model: modelId,
         image: files,
         prompt: params.prompt,
         n,
@@ -76,11 +78,11 @@ async function generateImage(
         output_format: outputFormat,
       });
 
-      return parseResponse(response, outputFormat, params.modelId);
+      return parseResponse(response, outputFormat, modelId);
     }
 
     const response = await client.images.generate({
-      model: params.modelId,
+      model: modelId,
       prompt: params.prompt,
       n,
       size,
@@ -88,7 +90,7 @@ async function generateImage(
       output_format: outputFormat,
     });
 
-    return parseResponse(response, outputFormat, params.modelId);
+    return parseResponse(response, outputFormat, modelId);
   } catch (error) {
     throw toRateLimitError(error, "openai");
   }
@@ -134,7 +136,7 @@ interface OpenAIModel {
 }
 
 function inferOpenAiImageCapabilities(modelId: string): ResolvedImageModel["capabilities"] {
-  const lower = modelId.toLowerCase();
+  const lower = normalizeModelId(modelId, "openai").toLowerCase();
   const isGptImage = /(^|[-_])gpt-image/.test(lower);
 
   if (!isGptImage) {
@@ -169,7 +171,7 @@ async function resolveImageModel(
   onProgress?: (status: string) => void
 ): Promise<ResolvedImageModel> {
   const client = createClient(apiKey);
-  const normalizedId = modelId.trim();
+  const normalizedId = normalizeModelId(modelId, "openai");
 
   onProgress?.("Looking up model...");
 

@@ -63,14 +63,13 @@ export default function ModelToggleItem({
 
     try {
       const provider = model.provider;
-      const modelId = normalizeModelId(model.id, provider);
       const resolve = getProvider(provider).resolveImageModel;
       const apiKey = providerRequiresApiKey(model.provider) ? (apiKeys[model.provider] ?? "") : "";
       if (providerRequiresApiKey(model.provider) && !apiKey) {
         throw new Error(`No API key for ${model.provider}`);
       }
       if (!resolve) throw new Error("Provider can't resolve models");
-      const { capabilities, schemaMapping } = await resolve(modelId, apiKey, setRefetchingStatus);
+      const { capabilities, schemaMapping } = await resolve(model.id, apiKey, setRefetchingStatus);
 
       updateModelCapabilities(model.id, capabilities, true);
       if (schemaMapping) {
