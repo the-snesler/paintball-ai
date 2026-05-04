@@ -1,4 +1,4 @@
-import { LayoutDashboard, GalleryVertical, Settings, FilePenLine } from "lucide-react";
+import { LayoutDashboard, GalleryVertical, Settings, FilePenLine, ArrowLeft } from "lucide-react";
 import NumberFlow from "@number-flow/react";
 import { useLocation, useNavigate } from "react-router";
 import { SearchBar } from "./SearchBar";
@@ -8,6 +8,7 @@ interface GalleryHeaderProps {
   title?: string;
   searchQuery?: string;
   onSearchChange?: (query: string) => void;
+  showBackButton?: boolean;
 }
 
 export function GalleryHeader({
@@ -15,18 +16,29 @@ export function GalleryHeader({
   title,
   searchQuery,
   onSearchChange,
+  showBackButton = false,
 }: GalleryHeaderProps) {
   const location = useLocation();
   const navigate = useNavigate();
 
+  const handleBack = () => navigate(-1);
   const openGallery = () => navigate("/");
   const openTimeline = () => navigate("/timeline");
   const openSettings = () => navigate("/settings");
   const openEditor = () => navigate("/editor");
 
   return (
-    <header className="flex h-18 items-center gap-2 border-b border-border-subtle px-6 py-4">
-      <h2 className="truncate text-sm font-medium tracking-wide text-text-tertiary uppercase">
+    <header className="border-border-subtle flex h-18 items-center gap-2 border-b px-6 py-4">
+      <h2 className="text-text-tertiary flex items-center gap-2 truncate text-sm font-medium tracking-wide uppercase">
+        {showBackButton && (
+          <button
+            onClick={handleBack}
+            aria-label="Back"
+            className="text-text-muted hover:text-text-secondary transition-colors"
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </button>
+        )}
         {title ? (
           title
         ) : (
@@ -55,7 +67,7 @@ export function GalleryHeader({
       )}
 
       <div className="flex items-center gap-1">
-        <div className="flex items-center gap-1 rounded-lg bg-surface-raised p-1">
+        <div className="bg-surface-raised flex items-center gap-1 rounded-lg p-1">
           <ViewModeButton
             onClick={openGallery}
             isActive={location.pathname === "/"}

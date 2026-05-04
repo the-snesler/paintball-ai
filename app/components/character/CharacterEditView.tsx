@@ -12,7 +12,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { executeGeneration } from "~/lib/generation";
 import { deleteReferenceImagesByIds, getReferenceImagesByIds, saveReferenceImage } from "~/lib/db";
-import { getModel } from "~/lib/models";
+import { doesModelSupportAspectRatio, getModel } from "~/lib/models";
 import {
   CHARACTER_DESCRIPTION_FROM_REFERENCES_SYSTEM,
   CHARACTER_REFERENCE_IMAGE_SYSTEM,
@@ -23,6 +23,8 @@ import { useGalleryStore } from "~/stores/galleryStore";
 import { useGenerationStore } from "~/stores/generationStore";
 import { useSettingsStore } from "~/stores/settingsStore";
 import type { CompletedGalleryItem } from "~/types";
+import { useLightboxStore } from "~/stores/lightboxStore";
+import { GalleryHeader } from "../gallery/GalleryHeader";
 
 interface LocalRef {
   id: string;
@@ -163,13 +165,25 @@ function FieldWithOptions({
 }
 
 function RefTile({ ref: localRef, onRemove }: { ref: LocalRef; onRemove: (id: string) => void }) {
+  const openLightbox = useLightboxStore((s) => s.openLightbox);
   return (
     <div className="group relative aspect-square">
-      <img
-        src={localRef.url}
-        alt=""
-        className="border-c-border/50 h-full w-full rounded-lg border object-cover"
-      />
+      <button
+        type="button"
+        className="h-full w-full cursor-zoom-in"
+        onClick={() =>
+          openLightbox({
+            kind: "reference",
+            image: { id: localRef.id, url: localRef.url, name: "Character reference" },
+          })
+        }
+      >
+        <img
+          src={localRef.url}
+          alt=""
+          className="border-c-border/50 h-full w-full rounded-lg border object-cover"
+        />
+      </button>
       <button
         type="button"
         onClick={() => onRemove(localRef.id)}
@@ -280,11 +294,24 @@ export function CharacterEditView() {
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const addRefBlob = useCallback((blob: Blob, name: string = "image") => {
+  const addRefBlob = useCallback((blob: Blob, name: string = "image", clear: boolean = false) => {
     const id = crypto.randomUUID();
     const url = URL.createObjectURL(blob);
     objectUrlsRef.current.add(url);
-    setRefs((prev) => [...prev, { id, blob, url, isNew: true }]);
+    if (clear) {
+      // clean up existing refs if we're replacing them with a generated one
+      refs.forEach((r) => {
+        if (r.isNew) {
+          URL.revokeObjectURL(r.url);
+          objectUrlsRef.current.delete(r.url);
+        } else {
+          setRemovedIds((ids) => [...ids, r.id]);
+        }
+      });
+      setRefs([{ id, blob, url, isNew: true }]);
+    } else {
+      setRefs((prev) => [...prev, { id, blob, url, isNew: true }]);
+    }
     void saveReferenceImage({ id, blob, name });
   }, []);
 
@@ -345,15 +372,7 @@ export function CharacterEditView() {
         throw new Error(`No API key for ${model.provider}`);
       }
 
-      const supportedRatios = model.capabilities.supportedAspectRatios;
-      const aspectRatio =
-        model.capabilities.supportsAspectRatios && currentAspectRatio
-          ? supportedRatios &&
-            supportedRatios.length > 0 &&
-            !supportedRatios.includes(currentAspectRatio)
-            ? null
-            : currentAspectRatio
-          : null;
+      const aspectRatio = doesModelSupportAspectRatio(model, "16:9") ? "16:9" : null;
 
       const results = await executeGeneration(
         {
@@ -378,7 +397,7 @@ export function CharacterEditView() {
       if (!result) {
         throw new Error("Image model did not return a character reference");
       }
-      addRefBlob(result.blob, "Generated character reference");
+      addRefBlob(result.blob, "Generated character reference", true);
     },
     [
       addRefBlob,
@@ -395,6 +414,13 @@ export function CharacterEditView() {
     if (refs.length === 0) {
       setError("Add at least one reference photo first");
       return;
+    }
+
+    const selectedModelId = Object.entries(currentModelSelections).find(
+      ([, count]) => count > 0
+    )?.[0];
+    if (!selectedModelId) {
+      throw new Error("Select an image model in the sidebar first");
     }
 
     setGenerating(true);
@@ -622,7 +648,7 @@ export function CharacterEditView() {
           className="flex w-full items-center justify-center gap-2 rounded-lg bg-purple-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-purple-500 disabled:cursor-not-allowed disabled:opacity-50"
         >
           <Sparkles className="h-4 w-4" />
-          {generating ? "Generating..." : "Generate character"}
+          {generating ? "Generating... (this may take a minute)" : "Generate character"}
         </button>
       </div>
     </>
@@ -730,25 +756,26 @@ export function CharacterEditView() {
         className="flex w-full items-center justify-center gap-2 rounded-lg bg-purple-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-purple-500 disabled:cursor-not-allowed disabled:opacity-50"
       >
         <Sparkles className="h-4 w-4" />
-        {generating ? "Generating..." : "Generate reference"}
+        {generating ? "Generating... (this may take a minute)" : "Generate reference"}
       </button>
     </>
   );
 
   return (
     <div className="flex h-full grow flex-col overflow-y-auto">
-      <div className="border-border-subtle flex items-center gap-3 border-b px-6 py-4">
-        <Link
-          to="/settings"
-          className="text-text-muted hover:text-text-secondary transition-colors"
-        >
-          <ArrowLeft className="h-4 w-4" />
-        </Link>
-        <h1 className="text-sm font-semibold">
-          {isNew ? "New character" : `Edit ${existing?.name ?? "character"}`}
-        </h1>
-        {isNew && (
-          <div className="border-c-border bg-surface-overlay ml-auto flex rounded-lg border p-1">
+      <GalleryHeader
+        title={isNew ? "Edit: New character" : `Edit character: ${existing?.name ?? "character"}`}
+        showBackButton={!isNew}
+      />
+      {isNew && (
+        <div className="flex items-center gap-3 px-6 py-2">
+          <Link
+            to="/settings"
+            className="text-text-muted hover:text-text-secondary transition-colors"
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </Link>
+          <div className="border-c-border bg-surface-overlay flex rounded-lg border p-1">
             {[
               { id: "references" as const, label: "From references", icon: Images },
               { id: "form" as const, label: "From form", icon: ClipboardList },
@@ -776,8 +803,8 @@ export function CharacterEditView() {
               );
             })}
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
       <div className="flex flex-1 flex-col gap-6 overflow-y-auto p-6" onPaste={handlePaste}>
         {isNew && mode === "references" && referencesContent}
