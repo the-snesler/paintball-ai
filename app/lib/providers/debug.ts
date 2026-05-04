@@ -5,6 +5,7 @@ import type { AspectRatio, Resolution } from "~/types";
 import type { Provider, ResolvedImageModel, SearchResult } from "./types";
 import { DEFAULT_IMAGE_CAPABILITIES } from "../builtInModels";
 import { inferName } from "../modelNames";
+import { normalizeModelId } from ".";
 
 type Deferred = {
   resolve: (r: GenerationResult) => void;
@@ -102,11 +103,13 @@ async function generatePicsumImage(params: GenerationParams): Promise<Generation
 }
 
 async function generateImage(params: GenerationParams): Promise<GenerationResult[]> {
-  if (params.modelId === "debug/picsum") {
+  const modelId = normalizeModelId(params.modelId, "debug");
+
+  if (modelId === "debug/picsum") {
     return generatePicsumImage(params);
   }
 
-  if (params.modelId === "debug/manual") {
+  if (modelId === "debug/manual") {
     const ids = params.itemIds ?? [];
     return Promise.all(ids.map((id) => getOrCreateDeferred(id).promise));
   }

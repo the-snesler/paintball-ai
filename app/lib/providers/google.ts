@@ -6,6 +6,7 @@ import { inferName } from "~/lib/modelNames";
 import { toRateLimitError } from "~/lib/retry";
 import { blobToBase64 } from "~/lib/util";
 import type { Provider, ResolvedImageModel, SearchResult, TextGenerationArgs } from "./types";
+import { normalizeModelId } from ".";
 
 async function generateImage(
   params: GenerationParams,
@@ -15,6 +16,8 @@ async function generateImage(
   const ai = new GoogleGenAI({ apiKey });
 
   const parts: Array<{ text?: string; inlineData?: { mimeType: string; data: string } }> = [];
+
+  const modelId = normalizeModelId(params.modelId, "google");
 
   for (const ref of params.referenceImages) {
     const base64 = await blobToBase64(ref.blob);
@@ -42,7 +45,7 @@ async function generateImage(
   let response;
   try {
     response = await ai.models.generateContentStream({
-      model: params.modelId,
+      model: modelId,
       config,
       contents: [{ role: "user", parts }],
     });
@@ -79,7 +82,8 @@ async function generateImage(
 }
 
 async function generateText(args: TextGenerationArgs, apiKey: string): Promise<string> {
-  const { modelId, systemPrompt, userPrompt, images, prefill } = args;
+  const { systemPrompt, userPrompt, images, prefill } = args;
+  const modelId = normalizeModelId(args.modelId, "google");
   const ai = new GoogleGenAI({ apiKey });
 
   const parts: Array<{ text?: string; inlineData?: { mimeType: string; data: string } }> = [];
@@ -162,13 +166,8 @@ async function listGeminiModels(apiKey: string): Promise<Model[]> {
   return models;
 }
 
-function stripModelsPrefix(name: string | undefined): string {
-  if (!name) return "";
-  return name.startsWith("models/") ? name.slice("models/".length) : name;
-}
-
 function isImageGenerationModel(model: Model): boolean {
-  const id = stripModelsPrefix(model.name).toLowerCase();
+  const id = normalizeModelId(model.name, "google").toLowerCase();
   if (!id) return false;
   // Gemini image generation still uses `generateContent`, so action flags
   // can't distinguish image from text. Go by naming convention.
@@ -176,7 +175,7 @@ function isImageGenerationModel(model: Model): boolean {
 }
 
 function isTextGenerationModel(model: Model): boolean {
-  const id = stripModelsPrefix(model.name);
+  const id = normalizeModelId(model.name, "google");
   if (!id) return false;
   if (!model.supportedActions?.some((a) => a === "generateContent")) return false;
   if (isImageGenerationModel(model)) return false;
@@ -187,7 +186,7 @@ function isTextGenerationModel(model: Model): boolean {
 }
 
 function toSearchResult(model: Model): SearchResult {
-  const id = stripModelsPrefix(model.name);
+  const id = normalizeModelId(model.name, "google");
   return {
     id,
     name: model.displayName || id,
@@ -204,7 +203,7 @@ function rankAndLimit(
   const q = query.toLowerCase();
   const scored = models
     .map((m) => {
-      const id = stripModelsPrefix(m.name).toLowerCase();
+      const id = normalizeModelId(m.name, "google").toLowerCase();
       const name = (m.displayName || "").toLowerCase();
       const containsBoost = id.includes(q) || name.includes(q) ? -1000 : 0;
       const d = Math.min(distance(q, id), distance(q, name));
@@ -219,7 +218,7 @@ const STD_ASPECT_RATIOS = ["1:1", "2:3", "3:2", "3:4", "4:3", "4:5", "5:4", "9:1
 const WIDE_ASPECT_RATIOS = ["1:4", "1:8", "4:1", "8:1"];
 
 function inferGoogleImageCapabilities(modelId: string): ResolvedImageModel["capabilities"] {
-  const lower = modelId.toLowerCase();
+  const lower = normalizeModelId(modelId, "google").toLowerCase();
   const supports14References = lower.includes("3");
   const supportsWideRatios = lower.includes("3.1-flash-image-preview");
 
@@ -241,8 +240,8 @@ async function resolveImageModel(
 ): Promise<ResolvedImageModel> {
   onProgress?.("Looking up model...");
   const all = await listGeminiModels(apiKey);
-  const normalizedId = stripModelsPrefix(modelId);
-  const match = all.find((model) => stripModelsPrefix(model.name) === normalizedId);
+  const normalizedId = normalizeModelId(modelId, "google");
+  const match = all.find((model) => normalizeModelId(model.name, "google") === normalizedId);
 
   if (!match) {
     throw new Error(`Model not found: ${modelId}`);

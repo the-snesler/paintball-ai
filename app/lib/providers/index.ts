@@ -52,7 +52,7 @@ export function isTextCapable(provider: Provider): provider is TextCapableProvid
   );
 }
 
-export function normalizeModelId(id: string, provider: string): string {
-  // strip provider prefix if present
-  return id.startsWith(`${provider}/`) ? id.slice(provider.length + 1) : id;
+// strip provider prefix if present
+export function normalizeModelId(id: string | undefined, provider: string): string {
+  return id?.replace(new RegExp(`^${provider}/`), "").trim() ?? "";
 }

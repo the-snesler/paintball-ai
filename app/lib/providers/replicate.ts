@@ -11,6 +11,7 @@ import { useSettingsStore } from "~/stores/settingsStore";
 import { blobToBase64 } from "~/lib/util";
 import type { ModelCapabilities, SchemaMapping, StoredUpscaler } from "~/types";
 import type { Provider, ResolvedImageModel, SearchResult, TextGenerationArgs } from "./types";
+import { normalizeModelId } from ".";
 
 function replicateBaseUrl(): string {
   return new URL("/proxy/replicate/v1", window.location.origin).toString();
@@ -60,7 +61,7 @@ async function generateImage(
     }
   }
 
-  const replicateModel = params.modelId.replace("replicate/", "") as `${string}/${string}`;
+  const replicateModel = normalizeModelId(params.modelId, "replicate") as `${string}/${string}`;
 
   let output;
   try {
@@ -106,11 +107,12 @@ function extractReplicateUrls(output: unknown): string[] {
 async function generateText(args: TextGenerationArgs, apiKey: string): Promise<string> {
   const replicate = new Replicate({ auth: apiKey, baseUrl: replicateBaseUrl() });
   let { systemPrompt, userPrompt } = args;
-  const { modelId, images, prefill } = args;
+  const { images, prefill } = args;
+  const modelId = normalizeModelId(args.modelId, "replicate");
 
   // Replicate doesn't support prefills, so we just concatenate it to the user prompt.
   if (prefill) {
-    userPrompt = prefill + "\n" + userPrompt;
+    userPrompt = userPrompt + "\n\n" + prefill;
   }
 
   let output;
@@ -258,14 +260,15 @@ async function fetchReplicateModelSchema(
   modelId: string,
   apiKey: string
 ): Promise<{ properties: Record<string, OpenApiSchemaProperty> }> {
-  const response = await fetch(`/proxy/replicate/v1/models/${modelId}`, {
+  const lower = normalizeModelId(modelId, "replicate").toLowerCase();
+  const response = await fetch(`/proxy/replicate/v1/models/${lower}`, {
     headers: {
       Authorization: `Bearer ${apiKey}`,
     },
   });
 
   if (!response.ok) {
-    throw new Error(`Model not found: ${modelId}`);
+    throw new Error(`Model not found: ${lower}`);
   }
 
   const data: ReplicateModelResponse = await response.json();
