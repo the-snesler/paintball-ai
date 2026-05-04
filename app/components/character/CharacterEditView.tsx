@@ -11,7 +11,14 @@ import {
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { executeGeneration } from "~/lib/generation";
-import { deleteReferenceImagesByIds, getReferenceImagesByIds, saveReferenceImage } from "~/lib/db";
+import {
+  deleteReferenceImagesByIds,
+  getReferenceImagesByIds,
+  saveImage,
+  saveReferenceImage,
+} from "~/lib/db";
+import { enqueueImageEmbedding } from "~/lib/embeddingQueue";
+import { createThumbnailBlob } from "~/lib/imageProcessing";
 import { doesModelSupportAspectRatio, getModel } from "~/lib/models";
 import {
   CHARACTER_DESCRIPTION_FROM_REFERENCES_SYSTEM,
@@ -373,30 +380,79 @@ export function CharacterEditView() {
       }
 
       const aspectRatio = doesModelSupportAspectRatio(model, "16:9") ? "16:9" : null;
+      const resolution = model.capabilities.supportsResolution ? currentResolution : null;
+      const quality = model.capabilities.supportsQuality ? currentQuality : null;
+      const usedReferences = model.capabilities.supportsReferenceImages
+        ? referenceImages.slice(0, model.capabilities.maxReferenceImages)
+        : [];
 
+      const startTime = Date.now();
       const results = await executeGeneration(
         {
           modelId: model.id,
           provider: model.provider,
           prompt: `${CHARACTER_REFERENCE_IMAGE_SYSTEM}\n\nCharacter description:\n${description}`,
           aspectRatio,
-          resolution: model.capabilities.supportsResolution ? currentResolution : null,
-          quality: model.capabilities.supportsQuality ? currentQuality : null,
+          resolution,
+          quality,
           numberOfImages: 1,
-          referenceImages: model.capabilities.supportsReferenceImages
-            ? referenceImages.slice(0, model.capabilities.maxReferenceImages).map((r) => ({
-                id: r.id,
-                blob: r.blob,
-              }))
-            : [],
+          referenceImages: usedReferences.map((r) => ({ id: r.id, blob: r.blob })),
         },
         apiKey ?? undefined
       );
+      const generationTimeMs = Date.now() - startTime;
 
       const result = results[0];
       if (!result) {
         throw new Error("Image model did not return a character reference");
       }
+
+      const galleryItemId = crypto.randomUUID();
+      const thumbnailBlob = await createThumbnailBlob(result.blob, 400);
+      const createdAt = Date.now();
+      const referenceImageIds = usedReferences.map((r) => r.id);
+
+      await saveImage({
+        id: galleryItemId,
+        originalBlob: result.blob,
+        thumbnailBlob,
+        prompt: description,
+        modelId: model.id,
+        modelName: model.name,
+        aspectRatio,
+        resolution,
+        quality,
+        width: result.width,
+        height: result.height,
+        createdAt,
+        generationTimeMs,
+        referenceImageIds,
+        metadata: result.metadata,
+      });
+
+      useGalleryStore.getState().addItem({
+        id: galleryItemId,
+        status: "completed",
+        modelId: model.id,
+        modelName: model.name,
+        prompt: description,
+        aspectRatio,
+        resolution,
+        quality,
+        referenceImageIds,
+        originalBlob: result.blob,
+        originalUrl: URL.createObjectURL(result.blob),
+        thumbnailBlob,
+        thumbnailUrl: URL.createObjectURL(thumbnailBlob),
+        width: result.width,
+        height: result.height,
+        createdAt,
+        generationTimeMs,
+        metadata: result.metadata,
+      });
+
+      enqueueImageEmbedding(galleryItemId);
+
       addRefBlob(result.blob, "Generated character reference", true);
     },
     [
