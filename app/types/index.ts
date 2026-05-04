@@ -8,7 +8,7 @@ export type Resolution = "1K" | "2K" | "4K";
 
 export interface ModelCapabilities {
   supportsAspectRatios: boolean;
-  supportedAspectRatios?: string[];
+  supportedAspectRatios?: string[]; // should use doesModelSupportAspectRatio() from models.ts to check support
   supportsResolution: boolean;
   resolutions?: Resolution[];
   supportsReferenceImages: boolean;
@@ -208,6 +208,7 @@ export interface StoredStyle {
 }
 
 export interface SchemaMapping {
+  resolutionKey?: string;
   resolution?: Record<string, string>;
   aspectRatioKey?: string;
   imageInputKey?: string;

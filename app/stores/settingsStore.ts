@@ -344,10 +344,7 @@ export const useSettingsStore = create<SettingsState>()(
       addCharacter: ({ name, text, referenceImageIds = [] }) => {
         const id = `char-${crypto.randomUUID()}`;
         set((state) => ({
-          characters: [
-            ...state.characters,
-            { id, name, text, enabled: true, referenceImageIds },
-          ],
+          characters: [...state.characters, { id, name, text, enabled: true, referenceImageIds }],
         }));
         return id;
       },
@@ -398,7 +395,7 @@ export const useSettingsStore = create<SettingsState>()(
     }),
     {
       name: "studio-settings",
-      version: 18,
+      version: 19,
       partialize: (state) => ({
         apiKeys: state.apiKeys,
         models: state.models,
