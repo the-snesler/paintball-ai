@@ -1,4 +1,4 @@
-import { Expand, Layers, MessageSquareText, Palette, Users, X } from "lucide-react";
+import { Expand, Layers, MessageSquareText, Palette, Plus, Users, X } from "lucide-react";
 import { useLocation } from "react-router";
 import { PromptInput } from "./PromptInput";
 import { ModelList } from "./ModelList";
@@ -126,6 +126,14 @@ function SettingsSidebarContent() {
   const reorderUpscalers = useSettingsStore((s) => s.reorderUpscalers);
   const reorderStyles = useSettingsStore((s) => s.reorderStyles);
   const reorderCharacters = useSettingsStore((s) => s.reorderCharacters);
+  const location = useLocation();
+
+  useEffect(() => {
+    if (location.hash === "#characters") {
+      const el = document.getElementById("characters");
+      if (el) el.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [location.hash]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -268,7 +276,7 @@ function SettingsSidebarContent() {
 
       <AddCustomStyleButton />
 
-      <div className="flex items-center gap-2 pt-4">
+      <div id="characters" className="flex items-center gap-2 pt-4">
         <span className="text-text-muted">
           <Users className="h-4 w-4" />
         </span>
@@ -282,10 +290,7 @@ function SettingsSidebarContent() {
         collisionDetection={closestCenter}
         onDragEnd={handleCharacterDragEnd}
       >
-        <SortableContext
-          items={characters.map((c) => c.id)}
-          strategy={verticalListSortingStrategy}
-        >
+        <SortableContext items={characters.map((c) => c.id)} strategy={verticalListSortingStrategy}>
           <div className="space-y-1">
             {characters.map((character) => (
               <SortableCharacterItem key={character.id} character={character} />
@@ -296,9 +301,10 @@ function SettingsSidebarContent() {
 
       <Link
         to="/characters/new"
-        className="border-c-border text-text-tertiary hover:text-text-secondary flex w-full items-center justify-center gap-1 rounded-lg border border-dashed px-3 py-2 text-xs transition-colors"
+        className="border-c-border text-text-tertiary hover:border-c-border hover:text-text-secondary flex w-full items-center gap-2 rounded-lg border border-dashed p-2.5 transition-colors"
       >
-        + Add character
+        <Plus className="h-4 w-4" />
+        <span className="text-sm">Add character</span>
       </Link>
     </div>
   );
