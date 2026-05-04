@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from "react";
 import { Check, X } from "lucide-react";
 import { useEditorStore } from "~/stores/editorStore";
 import { Turn } from "./Turn";
-import { useNavigate } from "react-router";
 import { useGalleryDerivedIndexes } from "~/hooks/useGalleryDerivedIndexes";
 
 export function TurnList() {

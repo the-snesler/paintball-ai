@@ -2,7 +2,7 @@ import { useGalleryStore } from "~/stores/galleryStore";
 import { useEditorStore } from "~/stores/editorStore";
 import { getAllSessions, getReferenceImagesByIds } from "~/lib/db";
 import type { StoredEditorSession } from "~/types";
-import { Clock, ChevronDown, Plus } from "lucide-react";
+import { Clock, Plus, ChevronRight } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { formatRelativeDate } from "~/lib/util";
 import { clsx } from "clsx";
@@ -97,19 +97,19 @@ export function RecentSessions() {
         <span className="text-text-muted">
           <Clock className="h-4 w-4" />
         </span>
-        <h2 className="text-xs font-medium tracking-wide text-text-tertiary uppercase">
+        <h2 className="text-text-tertiary text-xs font-medium tracking-wide uppercase">
           Recent Sessions
         </h2>
         {hasMore && (
           <button
             type="button"
             onClick={() => setExpanded((v) => !v)}
-            className="ml-auto flex items-center gap-1 rounded text-xs text-text-muted transition-colors hover:text-text-secondary"
+            className="text-text-muted hover:text-text-secondary ml-auto flex items-center gap-1 rounded text-xs transition-colors"
             aria-expanded={expanded}
           >
             <span>{expanded ? "Show less" : `+${sessions.length - COLLAPSED_COUNT} more`}</span>
-            <ChevronDown
-              className={`h-4 w-4 transition-transform ${expanded ? "rotate-180" : ""}`}
+            <ChevronRight
+              className={`h-4 w-4 transition-transform ${expanded ? "-rotate-90" : ""}`}
             />
           </button>
         )}
@@ -123,7 +123,7 @@ export function RecentSessions() {
             "flex w-full items-center gap-2.5 rounded-lg p-2 text-left transition-colors",
             {
               "cursor-default border border-purple-500/40 bg-purple-500/10": isNewSession,
-              "border border-transparent hover:bg-surface-overlay": !isNewSession,
+              "hover:bg-surface-overlay border border-transparent": !isNewSession,
             }
           )}
         >
@@ -146,7 +146,7 @@ export function RecentSessions() {
 
           {/* Text */}
           <div className="min-w-0 flex-1">
-            <p className="truncate text-xs text-text-secondary">New Session</p>
+            <p className="text-text-secondary truncate text-xs">New Session</p>
           </div>
         </button>
 
@@ -161,7 +161,7 @@ export function RecentSessions() {
           const thumbUrl =
             galleryItem?.status === "completed"
               ? galleryItem.thumbnailUrl
-              : (referenceThumbUrls[session.id] ?? null);
+              : (referenceThumbUrls[session.id] ?? "");
 
           return (
             <button
@@ -172,12 +172,12 @@ export function RecentSessions() {
                 "flex w-full items-center gap-2.5 rounded-lg p-2 text-left transition-colors",
                 {
                   "cursor-default border border-purple-500/40 bg-purple-500/10": isActive,
-                  "border border-transparent hover:bg-surface-overlay": !isActive,
+                  "hover:bg-surface-overlay border border-transparent": !isActive,
                 }
               )}
             >
               {/* Thumbnail */}
-              <div className="h-9 w-9 shrink-0 overflow-hidden rounded-md bg-surface-overlay">
+              <div className="bg-surface-overlay h-9 w-9 shrink-0 overflow-hidden rounded-md">
                 {thumbUrl ? (
                   <img src={thumbUrl} alt="" className="h-full w-full object-cover" />
                 ) : (
@@ -187,14 +187,14 @@ export function RecentSessions() {
 
               {/* Text */}
               <div className="min-w-0 flex-1">
-                <p className="truncate text-xs text-text-secondary">
+                <p className="text-text-secondary truncate text-xs">
                   {session.sourcePrompt || "Untitled session"}
                 </p>
-                <p className="mt-0.5 text-[10px] text-text-muted">
+                <p className="text-text-muted mt-0.5 text-[10px]">
                   {session.turns.length === 1 ? "1 turn" : `${session.turns.length} turns`}
                   {" · "}
                   {formatRelativeDate(session.savedAt)}
-                  {isActive && <span className="ml-1.5 font-medium text-accent-muted">active</span>}
+                  {isActive && <span className="text-accent-muted ml-1.5 font-medium">active</span>}
                 </p>
               </div>
             </button>
