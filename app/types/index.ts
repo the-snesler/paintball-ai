@@ -8,7 +8,7 @@ export type Resolution = "1K" | "2K" | "4K";
 
 export interface ModelCapabilities {
   supportsAspectRatios: boolean;
-  supportedAspectRatios?: string[];
+  supportedAspectRatios?: string[]; // should use doesModelSupportAspectRatio() from models.ts to check support
   supportsResolution: boolean;
   resolutions?: Resolution[];
   supportsReferenceImages: boolean;
@@ -186,6 +186,16 @@ export interface StoredTextModel {
   icon?: string;
 }
 
+// Character types — subject bundle with text + reference images
+export interface StoredCharacter {
+  id: string; // "character/<uuid>"
+  name: string;
+  text: string; // appended to prompt before style text
+  enabled: boolean;
+  referenceImageIds: string[]; // 0..N FKs into IndexedDB references store
+  icon?: string;
+}
+
 // Style types — appended to prompt at generation time
 export interface StoredStyle {
   id: string; // built-in: stable slug; custom: "custom/<uuid>"
@@ -198,6 +208,7 @@ export interface StoredStyle {
 }
 
 export interface SchemaMapping {
+  resolutionKey?: string;
   resolution?: Record<string, string>;
   aspectRatioKey?: string;
   imageInputKey?: string;

@@ -31,28 +31,40 @@ app/
 ├── routes/
 │   ├── home.tsx              # Layout: Sidebar + Lightbox + Notifications
 │   ├── gallery.tsx           # Index route: gallery grid
+│   ├── timeline.tsx          # Timeline view of gallery
 │   ├── settings.tsx          # Settings page
-│   └── editor.tsx            # Image editor page (?imageId param)
+│   ├── editor.tsx            # Image editor page (?imageId param)
+│   └── characterEdit.tsx     # Character creation/edit (/characters/new, /characters/:id)
 ├── components/
 │   ├── sidebar/              # Left panel: prompt, models, settings
 │   ├── gallery/              # Main area: masonry/timeline grid
 │   ├── lightbox/             # Full-screen image viewer
 │   ├── settings/             # API key management, model toggles
 │   ├── editor/               # Iterative image editor
+│   ├── character/            # Character creation/edit view
 │   └── ui/                   # Shared primitives (Switch, Tooltip)
 ├── stores/
-│   ├── settingsStore.ts      # API keys + model list (persisted)
-│   ├── galleryStore.ts       # Gallery items + current generation inputs
-│   └── editorStore.ts        # Editor session state (not persisted)
+│   ├── settingsStore.ts      # API keys, models, styles, characters (persisted)
+│   ├── generationStore.ts    # Current generation inputs (prompt, refs, etc.) (not persisted)
+│   ├── galleryStore.ts       # Gallery items + selection state (not persisted)
+│   ├── editorStore.ts        # Editor session state (not persisted)
+│   ├── lightboxStore.ts      # Lightbox open/target state (not persisted)
+│   ├── embeddingStatusStore.ts # Embedding queue progress (not persisted)
+│   └── diffStore.ts          # Image diff overlay state (not persisted)
 ├── hooks/
 │   ├── useImageGeneration.ts # Gallery generation logic
-│   └── useEditorGeneration.ts# Editor generation logic
+│   ├── useEditorGeneration.ts# Editor generation logic
+│   └── useGenerationTask.ts  # Shared task runner: API call + retry + DB save
 ├── lib/
 │   ├── generation.ts         # Core API calls (Google/Replicate)
 │   ├── models.ts             # Capability helpers & ASPECT_RATIOS
 │   ├── builtInModels.ts      # Pre-configured model definitions
+│   ├── builtInStyles.ts      # Pre-configured style definitions
 │   ├── db.ts                 # IndexedDB operations
 │   ├── promptVariations.ts   # {{...}} variation parsing & generation
+│   ├── promptPreparation.ts  # Combined improve+variation prompt batch builder
+│   ├── styleApplication.ts   # applyPromptAdditions: appends character + style text
+│   ├── referencePrecedence.ts# Manual > style > character truncation under model ref limit
 │   ├── textModel.ts          # LLM calls for variations/analysis
 │   ├── prompts.ts            # System prompt templates
 │   ├── imageProcessing.ts    # Thumbnail generation, dimension reading
@@ -69,30 +81,48 @@ app/
 
 ## State Management
 
-### Three Zustand Stores
+### Zustand Stores
 
-1. **`settingsStore`** - Persisted to localStorage
-   - `apiKeys`: `{ google, replicate }` — provider API keys
+1. **`settingsStore`** - Persisted to localStorage (`studio-settings`, current version 18)
+   - `apiKeys`: `{ google, replicate, openai }` — provider API keys
    - `models: StoredModel[]` — built-in + user-added Replicate models (ordered)
-   - `textModel` — provider/modelId for the LLM used for variations
+   - `textModels: StoredTextModel[]` — list of LLMs; exactly one has `enabled: true`
+   - `upscalers: StoredUpscaler[]` — built-in + custom upscalers
+   - `styles: StoredStyle[]` — built-in + custom prompt styles
+   - `characters: StoredCharacter[]` — user-defined subjects (no built-ins)
    - `desktopNotificationsEnabled`, `notificationPromptDismissed`
    - `requestedOutputCount` — lifetime image request counter
+   - `editorContextInjectionEnabled`, `alwaysImprovePromptEnabled`, `semanticSearchEnabled`
 
-2. **`galleryStore`** - Not persisted
-   - `items: GalleryItem[]` — unified array of pending/generating/completed/failed items
-   - **Current input state** (for UI controls):
-     - `currentPrompt`, `currentModelSelections`, `currentAspectRatio`, `currentResolution`
+2. **`generationStore`** - Not persisted
+   - **Current input state** (for sidebar UI controls):
+     - `currentPrompt`, `currentBasePrompt`, `currentModelSelections`
+     - `currentAspectRatio`, `currentResolution`, `currentQuality`, `currentNumberOfImages`
      - `currentReferenceImages: ReferenceImage[]`
+     - `currentStyleId`, `currentCharacterId` — single-select pickers
      - `variationsEnabled`, `avoidPastVariations`
-   - **Generation tracking**: `isGenerating`, `activeGenerationCount`, `activeGenerationSignatures`
-   - **View state**: `viewMode`, `isLightboxOpen`, `lightboxTarget`, `selectedItemIds`
+   - **Generation tracking**: `isGenerating`, `activeGenerationCount`, `activeGenerationSignatures`, `lastSubmittedSignature`
+   - `resetDraft()` revokes ref image object URLs and resets to defaults
 
-3. **`editorStore`** - Not persisted
+3. **`galleryStore`** - Not persisted
+   - `items: GalleryItem[]` — unified array of pending/generating/completed/failed items
+   - `selectedItemIds`, `lastSelectedId` — multi-select state for gallery cards
+   - `searchQuery` — semantic/text search filter
+   - Pagination: `dbOffset`, `hasMore`, `isLoadingMore`, `totalCount`
+   - Image lifecycle: `loadImages`, `loadMoreImages`, `addItem(s)`, `updateItem`, `deleteItem`, `dismissItem`
+
+4. **`editorStore`** - Not persisted
    - `sourceBlob`, `sourceUrl`, `sourcePrompt`, `sourceGalleryItemId`
    - `turns: EditorTurn[]` — conversation history
    - `selectedItemId` — active canvas item (reference for next edit)
    - `instruction` — current edit input
    - `isGenerating`
+
+5. **`lightboxStore`** - Not persisted — `lightboxTarget` (gallery item or reference image), open/close actions.
+
+6. **`embeddingStatusStore`** - Not persisted — counts and progress for the semantic-search embedding queue.
+
+7. **`diffStore`** - Not persisted — image diff overlay state for comparing two gallery items.
 
 ### Important Zustand Pattern
 
@@ -100,11 +130,11 @@ app/
 
 ```tsx
 // ❌ BAD - function reference never changes, no re-renders
-const getSelectedModelIds = useGalleryStore((s) => s.getSelectedModelIds);
+const getSelectedModelIds = useGenerationStore((s) => s.getSelectedModelIds);
 const selected = getSelectedModelIds();
 
 // ✅ GOOD - subscribes to actual state, re-renders on change
-const modelSelections = useGalleryStore((s) => s.currentModelSelections);
+const modelSelections = useGenerationStore((s) => s.currentModelSelections);
 const selected = Object.entries(modelSelections)
   .filter(([, count]) => count > 0)
   .map(([id]) => id);
@@ -153,6 +183,26 @@ Users can add arbitrary Replicate models via Settings. The app:
 2. Calls the text model with `SCHEMA_MAPPING_SYSTEM` prompt to generate a `SchemaMapping`
 3. Stores the mapping in `settingsStore` so non-standard parameter names are translated correctly
 
+## Styles & Characters
+
+Both are reusable bundles of prompt text + reference image(s) selected via single-select dropdowns in the prompt input. Conceptually:
+
+- **Style** = an aesthetic (e.g. "watercolor"). Single optional reference image. Text supports a `{n}` placeholder that resolves to the style image's position in the final reference list.
+- **Character** = a subject (e.g. "Asher"). Multiple reference images. Plain text, no placeholders.
+
+When applied to a generation:
+
+- **Prompt assembly** (`lib/styleApplication.ts` → `applyPromptAdditions`):
+  `user prompt → \n\n → character.text → \n\n → style.text` — character text goes first so style modifiers come last and can override tone.
+- **Reference image priority** when the model's strict ref limit forces truncation
+  (`lib/referencePrecedence.ts` → `computeReferencePrecedence`):
+  `manual > style > character`. Manual wins (user explicitly attached); character refs are most expendable. Final order in the API call: manual, then style, then character.
+- The Generate button shows a red warning + tooltip when refs will be dropped.
+
+`StoredCharacter` lives in `settingsStore.characters` (no built-ins). Creating/editing happens at `/characters/new` and `/characters/:id` (`components/character/CharacterEditView.tsx`). Deleting a character also deletes its stored reference blobs via `deleteReferenceImagesByIds`.
+
+**Character ID format**: `char-<uuid>` (no slash) — character IDs appear in URL path params, so they must be a single path segment.
+
 ## Image Generation Flow
 
 1. User clicks Generate
@@ -162,7 +212,8 @@ Users can add arbitrary Replicate models via Settings. The app:
    - Creates one `GalleryItem` per model × count with `status: 'pending'`
    - Adds all pending items to `galleryStore.items` immediately (loading cards appear)
    - Persists any reference images to IndexedDB
-   - Calls `executeGeneration()` in parallel via `Promise.allSettled`
+   - Loads character + style ref blobs, applies precedence (manual > style > character) under the strict ref limit, then assembles the final prompt with `applyPromptAdditions`
+   - Calls `useGenerationTask.runTasks()` which executes tasks in parallel via `Promise.allSettled`
 3. Each item transitions through states in place:
    - `status: 'waiting'` — rate-limit backoff, shows countdown
    - `status: 'generating'` — API call in flight
@@ -229,7 +280,7 @@ A secondary LLM is used for:
 - Improving user prompts (`IMPROVE_PROMPT_SYSTEM`)
 - Mapping Replicate model schemas (`SCHEMA_MAPPING_SYSTEM`)
 
-Configured in Settings (`settingsStore.textModel`). Supports Google Gemini (with `ThinkingLevel.LOW`) and Replicate text models.
+Configured in Settings as `settingsStore.textModels: StoredTextModel[]` — exactly one entry has `enabled: true` at a time (use `selectTextModel(id)` to switch). Supports Google Gemini (with `ThinkingLevel.LOW`), OpenAI, and Replicate text models.
 
 ## CSS Patterns
 
@@ -267,16 +318,24 @@ App is dark-mode only. Key colors:
 
 ### Adding a New Generation Setting
 
-1. Add to `GalleryState` in `galleryStore.ts` (e.g., `currentStylePreset`)
-2. Add a setter action
-3. Add to `GalleryItem` + `StoredImageRecord` in `types/index.ts`
-4. Create UI component in `components/sidebar/`
-5. Pass to generation in `useImageGeneration.ts` and `lib/generation.ts`
-6. Include in `saveImage()` call in `lib/db.ts`
+1. Add to `GenerationState` in `stores/generationStore.ts` (e.g., `currentStylePreset`) and a setter action; include in the `DEFAULT_GENERATION_STATE` object so `resetDraft()` clears it
+2. Add to `GalleryItem` + `StoredImageRecord` in `types/index.ts` if it should persist on completed items
+3. Create UI component in `components/sidebar/`
+4. Pass to generation in `useImageGeneration.ts` and `lib/generation.ts`
+5. Include in `saveImage()` call in `lib/db.ts` if persisted
+6. If it affects dedup, include it in `buildGenerationSignature` (`lib/generationSignature.ts`)
 
 ### Adding a Prompt System
 
 Add a new `const X_SYSTEM = ...` to `lib/prompts.ts` and call it via `callTextModel()` from `lib/textModel.ts`.
+
+### Bumping the Settings Persist Version
+
+`settingsStore` uses Zustand's `persist` middleware with a numeric `version`. When you change the persisted shape:
+1. Bump `version` (e.g. 18 → 19)
+2. Add a `if (version < N) { ... }` block in `migrate` to transform older state if needed
+3. Add the new field to the final `return {...}` object with a sensible default
+4. Add the new field to `partialize` so it actually gets persisted
 
 ## Gotchas
 
@@ -284,7 +343,7 @@ Add a new `const X_SYSTEM = ...` to `lib/prompts.ts` and call it via `callTextMo
    - Created in: `galleryStore.loadImages()`, `useImageGeneration` on completion, `editorStore.setSource()`
    - Cleaned up in: `deleteItem()`, `dismissItem()`, `editorStore.reset()`
 
-2. **IndexedDB async**: All DB operations are async. Gallery loads on mount via `useEffect` in `home.tsx`. IndexedDB version is currently **2** (v1→v2 migration: single blob → `originalBlob` + `thumbnailBlob`).
+2. **IndexedDB async**: All DB operations are async. Gallery loads on mount via `useEffect` in `home.tsx`. IndexedDB version is currently **4** with three object stores: `images`, `references`, `sessions`. Reference image cleanup: orphaned refs (no remaining gallery item points to them) are deleted in `galleryStore.deleteItem`/`deleteSelectedItems`/`dismissItem`; characters delete their refs on removal via `deleteReferenceImagesByIds`.
 
 3. **SPA mode**: `react-router.config.ts` has `ssr: false`. No server routes, no loaders/actions.
 
@@ -294,6 +353,10 @@ Add a new `const X_SYSTEM = ...` to `lib/prompts.ts` and call it via `callTextMo
 
 6. **Replicate schema mapping**: Non-standard Replicate models use `schemaMapping` to translate parameter names (e.g., `imageInputKey`, `resolution` map). Always pass through `schemaMapping` when calling `generateWithReplicate`.
 
-7. **Reference image limits**: Use the intersection of `maxReferenceImages` across all selected models. `getStrictReferenceImageLimit()` returns this value; use `canAttachReferenceCount()` to validate before attaching.
+7. **Reference image limits**: Use the intersection of `maxReferenceImages` across all selected models. `getStrictReferenceImageLimit()` returns this value (`null` = no model accepts refs; `Infinity` = no cap). When refs from multiple sources exceed the limit, `lib/referencePrecedence.ts` truncates with priority `manual > style > character`.
 
 8. **`builtInModels` vs `settingsStore.models`**: `settingsStore` stores the user's model list (built-ins merged with user overrides). Always read models from the store, not directly from `builtInModels.ts`. Use `mergeWithBuiltInModels()` for migrations.
+
+9. **Generation inputs live in `generationStore`, not `galleryStore`**: `currentPrompt`, `currentReferenceImages`, `currentStyleId`, `currentCharacterId`, etc. are all in `generationStore`. `galleryStore` only owns the gallery item list and selection state. New generation parameters belong in `generationStore` and should be added to `DEFAULT_GENERATION_STATE` so `resetDraft()` cleans them up.
+
+10. **Multi-route file IDs**: When two routes share the same file (e.g. `characters/new` and `characters/:id` both render `routes/characterEdit.tsx`), pass `{ id: "..." }` as the third arg to `route()` in `app/routes.ts` — React Router otherwise rejects duplicate route IDs derived from the file path.

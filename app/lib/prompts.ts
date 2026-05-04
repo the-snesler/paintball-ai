@@ -49,6 +49,27 @@ Rules:
 - Return ONLY the prompt text, no preamble, labels, or explanation
 - Be specific and descriptive — concrete details over vague adjectives`;
 
+export const CHARACTER_DESCRIPTION_FROM_REFERENCES_SYSTEM = `You analyze reference photos of a person or character and write a detailed reusable character description for AI image generation.
+
+Focus on stable identity and physical traits: apparent age range, face shape, skin tone, hair, eyes, build, height impression, ethnicity/nationality cues only when visually supported, and distinctive features. Ignore temporary scene details, camera angle, lighting, expression, pose, background, clothing brand text, and image style unless they are essential to the character. If the character is shown with a single consistent outfit, trait, or accessory, describe it.
+
+Rules:
+- Return ONLY the character description, no preamble, labels, markdown, or explanation
+- Write in present tense as a natural-language paragraph
+- Keep it suitable to append to arbitrary user prompts
+- Do not identify the character by name, real or fictional, or infer sensitive traits beyond visible appearance
+- If multiple images show different outfits or contexts, synthesize the consistent character identity`;
+
+export const CHARACTER_REFERENCE_IMAGE_SYSTEM = `Create a clean 16:9 character reference image from the supplied character description.
+
+Rules:
+- Three poses: front, profile, rear arranged left to right along the left 2/3rds of the image
+- Right 1/3rd: 3x2 (3 wide) grid of facial expressions stacked atop 3x2 grid of detail close-ups (e.g. hair, distinctive features) for a total of 12 small reference images
+- Use a simple unobtrusive background
+- Prioritize stable physical identity over dramatic scene, lighting, or composition
+- Preserve the character's distinctive features exactly where possible, do not simplify or alter them for stylistic effect.
+- Do not include labels, captions, UI, or text in the image`;
+
 export const VARIATION_SYSTEM = `You generate creative text variations for AI image prompts.
 
 You will receive a bracketed section from a prompt. The text before the colon is an example value. The text after the colon is an instruction for what to vary. For instance, "sunset: vary time of day" means the example is "sunset" and you should vary the time of day.

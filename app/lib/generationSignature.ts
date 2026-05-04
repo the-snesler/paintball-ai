@@ -8,6 +8,8 @@ interface GenerationSignatureInput {
   quality: string | null;
   numberOfImages: number;
   referenceImages: ReferenceImage[];
+  styleId?: string | null;
+  characterId?: string | null;
 }
 
 export function buildGenerationSignature(input: GenerationSignatureInput): string {
@@ -25,5 +27,7 @@ export function buildGenerationSignature(input: GenerationSignatureInput): strin
     quality: input.quality,
     numberOfImages: input.numberOfImages,
     referenceImageIds: normalizedReferenceIds,
+    styleId: input.styleId ?? null,
+    characterId: input.characterId ?? null,
   });
 }

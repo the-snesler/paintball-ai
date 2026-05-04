@@ -125,6 +125,9 @@ export const BUILT_IN_MODELS: StoredModel[] = [
       supportsReferenceImages: true,
       maxReferenceImages: 14,
     },
+    schemaMapping: {
+      resolutionKey: "size",
+    },
   },
 ];
 

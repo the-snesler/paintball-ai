@@ -1,5 +1,9 @@
 import type { GalleryItem } from "~/types";
+import type { ReferenceImage, StoredCharacter, StoredStyle } from "~/types";
+import { getReferenceImagesByIds } from "~/lib/db";
 import { IMPROVE_PROMPT_SYSTEM } from "~/lib/prompts";
+import { computeReferencePrecedence } from "~/lib/referencePrecedence";
+import { applyPromptAdditions } from "~/lib/styleApplication";
 import { callTextModel, isTextModelAvailable } from "~/lib/textModel";
 import {
   buildVariedPrompts,
@@ -9,10 +13,20 @@ import {
   stripVariationSections,
 } from "~/lib/promptVariations";
 
+export interface PreparedReferenceImage {
+  id: string;
+  blob: Blob;
+  sourceGalleryItemId?: string;
+}
+
 interface PreparePromptBatchOptions {
   prompt: string;
   totalTasks: number;
   images?: Blob[];
+  manualReferenceImages?: ReferenceImage[];
+  style?: StoredStyle | null;
+  character?: StoredCharacter | null;
+  referenceLimit?: number | null;
   improvePrompt?: boolean;
   variationsEnabled?: boolean;
   avoidPastVariations?: boolean;
@@ -24,6 +38,8 @@ export interface PreparedPromptBatch {
   prompts: string[];
   improved: boolean;
   usedVariations: boolean;
+  addedPromptAdditions: boolean;
+  referenceImages: PreparedReferenceImage[];
   variationReplacementsByTask?: Array<string[] | undefined>;
 }
 
@@ -34,6 +50,10 @@ export async function preparePromptBatch(
     prompt,
     totalTasks,
     images,
+    manualReferenceImages,
+    style,
+    character,
+    referenceLimit,
     improvePrompt = false,
     variationsEnabled = false,
     avoidPastVariations = false,
@@ -46,20 +66,33 @@ export async function preparePromptBatch(
       prompts: [],
       improved: false,
       usedVariations: false,
+      addedPromptAdditions: false,
+      referenceImages: manualReferenceImages ?? [],
     };
   }
 
-  let workingPrompt = prompt;
+  const manualRefs = manualReferenceImages ?? [];
+  const promptAdditions = await preparePromptAdditions({
+    prompt,
+    manualRefs,
+    style,
+    character,
+    referenceLimit,
+  });
+
+  let workingPrompt = promptAdditions.prompt;
+  const textModelImages = promptAdditions.referenceImages.map((ref) => ref.blob);
+  const effectiveImages = textModelImages.length > 0 ? textModelImages : images;
   let improved = false;
 
   if (improvePrompt && isTextModelAvailable()) {
     onStageChange?.("writing");
     try {
-      const result = await callTextModel(IMPROVE_PROMPT_SYSTEM, prompt, images);
+      const result = await callTextModel(IMPROVE_PROMPT_SYSTEM, workingPrompt, effectiveImages);
       const trimmed = result.trim();
       if (trimmed) {
         workingPrompt = trimmed;
-        improved = trimmed !== prompt;
+        improved = trimmed !== promptAdditions.prompt;
       }
     } catch {
       // Fall back to the original prompt
@@ -83,7 +116,7 @@ export async function preparePromptBatch(
           workingPrompt,
           sections,
           totalTasks,
-          images,
+          effectiveImages,
           avoidPerSection
         );
 
@@ -112,6 +145,100 @@ export async function preparePromptBatch(
     prompts,
     improved,
     usedVariations: Boolean(variedPrompts),
+    addedPromptAdditions: promptAdditions.added,
+    referenceImages: promptAdditions.referenceImages,
     variationReplacementsByTask,
+  };
+}
+
+async function preparePromptAdditions({
+  prompt,
+  manualRefs,
+  style,
+  character,
+  referenceLimit,
+}: {
+  prompt: string;
+  manualRefs: ReferenceImage[];
+  style?: StoredStyle | null;
+  character?: StoredCharacter | null;
+  referenceLimit?: number | null;
+}): Promise<{
+  prompt: string;
+  added: boolean;
+  referenceImages: PreparedReferenceImage[];
+}> {
+  if (!style && !character) {
+    const precedence = computeReferencePrecedence({
+      manualCount: manualRefs.length,
+      styleHasRef: false,
+      characterRefCount: 0,
+      limit: referenceLimit ?? null,
+    });
+
+    return {
+      prompt,
+      added: false,
+      referenceImages: manualRefs
+        .slice(0, precedence.keepManual)
+        .map(({ id, blob, sourceGalleryItemId }) => ({
+          id,
+          blob,
+          sourceGalleryItemId,
+        })),
+    };
+  }
+
+  let styleRef: PreparedReferenceImage | null = null;
+  if (style?.referenceImageId) {
+    const [loaded] = await getReferenceImagesByIds([style.referenceImageId]);
+    if (loaded) {
+      styleRef = { id: loaded.id, blob: loaded.blob };
+      URL.revokeObjectURL(loaded.url);
+    }
+  }
+
+  let characterRefs: PreparedReferenceImage[] = [];
+  if (character?.referenceImageIds.length) {
+    const loaded = await getReferenceImagesByIds(character.referenceImageIds);
+    characterRefs = loaded.map((ref) => {
+      URL.revokeObjectURL(ref.url);
+      return { id: ref.id, blob: ref.blob };
+    });
+  }
+
+  const effectiveStyle = styleRef
+    ? style
+    : style
+      ? { ...style, referenceImageId: undefined }
+      : null;
+
+  const precedence = computeReferencePrecedence({
+    manualCount: manualRefs.length,
+    styleHasRef: styleRef !== null,
+    characterRefCount: characterRefs.length,
+    limit: referenceLimit ?? null,
+  });
+  const additions = applyPromptAdditions(
+    prompt,
+    character ?? null,
+    effectiveStyle ?? null,
+    precedence.keepManual + precedence.keepCharacter
+  );
+
+  const finalManual = manualRefs.slice(0, precedence.keepManual).map(
+    ({ id, blob, sourceGalleryItemId }): PreparedReferenceImage => ({
+      id,
+      blob,
+      sourceGalleryItemId,
+    })
+  );
+  const finalCharacter = characterRefs.slice(0, precedence.keepCharacter);
+  const finalStyle = precedence.keepStyle && styleRef ? [styleRef] : [];
+
+  return {
+    prompt: additions.prompt,
+    added: additions.prompt !== prompt || finalStyle.length > 0 || finalCharacter.length > 0,
+    referenceImages: [...finalManual, ...finalCharacter, ...finalStyle],
   };
 }

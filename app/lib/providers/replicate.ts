@@ -34,7 +34,6 @@ async function generateImage(
 
   const input: Record<string, unknown> = {
     prompt: params.prompt,
-    output_format: "png",
   };
   if (params.aspectRatio) {
     const aspectRatioKey = mapping?.aspectRatioKey ?? "aspect_ratio";
@@ -45,7 +44,8 @@ async function generateImage(
     input[imageKey] = imageInputs;
   }
   if (params.resolution) {
-    input.resolution = mapping?.resolution?.[params.resolution] ?? params.resolution;
+    const resolutionKey = mapping?.resolutionKey ?? "resoluton";
+    input[resolutionKey] = mapping?.resolution?.[params.resolution] ?? params.resolution;
   }
   if (caps?.supportsQuality && params.quality) {
     const qualityKey = mapping?.qualityKey ?? "quality";
@@ -247,6 +247,7 @@ interface HeuristicResult {
   detectedAspectRatioKey?: string;
   detectedQualityKey?: string;
   detectedNumberOfImagesKey?: string;
+  detectedResolutionKey?: string;
 }
 
 interface SchemaAnalysis {
@@ -289,11 +290,9 @@ function inferCapabilitiesFromProperties(
   const detectedAspectRatioKey = aspectRatioKeys.find((key) => properties[key]);
   const supportsAspectRatios = !!detectedAspectRatioKey;
 
-  const supportsResolution = !!(
-    properties.resolution ||
-    properties.megapixels ||
-    properties.output_resolution
-  );
+  const resolutionKeys = ["resolution", "output_resolution", "megapixels", "size"];
+  const detectedResolutionKey = resolutionKeys.find((key) => properties[key]);
+  const supportsResolution = !!detectedResolutionKey;
 
   const imageProps = [
     "image",
@@ -346,6 +345,7 @@ function inferCapabilitiesFromProperties(
     detectedAspectRatioKey,
     detectedQualityKey,
     detectedNumberOfImagesKey,
+    detectedResolutionKey,
   };
 }
 
@@ -436,6 +436,14 @@ function mergeAnalysis(
     !mapping.aspectRatioKey
   ) {
     mapping.aspectRatioKey = heuristic.detectedAspectRatioKey;
+  }
+
+  if (
+    heuristic.detectedResolutionKey &&
+    heuristic.detectedResolutionKey !== "resolution" &&
+    !mapping.resolutionKey
+  ) {
+    mapping.resolutionKey = heuristic.detectedResolutionKey;
   }
 
   if (mapping.imageInputKey && !capabilities.supportsReferenceImages) {

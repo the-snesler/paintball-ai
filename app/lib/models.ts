@@ -34,7 +34,7 @@ export function anyModelSupportsAspectRatio(
   return getAspectRatioIntersection(models, selectedModelIds).length > 0;
 }
 
-function getSupportedAspectRatiosForModel(model: StoredModel): string[] {
+export function getSupportedAspectRatiosForModel(model: StoredModel): string[] {
   if (!model.capabilities.supportsAspectRatios) {
     return [];
   }
@@ -48,6 +48,15 @@ function getSupportedAspectRatiosForModel(model: StoredModel): string[] {
 
   // Fallback for un-migrated models or schemas with unknown enum values.
   return PRIMARY_ASPECT_RATIO_VALUES;
+}
+
+export function doesModelSupportAspectRatio(model: StoredModel, aspectRatio: string): boolean {
+  if (!model.capabilities.supportsAspectRatios) {
+    return false;
+  }
+
+  const supportedRatios = getSupportedAspectRatiosForModel(model);
+  return supportedRatios.length === 0 || supportedRatios.includes(aspectRatio);
 }
 
 export function parseAspectRatio(ratio: string): { width: number; height: number } {
