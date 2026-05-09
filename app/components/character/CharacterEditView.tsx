@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
+import { useImproveText } from "~/hooks/useImproveText";
 import { executeGeneration } from "~/lib/generation";
 import {
   deleteReferenceImagesByIds,
@@ -23,9 +24,11 @@ import { doesModelSupportAspectRatio, getModel } from "~/lib/models";
 import {
   CHARACTER_DESCRIPTION_FROM_REFERENCES_SYSTEM,
   CHARACTER_REFERENCE_IMAGE_SYSTEM,
+  IMPROVE_CHARACTER_SYSTEM,
 } from "~/lib/prompts";
 import { providerRequiresApiKey } from "~/lib/providers";
-import { callTextModel } from "~/lib/textModel";
+import { callTextModel, isTextModelAvailable } from "~/lib/textModel";
+import { ImproveTextButton } from "../ui/ImproveTextButton";
 import { useGalleryStore } from "~/stores/galleryStore";
 import { useGenerationStore } from "~/stores/generationStore";
 import { useSettingsStore } from "~/stores/settingsStore";
@@ -274,6 +277,13 @@ export function CharacterEditView() {
   const fileRef = useRef<HTMLInputElement>(null);
   const galleryItems = useGalleryStore((s) => s.items);
   const objectUrlsRef = useRef<Set<string>>(new Set());
+
+  const improveText = useImproveText({
+    systemPrompt: IMPROVE_CHARACTER_SYSTEM,
+    text,
+    setText,
+    getImages: () => (refs.length > 0 ? refs.map((r) => r.blob) : undefined),
+  });
 
   // Load existing character refs on mount
   useEffect(() => {
@@ -678,6 +688,15 @@ export function CharacterEditView() {
             placeholder="Text appended to your prompt when this character is selected (optional)"
             className="border-c-border bg-surface-overlay text-text-primary placeholder-text-muted w-full resize-y rounded-lg border px-3 py-2 text-sm focus:border-purple-500 focus:ring-1 focus:ring-purple-500 focus:outline-none"
           />
+          <div className="mt-1.5 flex justify-end">
+            <ImproveTextButton
+              isImproving={improveText.isImproving}
+              hasUndo={improveText.hasUndo}
+              onImprove={improveText.improve}
+              onUndo={improveText.undo}
+              canImprove={isTextModelAvailable() && text.trim().length > 0}
+            />
+          </div>
         </div>
       </div>
 

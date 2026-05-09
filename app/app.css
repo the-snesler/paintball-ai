@@ -1,6 +1,5 @@
 @import "tailwindcss";
 @import "tw-animate-css";
-
 @theme {
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif,
     "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
@@ -48,6 +47,12 @@
     --border-subtle: #27272a;
     --accent: #a855f7;
     --accent-muted: #ad7ddf;
+  }
+}
+
+@layer utilities {
+  button {
+    cursor: pointer;
   }
 }
 
@@ -218,8 +223,4 @@ body {
   .sidebar-popover:popover-open::backdrop {
     opacity: 0;
   }
-}
-
-button {
-  cursor: pointer;
 }

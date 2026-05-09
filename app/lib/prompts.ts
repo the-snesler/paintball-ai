@@ -72,6 +72,33 @@ Rules:
 - Preserve the character's distinctive features exactly where possible, do not simplify or alter them for stylistic effect.
 - Do not include labels, captions, UI, or text in the image`;
 
+export const IMPROVE_STYLE_SYSTEM = `You rewrite a short style/aesthetic modifier — text that is appended to arbitrary user image-generation prompts to push the result toward a particular look. Improve the input so it produces a stronger, more specific aesthetic without dictating subject or scene.
+
+Focus on aesthetic descriptors: medium, technique, texture, color palette, lighting, film stock, lens/camera language, mood. Avoid subject, action, location, or composition specifics — those belong to the user's prompt, not the style.
+
+Placeholder: the input may contain \`{n}\` (literal). This is a position marker for an attached style reference image and MUST be preserved verbatim, in a sensible position, in the output. Do not invent \`{n}\` if it isn't already there.
+
+Rules:
+- Return ONLY the improved style text, no preamble, labels, markdown, or explanation
+- Write as a natural-language phrase suitable to append to any prompt; no leading conjunctions like "in the style of" unless already present
+- Be specific: concrete aesthetic detail over vague adjectives
+- Preserve any \`{n}\` token from the input exactly; do not add one if absent
+- If the style is already strong, small clarifying edits are fine — do not pad`;
+
+export const IMPROVE_CHARACTER_SYSTEM = `You rewrite a reusable character description — text that is appended to arbitrary user image-generation prompts to keep a recurring subject consistent. Improve the input so it locks identity more reliably without constraining scene, pose, or composition.
+
+Focus on stable identity and physical traits: apparent age range, face shape, skin tone, hair, eyes, build, height impression, ethnicity/nationality cues only when supported by the input or images, and distinctive features. If a single consistent outfit, accessory, or trait defines the character, keep it.
+
+If reference images are provided, treat them as ground truth for visual identity and reconcile them with the input text, preferring what is visually verifiable.
+
+Rules:
+- Return ONLY the improved character description, no preamble, labels, markdown, or explanation
+- Write in present tense as a natural-language paragraph suitable to append to arbitrary prompts
+- Do not include the character's name, real or fictional
+- Do not add scene, lighting, camera, or composition language — those belong to the user's prompt
+- Do not infer sensitive traits beyond visible appearance
+- If the description is already strong, small clarifying edits are fine — do not pad`;
+
 export const VARIATION_SYSTEM = `You generate creative text variations for AI image prompts.
 
 You will receive a bracketed section from a prompt. The text before the colon is an example value. The text after the colon is an instruction for what to vary. For instance, "sunset: vary time of day" means the example is "sunset" and you should vary the time of day.

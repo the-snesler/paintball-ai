@@ -1,4 +1,4 @@
-import { ImagePlus, Loader2, Sparkles, Undo2, X, Wand2 } from "lucide-react";
+import { ImagePlus, Wand2, X } from "lucide-react";
 import { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
   DndContext,
@@ -16,13 +16,15 @@ import {
   useSortable,
 } from "@dnd-kit/sortable";
 import { CSS as DndCSS } from "@dnd-kit/utilities";
+import { useImproveText } from "~/hooks/useImproveText";
 import { anyModelSupportsReferenceImages } from "~/lib/models";
 import { IMPROVE_PROMPT_SYSTEM } from "~/lib/prompts";
-import { callTextModel, isTextModelAvailable } from "~/lib/textModel";
+import { isTextModelAvailable } from "~/lib/textModel";
 import { useGalleryStore } from "~/stores/galleryStore";
 import { useGenerationStore } from "~/stores/generationStore";
 import { useLightboxStore } from "~/stores/lightboxStore";
 import { useSettingsStore } from "~/stores/settingsStore";
+import { ImproveTextButton } from "../ui/ImproveTextButton";
 import { StyleSelect } from "./StyleSelect";
 import { CharacterSelect } from "./CharacterSelect";
 
@@ -105,8 +107,17 @@ export function PromptInput() {
   const galleryItems = useGalleryStore((s) => s.items);
   const models = useSettingsStore((s) => s.models);
   const [isDragOver, setIsDragOver] = useState(false);
-  const [isImproving, setIsImproving] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const improvePrompt = useImproveText({
+    systemPrompt: IMPROVE_PROMPT_SYSTEM,
+    text: prompt,
+    setText: setPrompt,
+    baseText: basePrompt,
+    setBaseText: setBasePrompt,
+    getImages: () =>
+      referenceImages.length > 0 ? referenceImages.map((r) => r.blob) : undefined,
+  });
 
   const supportsFieldSizing = useMemo(() => {
     if (typeof CSS === "undefined" || typeof CSS.supports !== "function") {
@@ -258,28 +269,6 @@ export function PromptInput() {
     [addFiles]
   );
 
-  const handleImprovePrompt = useCallback(async () => {
-    if (!prompt.trim() || isImproving) return;
-    const snapshot = prompt;
-    setIsImproving(true);
-    try {
-      const images = referenceImages.length > 0 ? referenceImages.map((r) => r.blob) : undefined;
-      const improved = await callTextModel(IMPROVE_PROMPT_SYSTEM, prompt, images);
-      setPrompt(improved.trim());
-      setBasePrompt(snapshot);
-    } catch {
-      // Leave prompt unchanged on failure
-    } finally {
-      setIsImproving(false);
-    }
-  }, [prompt, isImproving, setPrompt, setBasePrompt, referenceImages]);
-
-  const handleUndoImprove = useCallback(() => {
-    if (basePrompt === null) return;
-    setPrompt(basePrompt);
-    setBasePrompt(null);
-  }, [basePrompt, setPrompt, setBasePrompt]);
-
   useLayoutEffect(() => {
     if (supportsFieldSizing) return;
 
@@ -318,30 +307,13 @@ export function PromptInput() {
         />
 
         <div className="items-left mx-3 flex justify-between gap-3">
-          {basePrompt !== null ? (
-            <button
-              type="button"
-              onClick={handleUndoImprove}
-              className="text-text-tertiary hover:text-text-secondary inline-flex items-center gap-1 text-xs transition-colors"
-            >
-              <Undo2 className="h-3.5 w-3.5" />
-              Undo
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={handleImprovePrompt}
-              disabled={!isTextModelAvailable() || !prompt.trim() || isImproving}
-              className="text-text-tertiary hover:text-text-secondary disabled:text-text-muted inline-flex items-center gap-1 text-xs transition-colors disabled:cursor-not-allowed"
-            >
-              {isImproving ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              ) : (
-                <Sparkles className="h-3.5 w-3.5" />
-              )}
-              {isImproving ? "Working..." : "Rewrite"}
-            </button>
-          )}
+          <ImproveTextButton
+            isImproving={improvePrompt.isImproving}
+            hasUndo={improvePrompt.hasUndo}
+            onImprove={improvePrompt.improve}
+            onUndo={improvePrompt.undo}
+            canImprove={isTextModelAvailable() && prompt.trim().length > 0}
+          />
         </div>
 
         <div className="border-c-border/50 my-3 border-t" />
