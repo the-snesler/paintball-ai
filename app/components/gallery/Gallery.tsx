@@ -5,7 +5,7 @@ import { GalleryHeader } from "./GalleryHeader";
 import { MasonryGrid, MasonryFrame } from "./MasonryGrid";
 import { GalleryImageCard } from "./GalleryImageCard";
 import { TimelineDivider } from "./TimelineDivider";
-import { ImageOff, Download, Trash2, X, ImagePlus } from "lucide-react";
+import { ImageOff, Download, Loader2, Trash2, X, ImagePlus } from "lucide-react";
 import type { GalleryItem } from "~/types";
 import { formatRelativeDate } from "~/lib/util";
 import { getFirstCreatedAt, groupItemsByPrompt } from "~/lib/galleryGrouping";
@@ -16,8 +16,10 @@ import { useAttachSelectedItemsToGeneration } from "~/hooks/useAttachSelectedIte
 import { useGalleryDerivedIndexes } from "~/hooks/useGalleryDerivedIndexes";
 import { useQueryEmbedding } from "~/hooks/useQueryEmbedding";
 import { logger } from "~/lib/logging";
+import { importFromZip } from "~/lib/exportImport";
 
 const SEMANTIC_THRESHOLD = 0.1;
+const DEMO_BACKUP_URL = import.meta.env.VITE_DEMO_BACKUP_URL as string | undefined;
 
 export function Gallery({ viewMode }: { viewMode: "grid" | "timeline" }) {
   const items = useGalleryStore((s) => s.items);
@@ -243,6 +245,28 @@ function NoSearchResults() {
 }
 
 function EmptyState() {
+  const loadImages = useGalleryStore((s) => s.loadImages);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleLoadDemo = async () => {
+    if (!DEMO_BACKUP_URL) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch(DEMO_BACKUP_URL);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const blob = await res.blob();
+      const file = new File([blob], "demo.zip", { type: "application/zip" });
+      const result = await importFromZip(file);
+      if (result.imported > 0) await loadImages();
+    } catch (e) {
+      setError(`Failed to load demo: ${e instanceof Error ? e.message : "Unknown error"}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="flex h-full flex-col items-center justify-center text-center">
       <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-surface-raised">
@@ -252,6 +276,24 @@ function EmptyState() {
       <p className="max-w-xs text-sm text-text-muted">
         Enter a prompt, select a model, and click Generate to create your first image.
       </p>
+      {DEMO_BACKUP_URL && (
+        <>
+          <button
+            type="button"
+            onClick={handleLoadDemo}
+            disabled={loading}
+            className="bg-surface-overlay text-text-secondary hover:bg-surface-interactive mt-4 flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {loading ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Download className="h-3.5 w-3.5" />
+            )}
+            {loading ? "Loading demo..." : "Load demo gallery"}
+          </button>
+          {error && <p className="mt-2 max-w-xs text-xs text-red-400">{error}</p>}
+        </>
+      )}
     </div>
   );
 }

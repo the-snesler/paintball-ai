@@ -337,6 +337,10 @@ Add a new `const X_SYSTEM = ...` to `lib/prompts.ts` and call it via `callTextMo
 3. Add the new field to the final `return {...}` object with a sensible default
 4. Add the new field to `partialize` so it actually gets persisted
 
+## Build-Time Env Vars
+
+- `VITE_DEMO_BACKUP_URL` — optional URL to a ZIP backup. When set, the empty gallery shows a "Load demo gallery" button that fetches the archive and runs it through `importFromZip` (`lib/exportImport.ts`). Unset = button hidden.
+
 ## Gotchas
 
 1. **Object URLs**: Created with `URL.createObjectURL()`, must be revoked to prevent memory leaks.
