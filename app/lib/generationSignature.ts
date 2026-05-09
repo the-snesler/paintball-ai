@@ -9,7 +9,7 @@ interface GenerationSignatureInput {
   numberOfImages: number;
   referenceImages: ReferenceImage[];
   styleId?: string | null;
-  characterId?: string | null;
+  characterIds?: string[];
 }
 
 export function buildGenerationSignature(input: GenerationSignatureInput): string {
@@ -18,6 +18,7 @@ export function buildGenerationSignature(input: GenerationSignatureInput): strin
     .sort(([a], [b]) => a.localeCompare(b));
 
   const normalizedReferenceIds = input.referenceImages.map((image) => image.id).sort();
+  const normalizedCharacterIds = [...(input.characterIds ?? [])].sort();
 
   return JSON.stringify({
     prompt: input.prompt.trim(),
@@ -28,6 +29,6 @@ export function buildGenerationSignature(input: GenerationSignatureInput): strin
     numberOfImages: input.numberOfImages,
     referenceImageIds: normalizedReferenceIds,
     styleId: input.styleId ?? null,
-    characterId: input.characterId ?? null,
+    characterIds: normalizedCharacterIds,
   });
 }

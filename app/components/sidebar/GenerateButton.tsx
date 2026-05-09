@@ -22,7 +22,7 @@ export function GenerateButton() {
   const quality = useGenerationStore((s) => s.currentQuality);
   const numberOfImages = useGenerationStore((s) => s.currentNumberOfImages);
   const currentStyleId = useGenerationStore((s) => s.currentStyleId);
-  const currentCharacterId = useGenerationStore((s) => s.currentCharacterId);
+  const currentCharacterIds = useGenerationStore((s) => s.currentCharacterIds);
   const models = useSettingsStore((s) => s.models);
   const apiKeys = useSettingsStore((s) => s.apiKeys);
   const styles = useSettingsStore((s) => s.styles);
@@ -48,7 +48,7 @@ export function GenerateButton() {
     quality,
     numberOfImages,
     styleId: currentStyleId,
-    characterId: currentCharacterId,
+    characterIds: currentCharacterIds,
   });
 
   const isLastSubmittedActive =
@@ -70,15 +70,19 @@ export function GenerateButton() {
   const selectedStyle = currentStyleId
     ? (styles.find((s) => s.id === currentStyleId && s.enabled) ?? null)
     : null;
-  const selectedCharacter = currentCharacterId
-    ? (characters.find((c) => c.id === currentCharacterId && c.enabled) ?? null)
-    : null;
+  const selectedCharacters = currentCharacterIds
+    .map((id) => characters.find((c) => c.id === id && c.enabled))
+    .filter((c): c is NonNullable<typeof c> => c !== undefined);
+  const characterRefCount = selectedCharacters.reduce(
+    (sum, c) => sum + c.referenceImageIds.length,
+    0
+  );
   const selectedModelIds = activeModels.map(([id]) => id);
   const strictLimit = getStrictReferenceImageLimit(models, selectedModelIds);
   const precedence = computeReferencePrecedence({
     manualCount: referenceImages.length,
     styleHasRef: Boolean(selectedStyle?.referenceImageId),
-    characterRefCount: selectedCharacter?.referenceImageIds.length ?? 0,
+    characterRefCount,
     limit: strictLimit,
   });
   const totalDropped = precedence.totalDropped;

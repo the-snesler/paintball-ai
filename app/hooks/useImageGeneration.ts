@@ -43,15 +43,15 @@ export function useImageGeneration() {
 
   const generate = useCallback(async () => {
     const variationsEnabled = useGenerationStore.getState().variationsEnabled;
-    const { currentStyleId, currentCharacterId } = useGenerationStore.getState();
+    const { currentStyleId, currentCharacterIds } = useGenerationStore.getState();
     const settings = useSettingsStore.getState();
     const alwaysImprovePromptEnabled = settings.alwaysImprovePromptEnabled;
     const selectedStyle = currentStyleId
       ? (settings.styles.find((s) => s.id === currentStyleId && s.enabled) ?? null)
       : null;
-    const selectedCharacter = currentCharacterId
-      ? (settings.characters.find((c) => c.id === currentCharacterId && c.enabled) ?? null)
-      : null;
+    const selectedCharacters = currentCharacterIds
+      .map((id) => settings.characters.find((c) => c.id === id && c.enabled))
+      .filter((c): c is NonNullable<typeof c> => c !== undefined);
 
     const signature = buildGenerationSignature({
       prompt,
@@ -62,7 +62,7 @@ export function useImageGeneration() {
       numberOfImages,
       referenceImages,
       styleId: currentStyleId,
-      characterId: currentCharacterId,
+      characterIds: currentCharacterIds,
     });
 
     // Count total API calls synchronously.
@@ -166,7 +166,7 @@ export function useImageGeneration() {
         totalTasks,
         manualReferenceImages: referenceImages,
         style: selectedStyle,
-        character: selectedCharacter,
+        characters: selectedCharacters,
         referenceLimit: strictLimit,
         improvePrompt: alwaysImprovePromptEnabled && basePrompt === null,
         variationsEnabled,

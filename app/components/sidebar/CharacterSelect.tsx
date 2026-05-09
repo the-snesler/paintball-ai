@@ -26,14 +26,14 @@ function CharacterThumbnail({ referenceImageId }: { referenceImageId: string }) 
   }, [referenceImageId]);
 
   if (!url) {
-    return <div className="bg-surface-interactive h-5 w-5 shrink-0 rounded opacity-50" />;
+    return <div className="bg-surface-interactive h-4 w-4 shrink-0 rounded opacity-50" />;
   }
 
   return (
     <img
       src={url}
       alt=""
-      className="border-c-border/50 h-5 w-5 shrink-0 rounded border object-cover"
+      className="border-c-border/50 h-4 w-4 shrink-0 rounded border object-cover"
     />
   );
 }
@@ -41,41 +41,36 @@ function CharacterThumbnail({ referenceImageId }: { referenceImageId: string }) 
 export function CharacterSelect() {
   const navigate = useNavigate();
   const characters = useSettingsStore((s) => s.characters);
-  const characterId = useGenerationStore((s) => s.currentCharacterId);
-  const setCharacterId = useGenerationStore((s) => s.setCharacterId);
+  const characterIds = useGenerationStore((s) => s.currentCharacterIds);
+  const setCharacterIds = useGenerationStore((s) => s.setCharacterIds);
 
   const enabledCharacters = characters.filter((c) => c.enabled);
-  const selected = characterId ? enabledCharacters.find((c) => c.id === characterId) : null;
+  const selected = characterIds
+    .map((id) => enabledCharacters.find((c) => c.id === id))
+    .filter((c): c is NonNullable<typeof c> => c !== undefined);
+  const first = selected[0] ?? null;
+  const extraCount = selected.length - 1;
 
   return (
-    <Select.Root<string | null>
-      value={characterId}
-      onValueChange={(value) => setCharacterId(value ?? null)}
+    <Select.Root<string, true>
+      multiple
+      value={characterIds}
+      onValueChange={(value) => setCharacterIds(value)}
     >
       <Select.Trigger className="text-text-tertiary hover:text-text-secondary inline-flex max-w-full cursor-pointer items-center gap-1 truncate text-xs transition-colors">
-        {selected?.referenceImageIds?.[0] ? (
-          <CharacterThumbnail referenceImageId={selected.referenceImageIds[0]} />
+        {first?.referenceImageIds?.[0] ? (
+          <CharacterThumbnail referenceImageId={first.referenceImageIds[0]} />
         ) : (
           <User className="h-3.5 w-3.5 shrink-0" />
         )}
-        <Select.Value className="truncate">{selected?.name ?? "Character"}</Select.Value>
+        <Select.Value className="truncate">
+          {first ? (extraCount > 0 ? `${first.name} +${extraCount}` : first.name) : "Character"}
+        </Select.Value>
         <ChevronDown className="h-3 w-3 shrink-0" />
       </Select.Trigger>
       <Select.Portal>
         <Select.Positioner sideOffset={6} className="z-50">
           <Select.Popup className="bg-surface-overlay border-c-border animate-in fade-in zoom-in-95 flex max-h-72 min-w-48 flex-col overflow-y-auto rounded-lg border p-1 text-sm shadow-lg">
-            <Select.Item
-              value={null}
-              className="text-text-secondary data-highlighted:bg-surface-raised flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 outline-none"
-            >
-              <span className="flex h-3 w-3 items-center justify-center">
-                <Select.ItemIndicator>
-                  <Check className="h-3 w-3" />
-                </Select.ItemIndicator>
-              </span>
-              <User className="h-4 w-4 shrink-0 opacity-50" />
-              <Select.ItemText>None</Select.ItemText>
-            </Select.Item>
             {enabledCharacters.map((character) => (
               <Select.Item
                 key={character.id}

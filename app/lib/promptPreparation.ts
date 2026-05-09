@@ -25,7 +25,7 @@ interface PreparePromptBatchOptions {
   images?: Blob[];
   manualReferenceImages?: ReferenceImage[];
   style?: StoredStyle | null;
-  character?: StoredCharacter | null;
+  characters?: StoredCharacter[];
   referenceLimit?: number | null;
   improvePrompt?: boolean;
   variationsEnabled?: boolean;
@@ -52,7 +52,7 @@ export async function preparePromptBatch(
     images,
     manualReferenceImages,
     style,
-    character,
+    characters,
     referenceLimit,
     improvePrompt = false,
     variationsEnabled = false,
@@ -76,7 +76,7 @@ export async function preparePromptBatch(
     prompt,
     manualRefs,
     style,
-    character,
+    characters: characters ?? [],
     referenceLimit,
   });
 
@@ -160,20 +160,20 @@ async function preparePromptAdditions({
   prompt,
   manualRefs,
   style,
-  character,
+  characters,
   referenceLimit,
 }: {
   prompt: string;
   manualRefs: ReferenceImage[];
   style?: StoredStyle | null;
-  character?: StoredCharacter | null;
+  characters: StoredCharacter[];
   referenceLimit?: number | null;
 }): Promise<{
   prompt: string;
   added: boolean;
   referenceImages: PreparedReferenceImage[];
 }> {
-  if (!style && !character) {
+  if (!style && characters.length === 0) {
     const precedence = computeReferencePrecedence({
       manualCount: manualRefs.length,
       styleHasRef: false,
@@ -203,13 +203,16 @@ async function preparePromptAdditions({
     }
   }
 
+  const characterRefIds = characters.flatMap((c) => c.referenceImageIds);
   let characterRefs: PreparedReferenceImage[] = [];
-  if (character?.referenceImageIds.length) {
-    const loaded = await getReferenceImagesByIds(character.referenceImageIds);
-    characterRefs = loaded.map((ref) => {
-      URL.revokeObjectURL(ref.url);
-      return { id: ref.id, blob: ref.blob };
-    });
+  if (characterRefIds.length) {
+    const loaded = await getReferenceImagesByIds(characterRefIds);
+    const byId = new Map(loaded.map((ref) => [ref.id, ref]));
+    for (const ref of loaded) URL.revokeObjectURL(ref.url);
+    characterRefs = characterRefIds
+      .map((id) => byId.get(id))
+      .filter((ref): ref is NonNullable<typeof ref> => ref !== undefined)
+      .map((ref) => ({ id: ref.id, blob: ref.blob }));
   }
 
   const effectiveStyle = styleRef
@@ -226,7 +229,7 @@ async function preparePromptAdditions({
   });
   const additions = applyPromptAdditions(
     prompt,
-    character ?? null,
+    characters,
     effectiveStyle ?? null,
     precedence.keepManual + precedence.keepCharacter
   );

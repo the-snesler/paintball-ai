@@ -11,7 +11,7 @@ interface GenerationState {
   currentNumberOfImages: number;
   currentReferenceImages: ReferenceImage[];
   currentStyleId: string | null;
-  currentCharacterId: string | null;
+  currentCharacterIds: string[];
   variationsEnabled: boolean;
   avoidPastVariations: boolean;
   activeGenerationCount: number;
@@ -34,7 +34,7 @@ interface GenerationState {
   reorderReferenceImages: (fromId: string, toId: string) => void;
   clearReferenceImages: () => void;
   setStyleId: (id: string | null) => void;
-  setCharacterId: (id: string | null) => void;
+  setCharacterIds: (ids: string[]) => void;
   startGeneration: (signature: string) => void;
   finishGeneration: (signature: string) => void;
   resetDraft: () => void;
@@ -50,7 +50,7 @@ export const DEFAULT_GENERATION_STATE = {
   currentNumberOfImages: 1,
   currentReferenceImages: [],
   currentStyleId: null as string | null,
-  currentCharacterId: null as string | null,
+  currentCharacterIds: [] as string[],
   variationsEnabled: false,
   avoidPastVariations: true,
 };
@@ -131,7 +131,7 @@ export const useGenerationStore = create<GenerationState>()((set) => ({
 
   setStyleId: (currentStyleId) => set({ currentStyleId }),
 
-  setCharacterId: (currentCharacterId) => set({ currentCharacterId }),
+  setCharacterIds: (currentCharacterIds) => set({ currentCharacterIds }),
 
   startGeneration: (signature) =>
     set((state) => {

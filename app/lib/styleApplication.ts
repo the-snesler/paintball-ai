@@ -36,20 +36,22 @@ export interface AppliedAdditions {
 
 /**
  * Append character text and style text to the prompt.
- * Order: user → character.text → style.text
+ * Order: user → character[0].text → ... → character[N].text → style.text
  * Style {n} resolves to currentReferenceCount + 1 (style sits right after existing refs).
  */
 export function applyPromptAdditions(
   prompt: string,
-  character: StoredCharacter | null,
+  characters: StoredCharacter[],
   style: StoredStyle | null,
   currentReferenceCount: number
 ): AppliedAdditions {
   let result = prompt.trimEnd();
 
-  if (character?.text.trim()) {
+  for (const character of characters) {
+    const text = character.text.trim();
+    if (!text) continue;
     const sep = result.length > 0 ? "\n\n" : "";
-    result = `${result}${sep}Character: ${character.text.trim()}`;
+    result = `${result}${sep}Character: ${text}`;
   }
 
   const styleHasImage = Boolean(style?.referenceImageId);
@@ -65,9 +67,14 @@ export function applyPromptAdditions(
     }
   }
 
+  const characterReferenceCount = characters.reduce(
+    (sum, c) => sum + c.referenceImageIds.length,
+    0
+  );
+
   return {
     prompt: result.trim(),
     styleHasReferenceImage: styleHasImage,
-    characterReferenceCount: character?.referenceImageIds.length ?? 0,
+    characterReferenceCount,
   };
 }
