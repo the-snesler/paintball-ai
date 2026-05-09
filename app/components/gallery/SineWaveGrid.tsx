@@ -18,12 +18,7 @@ export function SineWaveGrid({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationRef = useRef<number>(0);
   const timeRef = useRef(0);
-  const randsRef = useRef({
-    rand1: Math.random(),
-    rand2: Math.random(),
-    rand3: Math.random(),
-    rand4: Math.random(),
-  });
+  const randsRef = useRef(new Array(10).fill(0).map(() => Math.random()));
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -35,7 +30,7 @@ export function SineWaveGrid({
     const baseColor = frozen
       ? { r: 120, g: 120, b: 120 } // grey
       : { r: 138, g: 75, b: 207 }; // purple-500
-    const { rand1, rand2, rand3, rand4 } = randsRef.current;
+    const rands = randsRef.current;
 
     const animate = () => {
       const rect = canvas.getBoundingClientRect();
@@ -68,11 +63,17 @@ export function SineWaveGrid({
           const y = row * cellHeight + cellHeight / 2;
 
           // Multiple sine waves for more interesting pattern
-          const wave1 = Math.sin(col * 0.5 + timeRef.current * 2.0);
-          const wave2 = Math.sin(row * rand1 + timeRef.current * 1.5);
-          const wave3 = Math.sin((col * rand2 + row * rand3) * 0.4 + timeRef.current * 2.5);
+          const wave1 = Math.sin(
+            col * (rands[4] * 1.5 - 0.75) + timeRef.current * (rands[5] * 2 + 0.4)
+          );
+          const wave2 = Math.sin(row * (rands[0] * 2 - 1) + timeRef.current * (rands[6] + 0.3));
+          const wave3 = Math.sin(
+            (col * (rands[1] * 2 - 1) + row * rands[2]) * 0.4 +
+              timeRef.current * (rands[7] * 1.5 + 0.4)
+          );
           const wave4 = Math.sin(
-            Math.sqrt(col * col + row * row) * 0.4 - timeRef.current * 1.8 + rand4 * 10
+            Math.sqrt(col * col + row * row) * 0.4 +
+              timeRef.current * 5 * (rands[3] + 0.2) * (rands[7] > 0.5 ? 1 : -1)
           );
 
           const combinedWave = (wave1 + wave2 + wave3 + wave4) / 4;
@@ -80,9 +81,9 @@ export function SineWaveGrid({
 
           const width = Math.min(
             cellWidth,
-            cellWidth * (0.3 + normalizedWave * 0.7) * maxCellSizePct
+            cellWidth * (rands[8] * 0.5 + normalizedWave * 0.7) * maxCellSizePct
           );
-          const alpha = frozen ? normalizedWave * 0.5 : normalizedWave; // dimmer when greyscale
+          const alpha = frozen ? normalizedWave * 0.5 : normalizedWave * 0.7 + rands[8] * 0.3; // dimmer when greyscale
 
           // Slight color shift based on wave (only for colored version)
           const hueShift = frozen ? 0 : normalizedWave * 30 - 15;
