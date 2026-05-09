@@ -387,6 +387,67 @@ export async function getAllReferenceImages(): Promise<Omit<ReferenceImage, "url
   });
 }
 
+/**
+ * Delete reference images that aren't reachable from any image, editor session,
+ * or the caller-supplied roots (typically character + style refs). Returns the
+ * count of refs deleted.
+ *
+ * Reachability roots:
+ *   - `images[].referenceImageIds`
+ *   - `sessions[].sourceReferenceId / additionalReferenceIds / turns[].sourceReferenceId`
+ *   - caller-supplied IDs (chars/styles live in settingsStore, not IndexedDB)
+ *
+ * Anything not in those sets is considered orphaned. Refs leak through paths
+ * that save into the references store without ever attaching to a gallery item
+ * (lightbox "Edit" sources, editor turn canvas snapshots, abandoned uploads),
+ * so a periodic sweep is the only way to reclaim that space.
+ */
+export async function garbageCollectReferences(
+  extraReachableIds: Iterable<string>
+): Promise<number> {
+  const db = await initDB();
+
+  const reachable = new Set<string>(extraReachableIds);
+
+  await new Promise<void>((resolve, reject) => {
+    const transaction = db.transaction(STORES.images, "readonly");
+    const request = transaction.objectStore(STORES.images).openCursor();
+    request.onerror = () => reject(request.error);
+    request.onsuccess = () => {
+      const cursor = request.result;
+      if (!cursor) {
+        resolve();
+        return;
+      }
+      const record = cursor.value as
+        | StoredImageRecord
+        | LegacyStoredImageRecord
+        | undefined;
+      if (record?.referenceImageIds) {
+        for (const id of record.referenceImageIds) reachable.add(id);
+      }
+      cursor.continue();
+    };
+  });
+
+  const sessions = await getAllSessions();
+  for (const session of sessions) {
+    if (session.sourceReferenceId) reachable.add(session.sourceReferenceId);
+    for (const id of session.additionalReferenceIds) reachable.add(id);
+    for (const turn of session.turns) {
+      if (turn.sourceReferenceId) reachable.add(turn.sourceReferenceId);
+    }
+  }
+
+  const allRefIds = await getExistingReferenceImageIds();
+  const orphans: string[] = [];
+  for (const id of allRefIds) if (!reachable.has(id)) orphans.push(id);
+
+  if (orphans.length === 0) return 0;
+  await deleteReferenceImagesByIds(orphans);
+  return orphans.length;
+}
+
 export async function getExistingReferenceImageIds(): Promise<Set<string>> {
   const db = await initDB();
 

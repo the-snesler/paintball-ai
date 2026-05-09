@@ -10,6 +10,8 @@ import { useLightboxStore } from "~/stores/lightboxStore";
 import { useSettingsStore } from "~/stores/settingsStore";
 import { useGalleryDerivedIndexes } from "~/hooks/useGalleryDerivedIndexes";
 import { useLightboxUrlSync } from "~/hooks/useLightboxUrlSync";
+import { garbageCollectReferences } from "~/lib/db";
+import { logger } from "~/lib/logging";
 
 export function meta({}: Route.MetaArgs) {
   return [
@@ -32,6 +34,28 @@ export default function Home() {
       loadImages();
     }
   }, [hasLoaded, loadImages]);
+
+  const hasGcRunRef = useRef(false);
+  useEffect(() => {
+    if (hasGcRunRef.current) return;
+    hasGcRunRef.current = true;
+
+    void (async () => {
+      const settings = useSettingsStore.getState();
+      const extraReachable: string[] = [
+        ...settings.styles
+          .map((s) => s.referenceImageId)
+          .filter((id): id is string => Boolean(id)),
+        ...settings.characters.flatMap((c) => c.referenceImageIds),
+      ];
+      try {
+        const deleted = await garbageCollectReferences(extraReachable);
+        if (deleted > 0) logger.debug(`Garbage-collected ${deleted} orphaned reference image(s)`);
+      } catch (err) {
+        logger.error("Reference GC failed:", err);
+      }
+    })();
+  }, []);
 
   useEffect(() => {
     const hadInFlight = previousInFlightCountRef.current > 0;
