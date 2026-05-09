@@ -4,7 +4,7 @@ import { useGenerationStore } from "~/stores/generationStore";
 import { useSettingsStore } from "~/stores/settingsStore";
 import { saveReferenceImage } from "~/lib/db";
 import { buildGenerationSignature } from "~/lib/generationSignature";
-import { getModel, getStrictReferenceImageLimit } from "~/lib/models";
+import { doesModelSupportAspectRatio, getModel, getStrictReferenceImageLimit } from "~/lib/models";
 import { preparePromptBatch } from "~/lib/promptPreparation";
 import type { GalleryItem } from "~/types";
 import { useGenerationTask, type GenerationTask } from "~/hooks/useGenerationTask";
@@ -93,15 +93,8 @@ export function useImageGeneration() {
       if (!model) continue;
 
       const taskResolution = model.capabilities.supportsResolution ? resolution : null;
-      const supportedRatios = model.capabilities.supportedAspectRatios;
       const taskAspectRatio =
-        aspectRatio && supportedRatios
-          ? supportedRatios.includes(aspectRatio)
-            ? aspectRatio
-            : null
-          : model.capabilities.supportsAspectRatios
-            ? aspectRatio
-            : null;
+        aspectRatio && doesModelSupportAspectRatio(model, aspectRatio) ? aspectRatio : null;
       const taskQuality = model.capabilities.supportsQuality ? quality : null;
       const maxBatch = model.capabilities.maxImagesPerRequest ?? 1;
       const perCallImages = model.capabilities.supportsNumberOfImages

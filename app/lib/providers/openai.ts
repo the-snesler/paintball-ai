@@ -3,7 +3,7 @@ import { distance } from "fastest-levenshtein";
 import type { GenerationParams, GenerationResult } from "~/lib/generation";
 import { getImageDimensions } from "~/lib/imageProcessing";
 import { toRateLimitError } from "~/lib/retry";
-import type { AspectRatio } from "~/types";
+import type { AspectRatio, Resolution } from "~/types";
 import type { Provider, ResolvedImageModel, SearchResult } from "./types";
 import { inferName } from "../modelNames";
 import { normalizeModelId } from ".";
@@ -20,17 +20,90 @@ function createClient(apiKey: string): OpenAI {
   });
 }
 
-// OpenAI image models accept a fixed set of size strings (or "auto").
-// gpt-image-2 supports flexible dimensions in addition, but we stick to the
-// shared preset enum so the app's aspect-ratio picker maps cleanly.
+// gpt-image-1 (and unknown OpenAI image models) accept only a fixed set of size strings.
 const ASPECT_RATIO_TO_SIZE: Record<string, "1024x1024" | "1536x1024" | "1024x1536"> = {
   "1:1": "1024x1024",
   "3:2": "1536x1024",
   "2:3": "1024x1536",
 };
 
-function resolveSize(aspectRatio: AspectRatio | null): "auto" | "1024x1024" | "1536x1024" | "1024x1536" {
+// gpt-image-2 accepts arbitrary WxH within these constraints.
+const GPT_IMAGE_2_MAX_EDGE = 3840;
+const GPT_IMAGE_2_MIN_PIXELS = 655_360;
+const GPT_IMAGE_2_MAX_PIXELS = 8_294_400;
+const GPT_IMAGE_2_MAX_LONG_SHORT_RATIO = 3;
+
+// Per-resolution target pixel counts, chosen to match the docs' popular sizes
+// (1024x1024 for 1K, 2048x2048 for 2K, 3840x2160 for 4K).
+const GPT_IMAGE_2_RESOLUTION_PIXELS: Record<Resolution, number> = {
+  "1K": 1024 * 1024,
+  "2K": 2048 * 2048,
+  "4K": 3840 * 2160,
+};
+
+function isGptImage2(modelId: string): boolean {
+  return /(^|[-_/])gpt-image-2/.test(modelId.toLowerCase());
+}
+
+// Snap downward to a multiple of 16 to stay within the model's pixel cap.
+function snap16(value: number): number {
+  return Math.max(16, Math.floor(value / 16) * 16);
+}
+
+function resolveGptImage2Size(
+  aspectRatio: AspectRatio,
+  resolution: Resolution | null
+): string | null {
+  const [wStr, hStr] = aspectRatio.split(":");
+  const wRatio = Number(wStr);
+  const hRatio = Number(hStr);
+  if (!Number.isFinite(wRatio) || !Number.isFinite(hRatio) || wRatio <= 0 || hRatio <= 0) {
+    return null;
+  }
+
+  const longShort = Math.max(wRatio, hRatio) / Math.min(wRatio, hRatio);
+  if (longShort > GPT_IMAGE_2_MAX_LONG_SHORT_RATIO) return null;
+
+  const target = GPT_IMAGE_2_RESOLUTION_PIXELS[resolution ?? "1K"];
+
+  let w = Math.sqrt((target * wRatio) / hRatio);
+  let h = (w * hRatio) / wRatio;
+
+  // Cap the long edge first, then recompute the other side.
+  if (w > GPT_IMAGE_2_MAX_EDGE) {
+    w = GPT_IMAGE_2_MAX_EDGE;
+    h = (w * hRatio) / wRatio;
+  }
+  if (h > GPT_IMAGE_2_MAX_EDGE) {
+    h = GPT_IMAGE_2_MAX_EDGE;
+    w = (h * wRatio) / hRatio;
+  }
+
+  const width = snap16(w);
+  const height = snap16(h);
+  const pixels = width * height;
+
+  if (
+    width > GPT_IMAGE_2_MAX_EDGE ||
+    height > GPT_IMAGE_2_MAX_EDGE ||
+    pixels < GPT_IMAGE_2_MIN_PIXELS ||
+    pixels > GPT_IMAGE_2_MAX_PIXELS
+  ) {
+    return null;
+  }
+
+  return `${width}x${height}`;
+}
+
+function resolveSize(
+  modelId: string,
+  aspectRatio: AspectRatio | null,
+  resolution: Resolution | null
+): string {
   if (!aspectRatio) return "auto";
+  if (isGptImage2(modelId)) {
+    return resolveGptImage2Size(aspectRatio, resolution) ?? "auto";
+  }
   return ASPECT_RATIO_TO_SIZE[aspectRatio] ?? "auto";
 }
 
@@ -53,10 +126,15 @@ async function generateImage(
   const client = createClient(apiKey);
   const modelId = normalizeModelId(params.modelId, "openai");
 
-  const size = resolveSize(params.aspectRatio);
+  const size = resolveSize(modelId, params.aspectRatio, params.resolution);
   const n = Math.max(1, params.numberOfImages);
   const outputFormat: "png" | "jpeg" | "webp" = "png";
   const quality = (params.quality ?? undefined) as "low" | "medium" | "high" | "auto" | undefined;
+
+  // The SDK's `size` is typed as a closed union of the docs' popular strings, but
+  // gpt-image-2 accepts any WxH within its constraints. Cast through `as never` so
+  // the runtime forwards arbitrary computed sizes (e.g. "3840x2160", "2480x3312").
+  const sizeParam = size as never;
 
   try {
     if (params.referenceImages.length > 0) {
@@ -73,7 +151,7 @@ async function generateImage(
         image: files,
         prompt: params.prompt,
         n,
-        size,
+        size: sizeParam,
         ...(quality ? { quality } : {}),
         output_format: outputFormat,
       });
@@ -85,7 +163,7 @@ async function generateImage(
       model: modelId,
       prompt: params.prompt,
       n,
-      size,
+      size: sizeParam,
       ...(quality ? { quality } : {}),
       output_format: outputFormat,
     });
@@ -149,6 +227,22 @@ function inferOpenAiImageCapabilities(modelId: string): ResolvedImageModel["capa
       supportsQuality: false,
       supportsNumberOfImages: false,
       maxImagesPerRequest: 1,
+    };
+  }
+
+  // gpt-image-2 accepts any AR within constraints (resolved at call time);
+  // older gpt-image models accept the fixed 3-size enum.
+  if (isGptImage2(lower)) {
+    return {
+      supportsAspectRatios: true,
+      supportedAspectRatios: [],
+      supportsResolution: true,
+      supportsReferenceImages: true,
+      maxReferenceImages: 16,
+      supportsQuality: true,
+      supportedQualities: ["low", "medium", "high", "auto"],
+      supportsNumberOfImages: true,
+      maxImagesPerRequest: 10,
     };
   }
 

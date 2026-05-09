@@ -1,7 +1,7 @@
 import { useCallback } from "react";
 import { useSettingsStore } from "~/stores/settingsStore";
 import { useGalleryStore } from "~/stores/galleryStore";
-import { getModel } from "~/lib/models";
+import { doesModelSupportAspectRatio, getModel } from "~/lib/models";
 import { saveImage, saveReferenceImage } from "~/lib/db";
 import { preparePromptBatch } from "~/lib/promptPreparation";
 import { createThumbnailBlob } from "~/lib/imageProcessing";
@@ -97,15 +97,8 @@ export function useEditorGeneration() {
         if (!model) continue;
 
         const taskResolution = model.capabilities.supportsResolution ? resolution : null;
-        const supportedRatios = model.capabilities.supportedAspectRatios;
         const taskAspectRatio =
-          aspectRatio && supportedRatios
-            ? supportedRatios.includes(aspectRatio)
-              ? aspectRatio
-              : null
-            : model.capabilities.supportsAspectRatios
-              ? aspectRatio
-              : null;
+          aspectRatio && doesModelSupportAspectRatio(model, aspectRatio) ? aspectRatio : null;
         const taskQuality = model.capabilities.supportsQuality ? quality : null;
         const maxBatch = model.capabilities.maxImagesPerRequest ?? 1;
         const perCallImages = model.capabilities.supportsNumberOfImages
