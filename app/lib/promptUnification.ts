@@ -9,26 +9,14 @@ interface BlockContextOptions {
   styleImagePosition?: number;
 }
 
-/** Escape regex metacharacters in a name so it can be used in a RegExp. */
+/** Escape regex metacharacters so a name can be embedded in a RegExp. */
 function escapeRegex(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
-/** Match `@<name>` as a handle: not preceded by a word char, not followed by a word char. */
-function mentionRegex(name: string, flags: string): RegExp {
-  return new RegExp(`(?<![\\w])@${escapeRegex(name)}(?!\\w)`, flags);
-}
-
-/** Match the bare name as a word, but never as part of an `@`-handle. */
+/** Whole-word case-insensitive match for a bare character name. */
 function bareNameRegex(name: string, flags: string): RegExp {
-  return new RegExp(`(?<![\\w@])${escapeRegex(name)}(?!\\w)`, flags);
-}
-
-/** Is the character referenced by either an `@`-handle or a bare-name mention? */
-function isCharacterReferenced(prompt: string, name: string): boolean {
-  const trimmed = name.trim();
-  if (!trimmed) return false;
-  return mentionRegex(trimmed, "i").test(prompt) || bareNameRegex(trimmed, "i").test(prompt);
+  return new RegExp(`(?<!\\w)${escapeRegex(name)}(?!\\w)`, flags);
 }
 
 /** Resolve `{n}` in style text to the style image's position, or strip if no image. */
@@ -54,7 +42,7 @@ export function buildElaborationContext({
 
   const namedCharacters = characters.filter((c) => c.name.trim() && c.text.trim());
   if (namedCharacters.length > 0) {
-    const lines = namedCharacters.map((c) => `- @${c.name.trim()}: ${c.text.trim()}`);
+    const lines = namedCharacters.map((c) => `- ${c.name.trim()}: ${c.text.trim()}`);
     parts.push(`## Characters\n${lines.join("\n")}`);
   }
 
@@ -78,10 +66,12 @@ interface UnifyOptions {
 }
 
 /**
- * Resolve character handles and append style instructions to produce the
- * final prompt. Hybrid strategy: deterministic substitution when every
- * selected character's name appears in the prompt; otherwise call the LLM
- * to weave unreferenced characters into the scene.
+ * Produce the final image-generation prompt by integrating character
+ * descriptions and style into the prompt. When characters are present we
+ * route through the LLM for natural prose integration (image models follow
+ * inline parentheticals poorly). Deterministic substitution is used only as
+ * a fallback when the text model is unavailable or the LLM call fails, and
+ * for the style-only case where no integration is needed.
  */
 export async function unifyPrompt({
   prompt,
@@ -94,28 +84,24 @@ export async function unifyPrompt({
 
   if (namedCharacters.length === 0 && !hasStyle) return prompt;
 
-  const unreferenced = namedCharacters.filter((c) => !isCharacterReferenced(prompt, c.name));
-
-  if (unreferenced.length === 0) {
-    return deterministicUnify({ prompt, characters: namedCharacters, style, styleImagePosition });
+  if (namedCharacters.length === 0) {
+    return deterministicUnify({ prompt, characters: [], style, styleImagePosition });
   }
 
-  if (!isTextModelAvailable()) {
-    return deterministicUnify({ prompt, characters: namedCharacters, style, styleImagePosition });
-  }
-
-  try {
-    const context = buildElaborationContext({
-      prompt,
-      characters: namedCharacters,
-      style,
-      styleImagePosition,
-    });
-    const result = await callTextModel(UNIFY_PROMPT_SYSTEM, context);
-    const trimmed = result.trim();
-    if (trimmed) return trimmed;
-  } catch {
-    // Fall through to deterministic fallback
+  if (isTextModelAvailable()) {
+    try {
+      const context = buildElaborationContext({
+        prompt,
+        characters: namedCharacters,
+        style,
+        styleImagePosition,
+      });
+      const result = await callTextModel(UNIFY_PROMPT_SYSTEM, context);
+      const trimmed = result.trim();
+      if (trimmed) return trimmed;
+    } catch {
+      // Fall through to deterministic fallback
+    }
   }
 
   return deterministicUnify({ prompt, characters: namedCharacters, style, styleImagePosition });
@@ -140,19 +126,9 @@ function deterministicUnify({
     const text = character.text.trim();
     if (!name || !text) continue;
 
-    if (mentionRegex(name, "i").test(result)) {
-      let count = 0;
-      result = result.replace(mentionRegex(name, "gi"), () => {
-        count++;
-        return count === 1 ? `${name} (${text})` : name;
-      });
-      substituted.add(character.id);
-      continue;
-    }
-
-    const bareRe = bareNameRegex(name, "i");
-    if (bareRe.test(result)) {
-      result = result.replace(bareRe, `${name} (${text})`);
+    const re = bareNameRegex(name, "i");
+    if (re.test(result)) {
+      result = result.replace(re, `${name} (${text})`);
       substituted.add(character.id);
     }
   }
@@ -162,7 +138,8 @@ function deterministicUnify({
     const text = character.text.trim();
     if (!text) continue;
     const sep = result.length > 0 ? "\n\n" : "";
-    result = `${result}${sep}Character ${character.id}: ${text}`;
+    const label = character.name.trim() || "Character";
+    result = `${result}${sep}${label}: ${text}`;
   }
 
   if (style?.text.trim()) {
