@@ -25,7 +25,7 @@ import { useLightboxStore } from "~/stores/lightboxStore";
 import { useSettingsStore } from "~/stores/settingsStore";
 import { anyModelSupportsReferenceImages, getStrictReferenceImageLimit } from "~/lib/models";
 import { callTextModel, isTextModelAvailable } from "~/lib/textModel";
-import { IMPROVE_PROMPT_SYSTEM, REVERSE_PROMPT_SYSTEM } from "~/lib/prompts";
+import { ELABORATE_PROMPT_SYSTEM, REVERSE_PROMPT_SYSTEM } from "~/lib/prompts";
 import { saveReferenceImage } from "~/lib/db";
 import { generateContextBrief, getSourceTurnBrief } from "~/lib/contextBrief";
 import { Tooltip } from "../ui/Tooltip";
@@ -69,9 +69,9 @@ function SortableReferenceImage({
           e.stopPropagation();
           onRemove(img.id);
         }}
-        className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full border border-c-border bg-surface-raised opacity-0 transition-opacity group-hover:opacity-100"
+        className="border-c-border bg-surface-raised absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full border opacity-0 transition-opacity group-hover:opacity-100"
       >
-        <X className="h-3 w-3 text-text-tertiary" />
+        <X className="text-text-tertiary h-3 w-3" />
       </button>
     </div>
   );
@@ -443,7 +443,7 @@ export function EditorInputBar({ onSourceFile }: EditorInputBarProps) {
   ]);
 
   const improveInstruction = useImproveText({
-    systemPrompt: IMPROVE_PROMPT_SYSTEM,
+    systemPrompt: ELABORATE_PROMPT_SYSTEM,
     text: instruction,
     setText: setInstruction,
     baseText: instructionBasePrompt,
@@ -521,7 +521,7 @@ export function EditorInputBar({ onSourceFile }: EditorInputBarProps) {
 
   return (
     <div ref={barRef} className="absolute right-0 bottom-0 left-0">
-      <div className="bg-linear-to-t from-surface via-surface/95 to-transparent px-6 pt-8 pb-4">
+      <div className="from-surface via-surface/95 bg-linear-to-t to-transparent px-6 pt-8 pb-4">
         <div className="mx-auto max-w-4xl">
           {/* Textarea */}
           <div
@@ -529,23 +529,23 @@ export function EditorInputBar({ onSourceFile }: EditorInputBarProps) {
             onDragEnter={handleDragEnter}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
-            className={`rounded-xl border bg-surface-overlay/80 transition-all duration-200 ${
+            className={`bg-surface-overlay/80 rounded-xl border transition-all duration-200 ${
               isDragOver && referenceEnabled && hasSource
                 ? "border-purple-500 ring-1 ring-purple-500/50"
                 : !hasSource
                   ? "border-c-border/50 opacity-60"
-                  : "border-c-border focus-within:border-c-border focus-within:ring-1 focus-within:ring-c-border/50"
+                  : "border-c-border focus-within:border-c-border focus-within:ring-c-border/50 focus-within:ring-1"
             }`}
           >
             {/* Context brief banner */}
             {contextBrief && contextInjectionEnabled && !contextBriefDismissed && (
-              <div className="flex items-start gap-2 border-b border-c-border/50 px-4 py-2">
-                <Sparkles className="mt-0.5 h-3 w-3 shrink-0 text-accent-muted" />
-                <p className="flex-1 text-xs leading-relaxed text-text-tertiary">{contextBrief}</p>
+              <div className="border-c-border/50 flex items-start gap-2 border-b px-4 py-2">
+                <Sparkles className="text-accent-muted mt-0.5 h-3 w-3 shrink-0" />
+                <p className="text-text-tertiary flex-1 text-xs leading-relaxed">{contextBrief}</p>
                 <button
                   type="button"
                   onClick={() => setContextBriefDismissed(true)}
-                  className="shrink-0 cursor-pointer rounded p-0.5 text-text-muted transition-colors hover:text-text-tertiary"
+                  className="text-text-muted hover:text-text-tertiary shrink-0 cursor-pointer rounded p-0.5 transition-colors"
                   title="Dismiss context brief for this edit"
                 >
                   <X className="h-3 w-3" />
@@ -567,7 +567,7 @@ export function EditorInputBar({ onSourceFile }: EditorInputBarProps) {
                     : "Select an image above, then describe your edit…"
               }
               rows={1}
-              className="field-sizing-content max-h-48 min-h-11 w-full resize-none rounded-t-xl bg-transparent px-4 pt-3 pb-2 text-sm text-text-primary placeholder-text-muted focus:outline-none disabled:cursor-not-allowed"
+              className="text-text-primary placeholder-text-muted field-sizing-content max-h-48 min-h-11 w-full resize-none rounded-t-xl bg-transparent px-4 pt-3 pb-2 text-sm focus:outline-none disabled:cursor-not-allowed"
             />
 
             {/* Reference images */}
@@ -598,7 +598,7 @@ export function EditorInputBar({ onSourceFile }: EditorInputBarProps) {
                       ))}
 
                       {isDragOver && referenceImages.length === 0 && (
-                        <div className="col-span-full rounded-lg border-2 border-dashed border-c-border py-8 text-center text-xs text-text-tertiary">
+                        <div className="border-c-border text-text-tertiary col-span-full rounded-lg border-2 border-dashed py-8 text-center text-xs">
                           Drop images here
                         </div>
                       )}
@@ -613,8 +613,8 @@ export function EditorInputBar({ onSourceFile }: EditorInputBarProps) {
               {/* Left: model chip + analyze + references */}
               <div className="flex min-w-0 flex-wrap items-center gap-2">
                 {/* Model chip */}
-                <div className="flex max-w-40 items-center gap-1.5 truncate rounded-full bg-surface-interactive/60 px-2.5 py-1 text-xs text-text-tertiary">
-                  <Sparkles className="h-3 w-3 shrink-0 text-accent-muted" />
+                <div className="bg-surface-interactive/60 text-text-tertiary flex max-w-40 items-center gap-1.5 truncate rounded-full px-2.5 py-1 text-xs">
+                  <Sparkles className="text-accent-muted h-3 w-3 shrink-0" />
                   <span className="truncate">{modelChipLabel}</span>
                 </div>
 
@@ -624,7 +624,7 @@ export function EditorInputBar({ onSourceFile }: EditorInputBarProps) {
                     type="button"
                     onClick={() => void handleAnalyze()}
                     disabled={!hasSource || isAnalyzing || isGenerating}
-                    className="flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs text-text-muted transition-colors hover:bg-surface-interactive/60 hover:text-text-secondary disabled:cursor-not-allowed disabled:opacity-40"
+                    className="text-text-muted hover:bg-surface-interactive/60 hover:text-text-secondary flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs transition-colors disabled:cursor-not-allowed disabled:opacity-40"
                   >
                     {isAnalyzing ? (
                       <Loader2 className="h-3 w-3 animate-spin" />
@@ -641,7 +641,7 @@ export function EditorInputBar({ onSourceFile }: EditorInputBarProps) {
                     <button
                       type="button"
                       onClick={improveInstruction.undo}
-                      className="flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs text-text-muted transition-colors hover:bg-surface-interactive/60 hover:text-text-secondary"
+                      className="text-text-muted hover:bg-surface-interactive/60 hover:text-text-secondary flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs transition-colors"
                     >
                       <Undo2 className="h-3 w-3" />
                       Undo
@@ -657,7 +657,7 @@ export function EditorInputBar({ onSourceFile }: EditorInputBarProps) {
                         !instruction.trim() ||
                         improveInstruction.isImproving
                       }
-                      className="flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs text-text-muted transition-colors hover:bg-surface-interactive/60 hover:text-text-secondary disabled:cursor-not-allowed disabled:opacity-40"
+                      className="text-text-muted hover:bg-surface-interactive/60 hover:text-text-secondary flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs transition-colors disabled:cursor-not-allowed disabled:opacity-40"
                     >
                       {improveInstruction.isImproving ? (
                         <Loader2 className="h-3 w-3 animate-spin" />
@@ -681,8 +681,8 @@ export function EditorInputBar({ onSourceFile }: EditorInputBarProps) {
                     <label
                       className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs transition-colors ${
                         canAttachMore
-                          ? "cursor-pointer text-text-muted hover:bg-surface-interactive/60 hover:text-text-secondary"
-                          : "cursor-not-allowed text-text-muted"
+                          ? "text-text-muted hover:bg-surface-interactive/60 hover:text-text-secondary cursor-pointer"
+                          : "text-text-muted cursor-not-allowed"
                       }`}
                     >
                       <ImagePlus className="h-3 w-3" />
@@ -708,7 +708,7 @@ export function EditorInputBar({ onSourceFile }: EditorInputBarProps) {
                 className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-all duration-150 ${
                   canSubmit
                     ? "-translate-y-0.5 bg-purple-600 text-white shadow-lg shadow-purple-900/40 hover:bg-purple-500 active:translate-y-0"
-                    : "cursor-not-allowed bg-surface-interactive/50 text-text-muted"
+                    : "bg-surface-interactive/50 text-text-muted cursor-not-allowed"
                 }`}
                 title="Send edit (Ctrl+Enter)"
               >

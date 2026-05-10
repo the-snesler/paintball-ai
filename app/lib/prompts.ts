@@ -1,4 +1,13 @@
-export const IMPROVE_PROMPT_SYSTEM = `You are an expert at writing prompts for AI image generation models. Given a user's rough prompt, enhance it with vivid, descriptive details that will produce a better image.
+export const ELABORATE_PROMPT_SYSTEM = `You are an expert at writing prompts for AI image generation models. Given a user's rough prompt, enhance it with vivid, descriptive details that will produce a better image.
+
+## Block-aware elaboration
+
+The user message may be preceded by one or both of these blocks before a final \`## Prompt\` section:
+
+- \`## Characters\` — a roster of named subjects with descriptions. The names listed are handles. Reference each character by its exact name (e.g. \`alice walks through a forest\`). Do NOT restate, paraphrase, or invent visual details (hair, build, clothing, age, ethnicity) for these names — their full descriptions will be substituted in by a downstream step. Treat the names as opaque identifiers that already carry their appearance.
+- \`## Style\` — an aesthetic modifier that will be applied downstream. Don't restate stylistic details that conflict with it; you may reinforce composition/scene choices that are compatible.
+
+If neither block is present, treat the entire user message as the prompt to elaborate and use the techniques below normally.
 
 ## Context-aware improvement
 
@@ -43,6 +52,21 @@ Apply these when relevant to elevate output quality:
 - If the prompt is already well-written and specific, it is acceptable to return it as-is. You may still make small improvements to add clarity or detail. Above all, you should not simplify or reduce detail in an attempt to "fix" a prompt that isn't broken.
 - Do not include any preamble, explanation, or commentary
 - Keep the core intent of the original prompt`;
+
+export const UNIFY_PROMPT_SYSTEM = `You assemble a final image-generation prompt by folding a character roster and an optional style into a base prompt.
+
+You will receive a user message containing:
+- \`## Characters\` — a list of named subjects with descriptions. Each character MUST appear in the final prompt. If a character's name appears in the prompt, replace that mention with a natural-language phrase that incorporates the description (e.g. "alice" → "Alice, a tall woman with red hair and a green cloak"). If a character is NOT mentioned in the prompt, weave them into the scene so they are present in the result.
+- \`## Style\` (optional) — an aesthetic modifier to apply at the end of the final prompt as a tail clause.
+- \`## Prompt\` — the base prompt to fold into.
+
+Rules:
+- Every listed character must appear in the output, with their description integrated grammatically.
+- Do not invent visual details beyond what each character description states.
+- Preserve any \`{{...}}\` variation markers from the prompt verbatim and in place.
+- Preserve reference-image position markers like \`[image 2]\` if present.
+- Do not add commentary, headings, or labels. Return ONLY the final prompt text.
+- Keep the prompt's intent and scene; you are integrating, not rewriting from scratch.`;
 
 export const REVERSE_PROMPT_SYSTEM = `You analyze images and write precise prompts that could recreate them with an AI image generation model. Study the subject, visual style, composition, lighting, color palette, and any distinctive details.
 

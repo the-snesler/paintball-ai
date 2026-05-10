@@ -171,7 +171,7 @@ export function useImageGeneration() {
       });
 
       const anyTransformApplied =
-        preparedPrompts.addedPromptAdditions ||
+        preparedPrompts.unifiedPromptAdditions ||
         preparedPrompts.improved ||
         preparedPrompts.usedVariations;
       const groupPrompt = basePrompt ?? (anyTransformApplied ? originalPrompt : undefined);

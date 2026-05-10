@@ -1,9 +1,9 @@
 import type { GalleryItem } from "~/types";
 import type { ReferenceImage, StoredCharacter, StoredStyle } from "~/types";
 import { getReferenceImagesByIds } from "~/lib/db";
-import { IMPROVE_PROMPT_SYSTEM } from "~/lib/prompts";
+import { ELABORATE_PROMPT_SYSTEM } from "~/lib/prompts";
 import { computeReferencePrecedence } from "~/lib/referencePrecedence";
-import { applyPromptAdditions } from "~/lib/styleApplication";
+import { buildElaborationContext, unifyPrompt } from "~/lib/promptUnification";
 import { callTextModel, isTextModelAvailable } from "~/lib/textModel";
 import {
   buildVariedPrompts,
@@ -38,7 +38,7 @@ export interface PreparedPromptBatch {
   prompts: string[];
   improved: boolean;
   usedVariations: boolean;
-  addedPromptAdditions: boolean;
+  unifiedPromptAdditions: boolean;
   referenceImages: PreparedReferenceImage[];
   variationReplacementsByTask?: Array<string[] | undefined>;
 }
@@ -66,42 +66,66 @@ export async function preparePromptBatch(
       prompts: [],
       improved: false,
       usedVariations: false,
-      addedPromptAdditions: false,
+      unifiedPromptAdditions: false,
       referenceImages: manualReferenceImages ?? [],
     };
   }
 
   const manualRefs = manualReferenceImages ?? [];
-  const promptAdditions = await preparePromptAdditions({
-    prompt,
+  const selectedCharacters = characters ?? [];
+  const refPlan = await prepareReferenceImages({
     manualRefs,
     style,
-    characters: characters ?? [],
+    characters: selectedCharacters,
     referenceLimit,
   });
 
-  let workingPrompt = promptAdditions.prompt;
-  const textModelImages = promptAdditions.referenceImages.map((ref) => ref.blob);
+  const textModelImages = refPlan.referenceImages.map((ref) => ref.blob);
   const effectiveImages = textModelImages.length > 0 ? textModelImages : images;
+  const styleImagePosition = refPlan.styleImagePosition;
+
+  let workingPrompt = prompt;
   let improved = false;
 
   if (
     improvePrompt &&
     isTextModelAvailable() &&
-    !(workingPrompt.length > 1000 && !promptAdditions.added)
+    !(workingPrompt.length > 1000 && selectedCharacters.length === 0 && !style)
   ) {
-    // Avoid improving if the prompt is already long and we didn't add anything, as it's unlikely to help and may make it worse
     onStageChange?.("writing");
     try {
-      const result = await callTextModel(IMPROVE_PROMPT_SYSTEM, workingPrompt, effectiveImages);
+      const elaborationContext = buildElaborationContext({
+        prompt: workingPrompt,
+        characters: selectedCharacters,
+        style,
+        styleImagePosition,
+      });
+      const result = await callTextModel(
+        ELABORATE_PROMPT_SYSTEM,
+        elaborationContext,
+        effectiveImages
+      );
       const trimmed = result.trim();
       if (trimmed) {
+        improved = trimmed !== workingPrompt;
         workingPrompt = trimmed;
-        improved = trimmed !== promptAdditions.prompt;
       }
     } catch {
       // Fall back to the original prompt
     }
+  }
+
+  const hasBlocks = selectedCharacters.length > 0 || Boolean(style?.text.trim());
+  let unified = false;
+  if (hasBlocks) {
+    const beforeUnify = workingPrompt;
+    workingPrompt = await unifyPrompt({
+      prompt: workingPrompt,
+      characters: selectedCharacters,
+      style,
+      styleImagePosition,
+    });
+    unified = workingPrompt !== beforeUnify;
   }
 
   let variedPrompts: string[] | null = null;
@@ -150,29 +174,29 @@ export async function preparePromptBatch(
     prompts,
     improved,
     usedVariations: Boolean(variedPrompts),
-    addedPromptAdditions: promptAdditions.added,
-    referenceImages: promptAdditions.referenceImages,
+    unifiedPromptAdditions: unified,
+    referenceImages: refPlan.referenceImages,
     variationReplacementsByTask,
   };
 }
 
-async function preparePromptAdditions({
-  prompt,
+interface PrepareReferenceImagesResult {
+  referenceImages: PreparedReferenceImage[];
+  /** 1-indexed position of the style reference image in the final list, if any. */
+  styleImagePosition?: number;
+}
+
+async function prepareReferenceImages({
   manualRefs,
   style,
   characters,
   referenceLimit,
 }: {
-  prompt: string;
   manualRefs: ReferenceImage[];
   style?: StoredStyle | null;
   characters: StoredCharacter[];
   referenceLimit?: number | null;
-}): Promise<{
-  prompt: string;
-  added: boolean;
-  referenceImages: PreparedReferenceImage[];
-}> {
+}): Promise<PrepareReferenceImagesResult> {
   if (!style && characters.length === 0) {
     const precedence = computeReferencePrecedence({
       manualCount: manualRefs.length,
@@ -182,8 +206,6 @@ async function preparePromptAdditions({
     });
 
     return {
-      prompt,
-      added: false,
       referenceImages: manualRefs
         .slice(0, precedence.keepManual)
         .map(({ id, blob, sourceGalleryItemId }) => ({
@@ -215,24 +237,12 @@ async function preparePromptAdditions({
       .map((ref) => ({ id: ref.id, blob: ref.blob }));
   }
 
-  const effectiveStyle = styleRef
-    ? style
-    : style
-      ? { ...style, referenceImageId: undefined }
-      : null;
-
   const precedence = computeReferencePrecedence({
     manualCount: manualRefs.length,
     styleHasRef: styleRef !== null,
     characterRefCount: characterRefs.length,
     limit: referenceLimit ?? null,
   });
-  const additions = applyPromptAdditions(
-    prompt,
-    characters,
-    effectiveStyle ?? null,
-    precedence.keepManual + precedence.keepCharacter
-  );
 
   const finalManual = manualRefs.slice(0, precedence.keepManual).map(
     ({ id, blob, sourceGalleryItemId }): PreparedReferenceImage => ({
@@ -244,9 +254,8 @@ async function preparePromptAdditions({
   const finalCharacter = characterRefs.slice(0, precedence.keepCharacter);
   const finalStyle = precedence.keepStyle && styleRef ? [styleRef] : [];
 
-  return {
-    prompt: additions.prompt,
-    added: additions.prompt !== prompt || finalStyle.length > 0 || finalCharacter.length > 0,
-    referenceImages: [...finalManual, ...finalCharacter, ...finalStyle],
-  };
+  const referenceImages = [...finalManual, ...finalCharacter, ...finalStyle];
+  const styleImagePosition = finalStyle.length > 0 ? referenceImages.length : undefined;
+
+  return { referenceImages, styleImagePosition };
 }

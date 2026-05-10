@@ -18,7 +18,8 @@ import {
 import { CSS as DndCSS } from "@dnd-kit/utilities";
 import { useImproveText } from "~/hooks/useImproveText";
 import { anyModelSupportsReferenceImages } from "~/lib/models";
-import { IMPROVE_PROMPT_SYSTEM } from "~/lib/prompts";
+import { ELABORATE_PROMPT_SYSTEM } from "~/lib/prompts";
+import { buildElaborationContext } from "~/lib/promptUnification";
 import { isTextModelAvailable } from "~/lib/textModel";
 import { useGalleryStore } from "~/stores/galleryStore";
 import { useGenerationStore } from "~/stores/generationStore";
@@ -70,9 +71,9 @@ function SortableReferenceImage({
           onRemove(img.id);
         }}
         disabled={!referenceEnabled}
-        className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full border border-c-border bg-surface-raised opacity-0 transition-opacity group-hover:opacity-100"
+        className="border-c-border bg-surface-raised absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full border opacity-0 transition-opacity group-hover:opacity-100"
       >
-        <X className="h-3 w-3 text-text-tertiary" />
+        <X className="text-text-tertiary h-3 w-3" />
       </button>
     </div>
   );
@@ -104,19 +105,41 @@ export function PromptInput() {
     [reorderReferenceImages]
   );
   const modelSelections = useGenerationStore((s) => s.currentModelSelections);
+  const currentStyleId = useGenerationStore((s) => s.currentStyleId);
+  const currentCharacterIds = useGenerationStore((s) => s.currentCharacterIds);
   const galleryItems = useGalleryStore((s) => s.items);
   const models = useSettingsStore((s) => s.models);
+  const styles = useSettingsStore((s) => s.styles);
+  const characters = useSettingsStore((s) => s.characters);
   const [isDragOver, setIsDragOver] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
+  const selectedStyle = useMemo(
+    () =>
+      currentStyleId ? (styles.find((s) => s.id === currentStyleId && s.enabled) ?? null) : null,
+    [currentStyleId, styles]
+  );
+  const selectedCharacters = useMemo(
+    () =>
+      currentCharacterIds
+        .map((id) => characters.find((c) => c.id === id && c.enabled))
+        .filter((c): c is NonNullable<typeof c> => c !== undefined),
+    [currentCharacterIds, characters]
+  );
+
   const improvePrompt = useImproveText({
-    systemPrompt: IMPROVE_PROMPT_SYSTEM,
+    systemPrompt: ELABORATE_PROMPT_SYSTEM,
     text: prompt,
     setText: setPrompt,
     baseText: basePrompt,
     setBaseText: setBasePrompt,
-    getImages: () =>
-      referenceImages.length > 0 ? referenceImages.map((r) => r.blob) : undefined,
+    getImages: () => (referenceImages.length > 0 ? referenceImages.map((r) => r.blob) : undefined),
+    buildUserPrompt: (text) =>
+      buildElaborationContext({
+        prompt: text,
+        characters: selectedCharacters,
+        style: selectedStyle,
+      }),
   });
 
   const supportsFieldSizing = useMemo(() => {

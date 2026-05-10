@@ -8,6 +8,7 @@ export function useImproveText({
   getImages,
   baseText: controlledBaseText,
   setBaseText: controlledSetBaseText,
+  buildUserPrompt,
 }: {
   systemPrompt: string;
   text: string;
@@ -20,6 +21,12 @@ export function useImproveText({
    */
   baseText?: string | null;
   setBaseText?: (next: string | null) => void;
+  /**
+   * Transform the text into the actual user message sent to the LLM (e.g. to
+   * prepend a character/style context block). When omitted, `text` is sent
+   * verbatim. The undo snapshot is always the original `text`.
+   */
+  buildUserPrompt?: (text: string) => string;
 }) {
   const [localBaseText, setLocalBaseText] = useState<string | null>(null);
   const isControlled = controlledBaseText !== undefined && controlledSetBaseText !== undefined;
@@ -34,7 +41,8 @@ export function useImproveText({
     setIsImproving(true);
     try {
       const images = getImages?.();
-      const improved = await callTextModel(systemPrompt, text, images);
+      const userPrompt = buildUserPrompt ? buildUserPrompt(text) : text;
+      const improved = await callTextModel(systemPrompt, userPrompt, images);
       setText(improved.trim());
       setBaseText(snapshot);
     } catch {
@@ -42,7 +50,7 @@ export function useImproveText({
     } finally {
       setIsImproving(false);
     }
-  }, [text, isImproving, getImages, setText, systemPrompt, setBaseText]);
+  }, [text, isImproving, getImages, setText, systemPrompt, setBaseText, buildUserPrompt]);
 
   const undo = useCallback(() => {
     if (baseText === null) return;
