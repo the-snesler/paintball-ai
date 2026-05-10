@@ -257,17 +257,18 @@ export function SettingsModal() {
 
             <div className="space-y-3">
               <label className="flex items-center justify-between gap-3">
-                <span className="text-text-secondary text-sm">Always improve prompt</span>
+                <span className="text-text-secondary text-sm">Always rewrite prompt</span>
                 <Switch
                   checked={alwaysImprovePromptEnabled}
                   onChange={(e) => setAlwaysImprovePromptEnabled(e.target.checked)}
-                  aria-label="Toggle always improve prompt"
+                  aria-label="Toggle always rewrite prompt"
                 />
               </label>
               <p className="text-text-muted text-xs">
-                Silently pass every prompt through the text model before generation. Composes with
-                variations: prompt → improve → variations → image requests. Your original prompt is
-                preserved and shown as the primary prompt in the lightbox.
+                Silently pass every prompt through a text model before generation. Has the same
+                effect as the "rewrite" button in input areas (and, if that button is used, this
+                step is skipped). Your original prompt is preserved and shown as the primary prompt
+                in the lightbox.
               </p>
             </div>
 
