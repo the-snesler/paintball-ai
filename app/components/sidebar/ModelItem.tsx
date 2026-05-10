@@ -80,13 +80,15 @@ export function ModelItem({ model, count }: ModelItemProps) {
       className={`flex items-center gap-3 rounded-lg p-2 transition-colors ${
         isActive
           ? "border border-purple-500/30 bg-purple-500/10"
-          : "border border-transparent bg-surface-overlay/50 hover:bg-surface-overlay"
+          : "bg-surface-overlay/50 hover:bg-surface-overlay border border-transparent"
       }`}
     >
       {/* Icon */}
       <div
         className={`flex h-8 w-8 items-center justify-center rounded-lg ${
-          isActive ? "bg-purple-500/20 text-accent-muted" : "bg-surface-interactive text-text-tertiary"
+          isActive
+            ? "text-accent-muted bg-purple-500/20"
+            : "bg-surface-interactive text-text-tertiary"
         }`}
       >
         {model.icon ? <SVG src={model.icon} className="h-5 w-5" /> : <Box className="h-4 w-4" />}
@@ -94,10 +96,10 @@ export function ModelItem({ model, count }: ModelItemProps) {
 
       {/* Info */}
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-medium text-text-primary" title={model.name}>
+        <p className="text-text-primary truncate text-sm font-medium" title={model.name}>
           {model.name}
         </p>
-        <p className="text-xs text-text-muted">{provider.label}</p>
+        <p className="text-text-muted text-xs">{provider.label}</p>
       </div>
 
       {/* Counter */}
@@ -105,12 +107,12 @@ export function ModelItem({ model, count }: ModelItemProps) {
         <button
           onClick={handleDecrement}
           disabled={count === 0}
-          className="flex h-6 w-6 items-center justify-center rounded text-text-tertiary transition-colors hover:bg-surface-interactive hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-30"
+          className="text-text-tertiary hover:bg-surface-interactive hover:text-text-primary flex h-6 w-6 items-center justify-center rounded transition-colors disabled:cursor-not-allowed disabled:opacity-30"
           aria-label="Decrease count"
         >
           <Minus className="h-3 w-3" />
         </button>
-        <div className="w-6 text-center text-sm font-medium text-text-secondary">
+        <div className="text-text-secondary w-6 text-center text-sm font-medium">
           <NumberFlow
             value={count}
             format={{ useGrouping: false }}
@@ -122,7 +124,7 @@ export function ModelItem({ model, count }: ModelItemProps) {
         </div>
         <button
           onClick={handleIncrement}
-          className="flex h-6 w-6 items-center justify-center rounded text-text-tertiary transition-colors hover:bg-surface-interactive hover:text-text-primary"
+          className="text-text-tertiary hover:bg-surface-interactive hover:text-text-primary flex h-6 w-6 items-center justify-center rounded transition-colors"
           aria-label="Increase count"
         >
           <Plus className="h-3 w-3" />

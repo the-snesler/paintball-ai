@@ -89,13 +89,13 @@ export function Turn({ turn, turnIndex, isFirst = false }: TurnProps) {
       {/* Turn header */}
       <div className="mb-1 flex w-full max-w-4xl items-start gap-3">
         <div className="flex min-w-0 flex-1 flex-col gap-1">
-          <p className="text-sm leading-snug font-medium text-text-secondary">{turn.instruction}</p>
+          <p className="text-text-secondary text-sm leading-snug font-medium">{turn.instruction}</p>
           {showSentInstruction && (
             <details className="group/sent">
-              <summary className="cursor-pointer list-none text-xs text-text-muted hover:text-text-tertiary [&::-webkit-details-marker]:hidden">
+              <summary className="text-text-muted hover:text-text-tertiary cursor-pointer list-none text-xs [&::-webkit-details-marker]:hidden">
                 Show sent prompt
               </summary>
-              <p className="mt-1 rounded bg-surface-overlay/50 p-2 text-xs leading-snug whitespace-pre-wrap text-text-tertiary">
+              <p className="bg-surface-overlay/50 text-text-tertiary mt-1 rounded p-2 text-xs leading-snug whitespace-pre-wrap">
                 {turn.sentInstruction}
               </p>
             </details>
@@ -105,8 +105,8 @@ export function Turn({ turn, turnIndex, isFirst = false }: TurnProps) {
         {/* Source thumbnail */}
         {sourceThumbUrl && (
           <div className="flex shrink-0 items-center gap-1.5">
-            <Link2 className="h-3 w-3 text-text-muted" />
-            <div className="h-8 w-8 overflow-hidden rounded-md border border-c-border bg-surface-overlay">
+            <Link2 className="text-text-muted h-3 w-3" />
+            <div className="border-c-border bg-surface-overlay h-8 w-8 overflow-hidden rounded-md border">
               <img src={sourceThumbUrl} alt="source" className="h-full w-full object-cover" />
             </div>
           </div>
@@ -149,7 +149,7 @@ export function Turn({ turn, turnIndex, isFirst = false }: TurnProps) {
 function EditorPendingSkeleton() {
   return (
     <div
-      className="relative overflow-hidden rounded-lg bg-surface-raised ring-1 ring-border-subtle"
+      className="bg-surface-raised ring-border-subtle relative overflow-hidden rounded-lg ring-1"
       style={{ aspectRatio: "1/1" }}
     >
       <SineWaveGrid />
@@ -187,10 +187,10 @@ function EditorImageCard({
     <button
       type="button"
       onClick={onClick}
-      className={`group relative cursor-pointer overflow-hidden rounded-lg bg-surface-overlay transition-all duration-150 ${
+      className={`group bg-surface-overlay relative cursor-pointer overflow-hidden rounded-lg transition-all duration-150 ${
         isSelected
-          ? "ring-2 ring-purple-500 ring-offset-2 ring-offset-surface"
-          : "ring-1 ring-c-border/50 hover:ring-c-border"
+          ? "ring-offset-surface ring-2 ring-purple-500 ring-offset-2"
+          : "ring-c-border/50 hover:ring-c-border ring-1"
       }`}
     >
       <img
@@ -201,7 +201,7 @@ function EditorImageCard({
       />
       {!isLoaded && (
         <div
-          className="absolute inset-0 animate-pulse bg-surface-overlay"
+          className="bg-surface-overlay absolute inset-0 animate-pulse"
           style={{ aspectRatio: "1/1" }}
         />
       )}

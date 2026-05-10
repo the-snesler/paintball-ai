@@ -53,7 +53,6 @@ export const useEmbeddingStatusStore = create<EmbeddingStatusState>()((set) => (
     })),
   setCounts: (indexed, total) => set({ indexed, total }),
   reportEmbedSuccess: () => set((s) => ({ indexed: s.indexed + 1 })),
-  reportEmbedError: (message) =>
-    set((s) => ({ lastError: message, errorCount: s.errorCount + 1 })),
+  reportEmbedError: (message) => set((s) => ({ lastError: message, errorCount: s.errorCount + 1 })),
   clearErrors: () => set({ lastError: null, errorCount: 0 }),
 }));

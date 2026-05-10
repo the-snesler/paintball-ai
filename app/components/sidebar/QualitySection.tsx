@@ -34,7 +34,7 @@ export function QualitySection() {
         <span className="text-text-muted">
           <Sparkles className="h-4 w-4" />
         </span>
-        <h2 className="text-xs font-medium tracking-wide text-text-tertiary uppercase">Quality</h2>
+        <h2 className="text-text-tertiary text-xs font-medium tracking-wide uppercase">Quality</h2>
       </div>
       <div className="flex gap-2">
         {QUALITIES.map((q) => {
@@ -50,8 +50,8 @@ export function QualitySection() {
                 showSelectedStyle
                   ? "border border-purple-500 bg-purple-500/20 text-purple-300"
                   : isEnabled
-                    ? "border border-c-border bg-surface-overlay text-text-tertiary hover:border-c-border"
-                    : "cursor-not-allowed border border-border-subtle bg-surface-overlay/50 text-text-muted opacity-40"
+                    ? "border-c-border bg-surface-overlay text-text-tertiary hover:border-c-border border"
+                    : "border-border-subtle bg-surface-overlay/50 text-text-muted cursor-not-allowed border opacity-40"
               }`}
             >
               {QUALITY_LABELS[q] ?? q}

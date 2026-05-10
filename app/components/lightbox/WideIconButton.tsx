@@ -26,7 +26,7 @@ export function WideIconButton({
       aria-label={title}
       className={`flex items-center gap-1 rounded-lg p-2 transition-colors ${
         disabled
-          ? "cursor-not-allowed text-text-muted"
+          ? "text-text-muted cursor-not-allowed"
           : variant === "danger"
             ? "text-red-400 hover:bg-red-500/10"
             : "text-text-secondary hover:bg-surface-overlay"

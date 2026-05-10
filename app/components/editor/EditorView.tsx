@@ -77,7 +77,7 @@ export function EditorView() {
   }, []);
 
   return (
-    <main className="relative flex h-full flex-1 flex-col overflow-hidden bg-surface">
+    <main className="bg-surface relative flex h-full flex-1 flex-col overflow-hidden">
       <GalleryHeader title={editorTitle} />
 
       <div className="relative max-h-full flex-1 overflow-hidden">

@@ -24,7 +24,7 @@ export function AvoidPastVariationsToggle() {
 
   const tooltipContent = (
     <>
-      <p className="mb-1.5 font-medium text-text-primary">Avoid Past Variations</p>
+      <p className="text-text-primary mb-1.5 font-medium">Avoid Past Variations</p>
       <p>
         When enabled, previously-generated variations for this exact prompt are sent to the text
         model with instructions not to repeat them.
@@ -46,11 +46,11 @@ export function AvoidPastVariationsToggle() {
         <span className="text-text-muted">
           <Ban className="h-4 w-4" />
         </span>
-        <span className="text-xs font-medium tracking-wide text-text-tertiary uppercase">
+        <span className="text-text-tertiary text-xs font-medium tracking-wide uppercase">
           Avoid Past Variations
         </span>
         <Tooltip content={tooltipContent} placement="bottom-start">
-          <span className="cursor-help text-text-muted transition-colors hover:text-text-tertiary">
+          <span className="text-text-muted hover:text-text-tertiary cursor-help transition-colors">
             <Info className="h-3 w-3" />
           </span>
         </Tooltip>

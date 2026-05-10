@@ -193,7 +193,7 @@ export default function StyleForm({
                 setRemoveImage(true);
               }
             }}
-            className="text-text-muted hover:text-red-400 p-1 transition-colors"
+            className="text-text-muted p-1 transition-colors hover:text-red-400"
             title="Remove image"
           >
             <X className="h-4 w-4" />
@@ -210,13 +210,9 @@ export default function StyleForm({
           type="button"
           onClick={handleSubmit}
           disabled={saving || !name.trim() || !text.trim()}
-          className="bg-purple-600 text-white hover:bg-purple-500 disabled:bg-surface-interactive disabled:text-text-muted flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors"
+          className="disabled:bg-surface-interactive disabled:text-text-muted flex items-center justify-center gap-1.5 rounded-lg bg-purple-600 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-purple-500"
         >
-          {saving && submitIcon ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            submitIcon
-          )}
+          {saving && submitIcon ? <Loader2 className="h-4 w-4 animate-spin" /> : submitIcon}
           {saving ? "Saving..." : submitLabel}
         </button>
         <button

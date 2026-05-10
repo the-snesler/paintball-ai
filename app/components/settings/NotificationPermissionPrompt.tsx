@@ -67,18 +67,18 @@ export function NotificationPermissionPrompt() {
   };
 
   return (
-    <div className="fixed right-4 bottom-4 z-40 w-[min(24rem,calc(100vw-2rem))] rounded-xl border border-border-subtle bg-surface-raised/95 p-4 shadow-xl backdrop-blur">
+    <div className="border-border-subtle bg-surface-raised/95 fixed right-4 bottom-4 z-40 w-[min(24rem,calc(100vw-2rem))] rounded-xl border p-4 shadow-xl backdrop-blur">
       <div className="flex items-start gap-3">
-        <div className="mt-0.5 rounded-lg bg-surface-overlay p-2">
-          <Bell className="h-4 w-4 text-accent-muted" />
+        <div className="bg-surface-overlay mt-0.5 rounded-lg p-2">
+          <Bell className="text-accent-muted h-4 w-4" />
         </div>
 
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-medium text-text-primary">Desktop notifications</p>
-          <p className="mt-1 text-xs leading-relaxed text-text-tertiary">
+          <p className="text-text-primary text-sm font-medium">Desktop notifications</p>
+          <p className="text-text-tertiary mt-1 text-xs leading-relaxed">
             Get notified when image generations finish while this tab is in the background.
           </p>
-          <p className="mt-2 text-[11px] text-text-muted">
+          <p className="text-text-muted mt-2 text-[11px]">
             You can also enable this later in Settings.
           </p>
 
@@ -94,7 +94,7 @@ export function NotificationPermissionPrompt() {
             <button
               type="button"
               onClick={dismissNotificationPrompt}
-              className="rounded-lg bg-surface-overlay px-3 py-1.5 text-xs font-medium text-text-secondary transition-colors hover:bg-surface-interactive"
+              className="bg-surface-overlay text-text-secondary hover:bg-surface-interactive rounded-lg px-3 py-1.5 text-xs font-medium transition-colors"
             >
               Dismiss
             </button>
@@ -104,7 +104,7 @@ export function NotificationPermissionPrompt() {
         <button
           type="button"
           onClick={dismissNotificationPrompt}
-          className="rounded-md p-1 text-text-muted transition-colors hover:bg-surface-overlay hover:text-text-secondary"
+          className="text-text-muted hover:bg-surface-overlay hover:text-text-secondary rounded-md p-1 transition-colors"
           aria-label="Dismiss notification prompt"
         >
           <X className="h-4 w-4" />

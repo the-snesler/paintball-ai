@@ -79,9 +79,9 @@ function DiffViewerInner({
       {/* Close button */}
       <button
         onClick={onClose}
-        className="absolute top-4 right-4 z-20 rounded-lg bg-surface-raised/80 p-2 transition-colors hover:bg-surface-overlay"
+        className="bg-surface-raised/80 hover:bg-surface-overlay absolute top-4 right-4 z-20 rounded-lg p-2 transition-colors"
       >
-        <X className="h-6 w-6 text-text-secondary" />
+        <X className="text-text-secondary h-6 w-6" />
       </button>
 
       {/* Compare surface */}
@@ -89,7 +89,7 @@ function DiffViewerInner({
         ref={containerRef}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
-        className="animate-fade-in relative z-10 max-h-[90vh] max-w-[90vw] cursor-ew-resize touch-none overflow-hidden rounded-xl bg-surface-raised shadow-2xl select-none"
+        className="animate-fade-in bg-surface-raised relative z-10 max-h-[90vh] max-w-[90vw] cursor-ew-resize touch-none overflow-hidden rounded-xl shadow-2xl select-none"
         style={
           aspectRatio ? { aspectRatio, width: `min(90vw, calc(90vh * ${aspectRatio}))` } : undefined
         }

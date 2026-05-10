@@ -29,8 +29,10 @@ export function NumberOfImagesSection() {
         <span className="text-text-muted">
           <Images className="h-4 w-4" />
         </span>
-        <h2 className="text-xs font-medium tracking-wide text-text-tertiary uppercase">Images / call</h2>
-        <span className="ml-auto text-xs font-medium text-text-secondary tabular-nums">
+        <h2 className="text-text-tertiary text-xs font-medium tracking-wide uppercase">
+          Images / call
+        </h2>
+        <span className="text-text-secondary ml-auto text-xs font-medium tabular-nums">
           {numberOfImages}
         </span>
       </div>
@@ -47,7 +49,7 @@ export function NumberOfImagesSection() {
           `,
         }}
       />
-      <div className="mt-1 flex justify-between text-[10px] text-text-muted tabular-nums">
+      <div className="text-text-muted mt-1 flex justify-between text-[10px] tabular-nums">
         <span>1</span>
         <span>{Math.max(1, max)}</span>
       </div>

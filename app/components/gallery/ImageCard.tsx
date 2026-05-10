@@ -66,7 +66,7 @@ export function ImageCard({ image, selectionDisabled = false }: ImageCardProps) 
 
   return (
     <div
-      className={`group animate-fade-in relative h-fit cursor-pointer overflow-hidden rounded-lg bg-surface-raised outline-[1.5px] ${
+      className={`group animate-fade-in bg-surface-raised relative h-fit cursor-pointer overflow-hidden rounded-lg outline-[1.5px] ${
         isSelected ? "outline-purple-500" : "outline-c-border/50"
       }`}
       onClick={handleClick}
@@ -115,7 +115,7 @@ export function ImageCard({ image, selectionDisabled = false }: ImageCardProps) 
       {/* Loading placeholder */}
       {!isLoaded && (
         <div
-          className="absolute inset-0 animate-pulse bg-surface-overlay"
+          className="bg-surface-overlay absolute inset-0 animate-pulse"
           style={{
             aspectRatio: image.width && image.height ? `${image.width}/${image.height}` : "1/1",
           }}

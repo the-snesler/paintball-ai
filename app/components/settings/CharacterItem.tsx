@@ -76,7 +76,8 @@ export default function CharacterItem({
         <p className="text-text-primary truncate text-sm font-medium">{character.name}</p>
         {character.referenceImageIds.length > 0 && (
           <p className="text-text-muted text-xs">
-            {character.referenceImageIds.length} ref{character.referenceImageIds.length === 1 ? "" : "s"}
+            {character.referenceImageIds.length} ref
+            {character.referenceImageIds.length === 1 ? "" : "s"}
           </p>
         )}
       </div>

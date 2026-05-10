@@ -59,12 +59,7 @@ export function DropZone({ onFile }: DropZoneProps) {
             : "border-c-border hover:border-c-border hover:bg-surface-raised"
         }`}
       >
-        <SineWaveGrid
-          gridSize={32}
-          radius={100}
-          opacity={0.7}
-          maxCellSizePct={0.5}
-        />
+        <SineWaveGrid gridSize={32} radius={100} opacity={0.7} maxCellSizePct={0.5} />
 
         <input type="file" accept="image/*" onChange={handleChange} className="hidden" />
 

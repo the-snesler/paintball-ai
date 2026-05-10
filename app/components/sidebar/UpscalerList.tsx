@@ -36,9 +36,7 @@ export function UpscalerList({ highlight = false }: UpscalerListProps) {
       let canvasBlob: Blob | null = null;
       let canvasSourceGalleryItemId: string | undefined;
       if (editor.selectedItemId) {
-        const item = useGalleryStore
-          .getState()
-          .items.find((i) => i.id === editor.selectedItemId);
+        const item = useGalleryStore.getState().items.find((i) => i.id === editor.selectedItemId);
         if (item && item.status === "completed") {
           canvasBlob = item.originalBlob;
           canvasSourceGalleryItemId = item.id;

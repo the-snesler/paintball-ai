@@ -96,7 +96,7 @@ function SourceTurn({
   return (
     <div className="animate-fade-in relative flex max-w-4xl flex-col items-center">
       <div className="mb-3 flex items-center gap-2">
-        <span className="text-xs font-medium tracking-wider text-text-muted uppercase">Source</span>
+        <span className="text-text-muted text-xs font-medium tracking-wider uppercase">Source</span>
       </div>
 
       <button
@@ -104,8 +104,8 @@ function SourceTurn({
         onClick={onSelect}
         className={`group relative cursor-pointer overflow-hidden rounded-lg transition-all duration-150 ${
           isSelected
-            ? "ring-2 ring-purple-500 ring-offset-2 ring-offset-surface"
-            : "ring-1 ring-c-border/50 hover:ring-c-border"
+            ? "ring-offset-surface ring-2 ring-purple-500 ring-offset-2"
+            : "ring-c-border/50 hover:ring-c-border ring-1"
         }`}
       >
         <img
@@ -117,7 +117,7 @@ function SourceTurn({
 
         {!isLoaded && (
           <div
-            className="absolute inset-0 animate-pulse bg-surface-overlay"
+            className="bg-surface-overlay absolute inset-0 animate-pulse"
             style={{ minHeight: "200px" }}
           />
         )}
@@ -162,7 +162,7 @@ function AnalysisTurn({ result, onDismiss }: { result: string; onDismiss: () => 
   return (
     <div className="animate-fade-in">
       <div className="mb-2 flex items-center justify-between gap-2">
-        <p className="text-xs font-medium tracking-wider text-accent-muted uppercase">
+        <p className="text-accent-muted text-xs font-medium tracking-wider uppercase">
           Image Analysis
         </p>
         <div className="flex items-center gap-1">
@@ -179,13 +179,13 @@ function AnalysisTurn({ result, onDismiss }: { result: string; onDismiss: () => 
           </button>
           <button
             onClick={onDismiss}
-            className="rounded p-1 text-text-muted transition-colors hover:text-text-tertiary"
+            className="text-text-muted hover:text-text-tertiary rounded p-1 transition-colors"
           >
             <X className="h-3.5 w-3.5" />
           </button>
         </div>
       </div>
-      <p className="text-sm leading-relaxed text-text-secondary">{result}</p>
+      <p className="text-text-secondary text-sm leading-relaxed">{result}</p>
     </div>
   );
 }

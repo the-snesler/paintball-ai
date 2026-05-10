@@ -68,7 +68,7 @@ export function Tooltip({
           >
             <div
               style={isPositioned ? transitionStyles : { opacity: 0 }}
-              className={`${maxWidth} rounded-lg border border-c-border bg-surface-overlay px-2.5 py-1.5 text-[11px] leading-relaxed text-text-secondary shadow-xl`}
+              className={`${maxWidth} border-c-border bg-surface-overlay text-text-secondary rounded-lg border px-2.5 py-1.5 text-[11px] leading-relaxed shadow-xl`}
             >
               <FloatingArrow
                 ref={arrowRef}

@@ -6,7 +6,10 @@ import { useSettingsStore } from "~/stores/settingsStore";
 const MAX_TEXT_LISTENERS = 64;
 
 type WorkerProgressMessage =
-  | { type: "progress"; data: { status: string; loaded?: number; total?: number; progress?: number } }
+  | {
+      type: "progress";
+      data: { status: string; loaded?: number; total?: number; progress?: number };
+    }
   | { type: "ready"; modelId: string }
   | { type: "imageResult"; id: string; embedding: number[] }
   | { type: "imageError"; id: string; error: string }
@@ -95,9 +98,9 @@ async function handleImageResult(id: string, embedding: number[]) {
     useGalleryStore.getState().setItemEmbedding(id, embedding, modelId ?? "unknown");
     useEmbeddingStatusStore.getState().reportEmbedSuccess();
   } catch (err) {
-    useEmbeddingStatusStore.getState().reportEmbedError(
-      err instanceof Error ? err.message : "Failed to persist embedding"
-    );
+    useEmbeddingStatusStore
+      .getState()
+      .reportEmbedError(err instanceof Error ? err.message : "Failed to persist embedding");
   }
   scheduleNext();
 }
@@ -119,9 +122,11 @@ function scheduleNext() {
 
   isProcessing = true;
   if ("requestIdleCallback" in window) {
-    (window as Window & {
-      requestIdleCallback: (cb: () => void, options?: { timeout: number }) => number;
-    }).requestIdleCallback(tick, { timeout: 2000 });
+    (
+      window as Window & {
+        requestIdleCallback: (cb: () => void, options?: { timeout: number }) => number;
+      }
+    ).requestIdleCallback(tick, { timeout: 2000 });
   } else {
     setTimeout(tick, 200);
   }
@@ -152,9 +157,11 @@ async function processNext() {
       const stored = await getImageById(id);
       blob = stored?.thumbnailBlob ?? null;
     } catch (err) {
-      useEmbeddingStatusStore.getState().reportEmbedError(
-        err instanceof Error ? err.message : "Failed to load image for embedding"
-      );
+      useEmbeddingStatusStore
+        .getState()
+        .reportEmbedError(
+          err instanceof Error ? err.message : "Failed to load image for embedding"
+        );
     }
   }
 
@@ -168,9 +175,9 @@ async function processNext() {
     getWorker().postMessage({ type: "embedImage", id, blob });
   } catch (err) {
     inflightId = null;
-    useEmbeddingStatusStore.getState().reportEmbedError(
-      err instanceof Error ? err.message : "Failed to dispatch embedding"
-    );
+    useEmbeddingStatusStore
+      .getState()
+      .reportEmbedError(err instanceof Error ? err.message : "Failed to dispatch embedding");
     scheduleNext();
   }
 }
@@ -200,9 +207,11 @@ export async function enqueueMissingEmbeddings(currentModelId: string | null): P
       }
     }
   } catch (err) {
-    useEmbeddingStatusStore.getState().reportEmbedError(
-      err instanceof Error ? err.message : "Failed to scan for missing embeddings"
-    );
+    useEmbeddingStatusStore
+      .getState()
+      .reportEmbedError(
+        err instanceof Error ? err.message : "Failed to scan for missing embeddings"
+      );
   }
   return queued;
 }
@@ -212,9 +221,9 @@ export async function refreshEmbeddingCounts(currentModelId: string | null) {
     const { total, indexed } = await getEmbeddingCounts(currentModelId);
     useEmbeddingStatusStore.getState().setCounts(indexed, total);
   } catch (err) {
-    useEmbeddingStatusStore.getState().reportEmbedError(
-      err instanceof Error ? err.message : "Failed to count embeddings"
-    );
+    useEmbeddingStatusStore
+      .getState()
+      .reportEmbedError(err instanceof Error ? err.message : "Failed to count embeddings");
   }
 }
 

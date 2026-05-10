@@ -28,7 +28,7 @@ type OutgoingMessage =
 type ForwardCallable = (inputs: unknown) => Promise<{ pooler_output: { data: Float32Array } }>;
 
 interface LoadedModel {
-  tokenizer: (texts: string[], options: any ) => unknown;
+  tokenizer: (texts: string[], options: any) => unknown;
   processor: (image: unknown) => Promise<unknown>;
   visionModel: ForwardCallable;
   textModel: ForwardCallable;
@@ -75,7 +75,7 @@ async function loadModel(): Promise<LoadedModel> {
       }),
       mod.SiglipTextModel.from_pretrained(EMBEDDING_MODEL_ID, {
         // device: "webgpu",
-      dtype: "uint8",
+        dtype: "uint8",
         progress_callback: onProgress,
       }),
     ]);

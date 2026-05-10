@@ -63,8 +63,8 @@ export function AspectRatioSection() {
           isSelected
             ? "border border-purple-500 bg-purple-500/20"
             : isEnabled
-              ? "border border-c-border bg-surface-overlay hover:border-c-border"
-              : "cursor-not-allowed border border-border-subtle bg-surface-overlay/50 opacity-40"
+              ? "border-c-border bg-surface-overlay hover:border-c-border border"
+              : "border-border-subtle bg-surface-overlay/50 cursor-not-allowed border opacity-40"
         }`}
         title={ratio}
       >
@@ -75,7 +75,7 @@ export function AspectRatioSection() {
           isSelected={isSelected}
         />
         <div className="flex-1" />
-        <span className="text-[10px] text-text-tertiary">{ratio}</span>
+        <span className="text-text-tertiary text-[10px]">{ratio}</span>
       </button>
     );
   };
@@ -88,12 +88,12 @@ export function AspectRatioSection() {
             <span className="text-text-muted">
               <Square className="h-4 w-4" />
             </span>
-            <h2 className="text-xs font-medium tracking-wide text-text-tertiary uppercase">
+            <h2 className="text-text-tertiary text-xs font-medium tracking-wide uppercase">
               Aspect Ratio
             </h2>
             {hasAdditionalRatios && (
               <Accordion.Header className="ml-auto">
-                <Accordion.Trigger className="group flex cursor-pointer items-center gap-1 rounded text-xs text-text-muted transition-colors hover:text-text-secondary">
+                <Accordion.Trigger className="group text-text-muted hover:text-text-secondary flex cursor-pointer items-center gap-1 rounded text-xs transition-colors">
                   <span className="group-data-panel-open:hidden">Show more</span>
                   <span className="hidden group-data-panel-open:inline">Show less</span>
                   <ChevronRight className="h-4 w-4 transition-transform duration-200 group-data-panel-open:rotate-90" />
@@ -106,9 +106,7 @@ export function AspectRatioSection() {
 
           {hiddenRatios.length > 0 && (
             <Accordion.Panel className="h-(--accordion-panel-height) overflow-hidden transition-[height] duration-200 data-ending-style:h-0 data-starting-style:h-0">
-              <div className="mt-1.5 grid grid-cols-6 gap-1.5">
-                {hiddenRatios.map(renderRatio)}
-              </div>
+              <div className="mt-1.5 grid grid-cols-6 gap-1.5">{hiddenRatios.map(renderRatio)}</div>
             </Accordion.Panel>
           )}
         </Accordion.Item>

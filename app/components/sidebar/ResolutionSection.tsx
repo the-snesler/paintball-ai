@@ -22,7 +22,9 @@ export function ResolutionSection() {
         <span className="text-text-muted">
           <Maximize className="h-4 w-4" />
         </span>
-        <h2 className="text-xs font-medium tracking-wide text-text-tertiary uppercase">Resolution</h2>
+        <h2 className="text-text-tertiary text-xs font-medium tracking-wide uppercase">
+          Resolution
+        </h2>
       </div>
       <div className="flex gap-2">
         {RESOLUTIONS_LABELS.map(([label, res]) => {

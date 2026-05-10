@@ -31,7 +31,7 @@ export function SemanticSearchStatus() {
             <span className="text-text-muted">
               Model: downloading…{bytesText} ({pct}%)
             </span>
-            <div className="h-1 w-full overflow-hidden rounded-full bg-surface-overlay">
+            <div className="bg-surface-overlay h-1 w-full overflow-hidden rounded-full">
               <div
                 className="h-full bg-purple-500 transition-[width] duration-200"
                 style={{ width: `${pct}%` }}
@@ -42,9 +42,7 @@ export function SemanticSearchStatus() {
       }
       case "ready":
         return (
-          <span className="text-text-muted">
-            Model: ready{modelId ? ` (${modelId})` : ""}
-          </span>
+          <span className="text-text-muted">Model: ready{modelId ? ` (${modelId})` : ""}</span>
         );
       case "error":
         return <span className="text-red-400">Model: failed to load</span>;
@@ -52,7 +50,7 @@ export function SemanticSearchStatus() {
   })();
 
   return (
-    <div className="space-y-1.5 border-t border-border-subtle pt-2 font-mono text-[11px] leading-tight">
+    <div className="border-border-subtle space-y-1.5 border-t pt-2 font-mono text-[11px] leading-tight">
       {modelLine}
       <div className="text-text-muted">
         Indexed: {indexed} / {total} image{total === 1 ? "" : "s"}
@@ -66,7 +64,7 @@ export function SemanticSearchStatus() {
           <button
             type="button"
             onClick={clearErrors}
-            className="rounded bg-surface-overlay px-1.5 py-0.5 text-[10px] text-text-tertiary transition-colors hover:bg-surface-interactive hover:text-text-secondary"
+            className="bg-surface-overlay text-text-tertiary hover:bg-surface-interactive hover:text-text-secondary rounded px-1.5 py-0.5 text-[10px] transition-colors"
           >
             Clear
           </button>

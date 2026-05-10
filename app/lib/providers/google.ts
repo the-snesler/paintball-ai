@@ -195,11 +195,7 @@ function toSearchResult(model: Model): SearchResult {
   };
 }
 
-function rankAndLimit(
-  models: Model[],
-  query: string,
-  limit = 6
-): SearchResult[] {
+function rankAndLimit(models: Model[], query: string, limit = 6): SearchResult[] {
   const q = query.toLowerCase();
   const scored = models
     .map((m) => {

@@ -419,10 +419,7 @@ export async function garbageCollectReferences(
         resolve();
         return;
       }
-      const record = cursor.value as
-        | StoredImageRecord
-        | LegacyStoredImageRecord
-        | undefined;
+      const record = cursor.value as StoredImageRecord | LegacyStoredImageRecord | undefined;
       if (record?.referenceImageIds) {
         for (const id of record.referenceImageIds) reachable.add(id);
       }

@@ -90,13 +90,20 @@ export function GenerateButton() {
   const refWarningTooltip =
     totalDropped > 0
       ? (() => {
-          const limit = strictLimit === null ? 0 : strictLimit === Infinity ? "unlimited" : strictLimit;
-          const parts: string[] = [`Model${selectedModelIds.length > 1 ? "s" : ""} accept${selectedModelIds.length === 1 ? "s" : ""} ${limit} reference${limit === 1 ? "" : "s"}.`];
+          const limit =
+            strictLimit === null ? 0 : strictLimit === Infinity ? "unlimited" : strictLimit;
+          const parts: string[] = [
+            `Model${selectedModelIds.length > 1 ? "s" : ""} accept${selectedModelIds.length === 1 ? "s" : ""} ${limit} reference${limit === 1 ? "" : "s"}.`,
+          ];
           if (precedence.droppedManual > 0)
-            parts.push(`Dropping ${precedence.droppedManual} manual reference${precedence.droppedManual === 1 ? "" : "s"}.`);
+            parts.push(
+              `Dropping ${precedence.droppedManual} manual reference${precedence.droppedManual === 1 ? "" : "s"}.`
+            );
           if (precedence.droppedStyle > 0) parts.push("Dropping style reference.");
           if (precedence.droppedCharacter > 0)
-            parts.push(`Dropping ${precedence.droppedCharacter} character reference${precedence.droppedCharacter === 1 ? "" : "s"}.`);
+            parts.push(
+              `Dropping ${precedence.droppedCharacter} character reference${precedence.droppedCharacter === 1 ? "" : "s"}.`
+            );
           return parts.join(" ");
         })()
       : null;
@@ -125,7 +132,7 @@ export function GenerateButton() {
           className={`flex w-full items-center justify-center gap-2 rounded-lg border-2 px-4 py-3 font-medium transition-all ${
             canGenerate
               ? "-translate-y-1 cursor-pointer border-purple-500 bg-purple-600 text-white shadow-lg hover:-translate-y-2 hover:border-purple-400 hover:bg-purple-500 active:translate-y-0"
-              : "translate-y-0 cursor-not-allowed border-c-border bg-surface-overlay text-text-muted"
+              : "border-c-border bg-surface-overlay text-text-muted translate-y-0 cursor-not-allowed"
           }`}
         >
           {isLockedForCurrentParams ? (
@@ -162,7 +169,7 @@ export function GenerateButton() {
         </div>
       )}
       <div className="flex w-full justify-center">
-        <span className="text-xs text-text-tertiary">
+        <span className="text-text-tertiary text-xs">
           <NumberFlow
             value={totalImages}
             format={{ useGrouping: false }}
@@ -176,7 +183,7 @@ export function GenerateButton() {
           <button
             onClick={handleClear}
             disabled={!canClear}
-            className="text-center text-red-400 hover:cursor-pointer hover:underline disabled:text-text-tertiary disabled:hover:cursor-not-allowed disabled:hover:no-underline"
+            className="disabled:text-text-tertiary text-center text-red-400 hover:cursor-pointer hover:underline disabled:hover:cursor-not-allowed disabled:hover:no-underline"
           >
             Clear
           </button>

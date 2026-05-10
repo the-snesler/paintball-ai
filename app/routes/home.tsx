@@ -43,9 +43,7 @@ export default function Home() {
     void (async () => {
       const settings = useSettingsStore.getState();
       const extraReachable: string[] = [
-        ...settings.styles
-          .map((s) => s.referenceImageId)
-          .filter((id): id is string => Boolean(id)),
+        ...settings.styles.map((s) => s.referenceImageId).filter((id): id is string => Boolean(id)),
         ...settings.characters.flatMap((c) => c.referenceImageIds),
       ];
       try {

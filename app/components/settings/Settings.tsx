@@ -433,14 +433,14 @@ function ApiKeyInput({
     <div className="space-y-1.5">
       <div className="flex items-center justify-between">
         <div>
-          <label className="text-sm font-medium text-text-secondary">{name}</label>
-          <p className="text-xs text-text-muted">
+          <label className="text-text-secondary text-sm font-medium">{name}</label>
+          <p className="text-text-muted text-xs">
             {description} -
             <a
               href={link}
               target="_blank"
               rel="noopener noreferrer"
-              className="ml-1 text-accent-muted hover:underline"
+              className="text-accent-muted ml-1 hover:underline"
             >
               Get API key
             </a>
@@ -454,12 +454,12 @@ function ApiKeyInput({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={`Enter ${name} API key`}
-          className="w-full rounded-lg border border-c-border bg-surface-overlay px-3 py-2 pr-10 text-sm text-text-primary placeholder-text-muted transition-colors focus:border-purple-500 focus:ring-1 focus:ring-purple-500 focus:outline-none"
+          className="border-c-border bg-surface-overlay text-text-primary placeholder-text-muted w-full rounded-lg border px-3 py-2 pr-10 text-sm transition-colors focus:border-purple-500 focus:ring-1 focus:ring-purple-500 focus:outline-none"
         />
         <button
           type="button"
           onClick={() => setShowKey(!showKey)}
-          className="absolute top-1/2 right-2 -translate-y-1/2 p-1 text-text-tertiary transition-colors hover:text-text-secondary"
+          className="text-text-tertiary hover:text-text-secondary absolute top-1/2 right-2 -translate-y-1/2 p-1 transition-colors"
         >
           {showKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
         </button>

@@ -26,9 +26,9 @@ export function useQueryEmbedding(query: string, enabled: boolean): number[] | n
           if (err instanceof Error && err.name === "AbortError") return;
           // Surface non-abort errors via the status store; query embedding
           // failures shouldn't block substring search.
-          useEmbeddingStatusStore.getState().reportEmbedError(
-            err instanceof Error ? err.message : String(err)
-          );
+          useEmbeddingStatusStore
+            .getState()
+            .reportEmbedError(err instanceof Error ? err.message : String(err));
           logger.error("Failed to embed query", { query, error: err });
         });
     }, DEBOUNCE_MS);

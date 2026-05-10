@@ -103,7 +103,7 @@ export function Gallery({ viewMode }: { viewMode: "grid" | "timeline" }) {
   }
 
   return (
-    <main className="relative flex h-full flex-1 flex-col overflow-hidden bg-surface">
+    <main className="bg-surface relative flex h-full flex-1 flex-col overflow-hidden">
       <GalleryHeader
         count={searchQuery.trim() ? filteredItems.length : totalCount}
         searchQuery={searchQuery}
@@ -125,7 +125,7 @@ export function Gallery({ viewMode }: { viewMode: "grid" | "timeline" }) {
 
         <div ref={sentinelRef} className="h-1" />
         {isLoadingMore && (
-          <div className="flex justify-center py-6 text-xs text-text-muted">Loading more...</div>
+          <div className="text-text-muted flex justify-center py-6 text-xs">Loading more...</div>
         )}
       </div>
 
@@ -169,9 +169,9 @@ function SelectionActionPopup() {
 
   return (
     <div className="pointer-events-none absolute inset-x-0 bottom-5 z-20 flex justify-center px-6">
-      <div className="animate-slide-up pointer-events-auto flex items-center gap-2 rounded-xl border border-c-border bg-surface-raised/95 px-3 py-2 shadow-lg backdrop-blur-sm">
-        <span className="mr-1 text-xs font-medium text-text-secondary">
-          <NumberFlow value={selectedCount} className="text-xs font-medium text-text-secondary" />{" "}
+      <div className="animate-slide-up border-c-border bg-surface-raised/95 pointer-events-auto flex items-center gap-2 rounded-xl border px-3 py-2 shadow-lg backdrop-blur-sm">
+        <span className="text-text-secondary mr-1 text-xs font-medium">
+          <NumberFlow value={selectedCount} className="text-text-secondary text-xs font-medium" />{" "}
           selected
         </span>
 
@@ -233,11 +233,11 @@ function PopupActionButton({
 function NoSearchResults() {
   return (
     <div className="flex h-full flex-col items-center justify-center text-center">
-      <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-surface-raised">
-        <ImageOff className="h-8 w-8 text-text-muted" />
+      <div className="bg-surface-raised mb-4 flex h-16 w-16 items-center justify-center rounded-full">
+        <ImageOff className="text-text-muted h-8 w-8" />
       </div>
-      <h3 className="mb-2 text-lg font-medium text-text-secondary">No results</h3>
-      <p className="max-w-xs text-sm text-text-muted">
+      <h3 className="text-text-secondary mb-2 text-lg font-medium">No results</h3>
+      <p className="text-text-muted max-w-xs text-sm">
         No images match your search. Try a different prompt or model name.
       </p>
     </div>
@@ -269,11 +269,11 @@ function EmptyState() {
 
   return (
     <div className="flex h-full flex-col items-center justify-center text-center">
-      <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-surface-raised">
-        <ImageOff className="h-8 w-8 text-text-muted" />
+      <div className="bg-surface-raised mb-4 flex h-16 w-16 items-center justify-center rounded-full">
+        <ImageOff className="text-text-muted h-8 w-8" />
       </div>
-      <h3 className="mb-2 text-lg font-medium text-text-secondary">No images yet</h3>
-      <p className="max-w-xs text-sm text-text-muted">
+      <h3 className="text-text-secondary mb-2 text-lg font-medium">No images yet</h3>
+      <p className="text-text-muted max-w-xs text-sm">
         Enter a prompt, select a model, and click Generate to create your first image.
       </p>
       {DEMO_BACKUP_URL && (

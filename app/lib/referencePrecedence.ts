@@ -42,7 +42,7 @@ export function computeReferencePrecedence(input: RefPrecedenceInput): RefPreced
   const keepManual = Math.min(manualCount, cap);
   const remaining1 = Math.max(0, cap - keepManual);
 
-  const keepStyle = (Math.min(styleCount, remaining1) as 0 | 1);
+  const keepStyle = Math.min(styleCount, remaining1) as 0 | 1;
   const remaining2 = Math.max(0, remaining1 - keepStyle);
 
   const keepCharacter = Math.min(characterRefCount, remaining2);

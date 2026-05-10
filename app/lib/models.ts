@@ -215,10 +215,7 @@ export function anyModelSupportsNumberOfImages(
 
 // Strictest batch cap across selected batch-aware models. Falls back to 1
 // when no selected model advertises the capability.
-export function getMaxImagesPerRequest(
-  models: StoredModel[],
-  selectedModelIds: string[]
-): number {
+export function getMaxImagesPerRequest(models: StoredModel[], selectedModelIds: string[]): number {
   let limit = Infinity;
   let sawBatchModel = false;
 

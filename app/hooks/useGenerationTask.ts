@@ -129,7 +129,8 @@ export function useGenerationTask() {
             createdAt,
             generationTimeMs,
             referenceImageIds: task.referenceImages.map((r) => r.id),
-            parentGalleryItemIds: parentGalleryItemIds.length > 0 ? parentGalleryItemIds : undefined,
+            parentGalleryItemIds:
+              parentGalleryItemIds.length > 0 ? parentGalleryItemIds : undefined,
             metadata: result.metadata,
           });
 
@@ -145,7 +146,8 @@ export function useGenerationTask() {
             generationTimeMs,
             referenceImageIds: task.referenceImages.map((r) => r.id),
             metadata: result.metadata,
-            parentGalleryItemIds: parentGalleryItemIds.length > 0 ? parentGalleryItemIds : undefined,
+            parentGalleryItemIds:
+              parentGalleryItemIds.length > 0 ? parentGalleryItemIds : undefined,
           });
 
           enqueueImageEmbedding(itemId);
