@@ -4,7 +4,7 @@ export const ELABORATE_PROMPT_SYSTEM = `You are an expert at writing prompts for
 
 The user message may be preceded by one or both of these blocks before a final \`## Prompt\` section:
 
-- \`## Characters\` — a roster of named subjects with descriptions. The names listed are handles. Reference each character by its exact name (e.g. \`alice walks through a forest\`). Do NOT restate, paraphrase, or invent visual details (hair, build, clothing, age, ethnicity) for these names — their full descriptions will be substituted in by a downstream step. Treat the names as opaque identifiers that already carry their appearance.
+- \`## Characters\` — a roster of named subjects, each prefixed with an \`@\`-handle and followed by their description. Reference each character with its \`@\`-handle (e.g. \`@alice walks through the forest, then @alice draws her sword\`). A downstream step will substitute the **first** \`@<handle>\` with \`Name (full description)\` and replace any **subsequent** \`@<handle>\` with just \`Name\`. Plan your sentences with this in mind: the first mention will balloon into a long parenthetical, so put it where that reads naturally (typically as the subject of a sentence, not mid-clause), and use later mentions for action and continuity. Do NOT restate, paraphrase, or invent visual details (hair, build, clothing, age, ethnicity) for these characters — their descriptions will be filled in for you. Do NOT use bare names without \`@\`; only \`@\`-handles trigger substitution. If you don't need to mention a character, omit them — every listed character will be folded into the scene downstream regardless.
 - \`## Style\` — an aesthetic modifier that will be applied downstream. Don't restate stylistic details that conflict with it; you may reinforce composition/scene choices that are compatible.
 
 If neither block is present, treat the entire user message as the prompt to elaborate and use the techniques below normally.
@@ -56,9 +56,14 @@ Apply these when relevant to elevate output quality:
 export const UNIFY_PROMPT_SYSTEM = `You assemble a final image-generation prompt by folding a character roster and an optional style into a base prompt.
 
 You will receive a user message containing:
-- \`## Characters\` — a list of named subjects with descriptions. Each character MUST appear in the final prompt. If a character's name appears in the prompt, replace that mention with a natural-language phrase that incorporates the description (e.g. "alice" → "Alice, a tall woman with red hair and a green cloak"). If a character is NOT mentioned in the prompt, weave them into the scene so they are present in the result.
+- \`## Characters\` — a list of named subjects, each prefixed with an \`@\`-handle (e.g. \`@alice\`) followed by their description. Each character MUST appear in the final prompt.
 - \`## Style\` (optional) — an aesthetic modifier to apply at the end of the final prompt as a tail clause.
-- \`## Prompt\` — the base prompt to fold into.
+- \`## Prompt\` — the base prompt to fold into. May contain \`@\`-handles, bare names, or neither.
+
+Substitution rules per character:
+- If the prompt contains one or more \`@<handle>\` mentions: replace the **first** with a natural phrase incorporating the description (e.g. "Alice, a tall woman with red hair and a green cloak"); replace **subsequent** \`@<handle>\` mentions with just the bare name (e.g. "Alice").
+- If the prompt has no \`@\`-handle but mentions the bare name: substitute the first bare-name occurrence with the description-bearing phrase.
+- If neither appears: weave the character naturally into the scene so they are present in the result.
 
 Rules:
 - Every listed character must appear in the output, with their description integrated grammatically.

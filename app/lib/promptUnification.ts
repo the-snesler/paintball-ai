@@ -14,12 +14,21 @@ function escapeRegex(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
-/** Whole-word case-insensitive match for a character name in a prompt. */
-function nameMatchesPrompt(prompt: string, name: string): boolean {
+/** Match `@<name>` as a handle: not preceded by a word char, not followed by a word char. */
+function mentionRegex(name: string, flags: string): RegExp {
+  return new RegExp(`(?<![\\w])@${escapeRegex(name)}(?!\\w)`, flags);
+}
+
+/** Match the bare name as a word, but never as part of an `@`-handle. */
+function bareNameRegex(name: string, flags: string): RegExp {
+  return new RegExp(`(?<![\\w@])${escapeRegex(name)}(?!\\w)`, flags);
+}
+
+/** Is the character referenced by either an `@`-handle or a bare-name mention? */
+function isCharacterReferenced(prompt: string, name: string): boolean {
   const trimmed = name.trim();
   if (!trimmed) return false;
-  const re = new RegExp(`\\b${escapeRegex(trimmed)}\\b`, "i");
-  return re.test(prompt);
+  return mentionRegex(trimmed, "i").test(prompt) || bareNameRegex(trimmed, "i").test(prompt);
 }
 
 /** Resolve `{n}` in style text to the style image's position, or strip if no image. */
@@ -45,7 +54,7 @@ export function buildElaborationContext({
 
   const namedCharacters = characters.filter((c) => c.name.trim() && c.text.trim());
   if (namedCharacters.length > 0) {
-    const lines = namedCharacters.map((c) => `- ${c.name.trim()}: ${c.text.trim()}`);
+    const lines = namedCharacters.map((c) => `- @${c.name.trim()}: ${c.text.trim()}`);
     parts.push(`## Characters\n${lines.join("\n")}`);
   }
 
@@ -85,7 +94,7 @@ export async function unifyPrompt({
 
   if (namedCharacters.length === 0 && !hasStyle) return prompt;
 
-  const unreferenced = namedCharacters.filter((c) => !nameMatchesPrompt(prompt, c.name));
+  const unreferenced = namedCharacters.filter((c) => !isCharacterReferenced(prompt, c.name));
 
   if (unreferenced.length === 0) {
     return deterministicUnify({ prompt, characters: namedCharacters, style, styleImagePosition });
@@ -131,9 +140,19 @@ function deterministicUnify({
     const text = character.text.trim();
     if (!name || !text) continue;
 
-    const re = new RegExp(`\\b${escapeRegex(name)}\\b`, "i");
-    if (re.test(result)) {
-      result = result.replace(re, `${name} (${text})`);
+    if (mentionRegex(name, "i").test(result)) {
+      let count = 0;
+      result = result.replace(mentionRegex(name, "gi"), () => {
+        count++;
+        return count === 1 ? `${name} (${text})` : name;
+      });
+      substituted.add(character.id);
+      continue;
+    }
+
+    const bareRe = bareNameRegex(name, "i");
+    if (bareRe.test(result)) {
+      result = result.replace(bareRe, `${name} (${text})`);
       substituted.add(character.id);
     }
   }
@@ -143,7 +162,7 @@ function deterministicUnify({
     const text = character.text.trim();
     if (!text) continue;
     const sep = result.length > 0 ? "\n\n" : "";
-    result = `${result}${sep}Character: ${text}`;
+    result = `${result}${sep}Character ${character.id}: ${text}`;
   }
 
   if (style?.text.trim()) {
