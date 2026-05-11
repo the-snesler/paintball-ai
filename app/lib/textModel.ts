@@ -4,9 +4,6 @@ import { getProvider } from "~/lib/providers";
 import { logger } from "./logging";
 import { retryWithBackoff } from "./retry";
 
-const DEFAULT_GOOGLE_MODEL = "gemini-3-flash-preview";
-const DEFAULT_REPLICATE_MODEL = "google/gemini-3-flash";
-
 interface ResolvedProvider {
   provider: ApiKeyProvider;
   apiKey: string;
@@ -29,21 +26,27 @@ function resolveProvider(): ResolvedProvider {
     };
   }
 
-  const fallback: ApiKeyProvider = selected.provider === "google" ? "replicate" : "google";
-  if (apiKeys[fallback]) {
-    return {
-      provider: fallback,
-      apiKey: apiKeys[fallback]!,
-      modelId: fallback === "google" ? DEFAULT_GOOGLE_MODEL : DEFAULT_REPLICATE_MODEL,
-    };
+  // The active selection's provider has no key — fall back to the first other
+  // configured text model whose provider has a key. Built-ins are listed first,
+  // so this preserves the historical "prefer Google, then Replicate" order and
+  // naturally extends to OpenAI without hardcoding pairs.
+  for (const fallback of textModels) {
+    if (fallback.id === selected.id) continue;
+    if (apiKeys[fallback.provider]) {
+      return {
+        provider: fallback.provider,
+        apiKey: apiKeys[fallback.provider]!,
+        modelId: fallback.modelId,
+      };
+    }
   }
 
   throw new Error("No API key available for text model");
 }
 
 export function isTextModelAvailable(): boolean {
-  const { apiKeys } = useSettingsStore.getState();
-  return !!(apiKeys.google || apiKeys.replicate);
+  const { apiKeys, textModels } = useSettingsStore.getState();
+  return textModels.some((m) => !!apiKeys[m.provider]);
 }
 
 /**

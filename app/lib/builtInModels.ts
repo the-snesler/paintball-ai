@@ -175,6 +175,14 @@ export const BUILT_IN_TEXT_MODELS: StoredTextModel[] = [
     enabled: false,
     icon: "/icons/google.svg",
   },
+  {
+    id: "openai:gpt-5.4-mini",
+    name: "GPT-5.4 Mini",
+    provider: "openai",
+    modelId: "gpt-5.4-mini",
+    enabled: false,
+    icon: "/icons/openai.svg",
+  },
 ];
 
 export function mergeWithBuiltInTextModels(models?: StoredTextModel[]): StoredTextModel[] {

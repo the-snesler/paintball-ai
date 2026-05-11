@@ -3,8 +3,9 @@ import { distance } from "fastest-levenshtein";
 import type { GenerationParams, GenerationResult } from "~/lib/generation";
 import { getImageDimensions } from "~/lib/imageProcessing";
 import { toRateLimitError } from "~/lib/retry";
+import { blobToBase64 } from "~/lib/util";
 import type { AspectRatio, Resolution } from "~/types";
-import type { Provider, ResolvedImageModel, SearchResult } from "./types";
+import type { Provider, ResolvedImageModel, SearchResult, TextGenerationArgs } from "./types";
 import { inferName } from "../modelNames";
 import { normalizeModelId } from ".";
 
@@ -347,20 +348,138 @@ async function searchImageModels(query: string, apiKey: string): Promise<SearchR
   return ranked;
 }
 
+type ResponseInputContent =
+  | { type: "input_text"; text: string }
+  | { type: "input_image"; image_url: string; detail: "auto" | "low" | "high" };
+
+async function generateText(args: TextGenerationArgs, apiKey: string): Promise<string> {
+  let { userPrompt } = args;
+  const { systemPrompt, images, prefill } = args;
+  const modelId = normalizeModelId(args.modelId, "openai");
+  const client = createClient(apiKey);
+
+  // OpenAI models don't reliably continue from a partial assistant turn the way
+  // Gemini does — they treat assistant input as completed history. Fall back to
+  // the Replicate strategy of folding the prefill into the user prompt.
+  if (prefill) {
+    userPrompt = userPrompt + "\n\n" + prefill;
+  }
+
+  const content: ResponseInputContent[] = [{ type: "input_text", text: userPrompt }];
+
+  if (images?.length) {
+    for (const blob of images) {
+      const dataUrl = await blobToBase64(blob);
+      content.push({ type: "input_image", image_url: dataUrl, detail: "auto" });
+    }
+  }
+
+  let response;
+  try {
+    response = await client.responses.create({
+      model: modelId,
+      instructions: systemPrompt,
+      input: [{ role: "user", content }],
+    });
+  } catch (error) {
+    throw toRateLimitError(error, "openai");
+  }
+
+  const text = response.output_text;
+  if (!text) {
+    throw new Error("No text in response");
+  }
+
+  if (prefill) {
+    return prefill + text;
+  }
+  return text;
+}
+
+async function testTextModel(apiKey: string, modelId: string): Promise<void> {
+  await generateText(
+    {
+      modelId,
+      systemPrompt: "You are a connectivity test.",
+      userPrompt: "Respond with the single word 'hi' and nothing else.",
+    },
+    apiKey
+  );
+}
+
+// OpenAI's /v1/models endpoint doesn't expose per-capability flags, so we filter
+// by naming convention. The goal is to allow general-purpose chat/reasoning
+// models and exclude specialized non-text endpoints (images, embeddings, audio,
+// transcription, TTS, realtime, moderation).
+function isTextModel(model: OpenAIModel): boolean {
+  const id = model.id.toLowerCase();
+  if (/(^|[-_])(gpt-image|dall-e)/.test(id)) return false;
+  if (/(^|[-_])embedding/.test(id)) return false;
+  if (/(^|[-_])(whisper|tts|transcribe|audio|realtime|moderation)/.test(id)) return false;
+  // Specialized variants that don't use the standard Responses interface cleanly.
+  if (/(^|[-_])(search-preview|computer-use|deep-research)/.test(id)) return false;
+  // Allow generic gpt-*, chatgpt-*, codex-*, and reasoning models (o1/o3/o4 plus
+  // any future o<N>* family). Tolerate "*-mini", "*-pro", "*-nano", date suffixes.
+  return /^(gpt-|chatgpt-|codex-|o\d)/.test(id);
+}
+
+function toTextSearchResult(model: OpenAIModel): SearchResult {
+  return {
+    id: model.id,
+    name: inferName(model.id),
+    description: model.owned_by ? `Owner: ${model.owned_by}` : "OpenAI text model",
+    icon: "/icons/openai.svg",
+  };
+}
+
+async function searchTextModels(query: string, apiKey: string): Promise<SearchResult[]> {
+  const client = createClient(apiKey);
+
+  let models: OpenAIModel[] = [];
+  try {
+    const response = await client.models.list();
+    models = response.data as OpenAIModel[];
+  } catch {
+    return [];
+  }
+
+  const textModels = models.filter(isTextModel);
+  const q = query.trim().toLowerCase();
+
+  if (!q) {
+    return textModels.slice(0, 6).map(toTextSearchResult);
+  }
+
+  return textModels
+    .map((model) => {
+      const id = model.id.toLowerCase();
+      const containsBoost = id.includes(q) ? -1000 : 0;
+      const score = distance(q, id) + containsBoost;
+      return { model, score };
+    })
+    .sort((a, b) => a.score - b.score)
+    .slice(0, 6)
+    .map(({ model }) => toTextSearchResult(model));
+}
+
 export const openaiProvider: Provider = {
   id: "openai",
   label: "OpenAI",
   iconPath: "/icons/openai.svg",
   requiresApiKey: true,
+  supportsTextPrefill: false,
   capabilities: {
     image: true,
-    text: false,
+    text: true,
     upscale: false,
     searchImage: true,
-    searchText: false,
+    searchText: true,
     searchUpscale: false,
   },
   generateImage,
+  generateText,
+  testTextModel,
   searchImageModels,
+  searchTextModels,
   resolveImageModel,
 };
