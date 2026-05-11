@@ -244,7 +244,7 @@ export function SettingsModal() {
             <div className="flex items-center gap-2">
               <MessageSquareText className="text-accent-muted h-4 w-4" />
               <span className="text-sm font-medium">Text generation</span>
-              {(apiKeys.google || apiKeys.replicate) && (
+              {(apiKeys.google || apiKeys.replicate || apiKeys.openai) && (
                 <Check className="h-4 w-4 text-green-500" />
               )}
             </div>

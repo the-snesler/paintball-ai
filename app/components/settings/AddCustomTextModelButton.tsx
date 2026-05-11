@@ -86,8 +86,9 @@ export default function AddCustomTextModelButton() {
       return;
     }
 
+    const providerInfo = getProvider(provider);
     if (!apiKey) {
-      setError(`Add a ${provider === "google" ? "Google" : "Replicate"} API key first`);
+      setError(`Add a ${providerInfo.label} API key first`);
       return;
     }
 
@@ -99,7 +100,12 @@ export default function AddCustomTextModelButton() {
       await testTextModel(provider, apiKey, trimmed);
       const hit = suggestions.find((s) => s.id === trimmed);
       const name = hit?.name || trimmed;
-      const icon = hit?.icon || (provider === "google" ? "/icons/google.svg" : inferIcon(trimmed));
+      // Replicate models can be arbitrary owner/name combos, so let the icon
+      // heuristic infer from the ID. For first-party providers, prefer the
+      // provider's own icon — `inferIcon` would mis-default to a box for short
+      // names like "o1" that don't match any pattern.
+      const icon =
+        hit?.icon || (provider === "replicate" ? inferIcon(trimmed) : providerInfo.iconPath);
       addCustomTextModel(provider, trimmed, name, icon);
       reset();
     } catch (err) {
@@ -132,7 +138,12 @@ export default function AddCustomTextModelButton() {
     );
   }
 
-  const placeholder = provider === "google" ? "gemini-3-flash-preview" : "owner/model-name";
+  const placeholder =
+    provider === "google"
+      ? "gemini-3-flash-preview"
+      : provider === "openai"
+        ? "gpt-5.4-mini"
+        : "owner/model-name";
 
   return (
     <div className="border-c-border bg-surface-overlay/50 space-y-2 rounded-lg border p-3">

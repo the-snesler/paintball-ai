@@ -48,7 +48,7 @@ export function isTextCapable(provider: Provider): provider is TextCapableProvid
     provider.capabilities.text &&
     !!provider.generateText &&
     !!provider.testTextModel &&
-    (provider.id === "google" || provider.id === "replicate")
+    (provider.id === "google" || provider.id === "replicate" || provider.id === "openai")
   );
 }
 
