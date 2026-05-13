@@ -105,11 +105,11 @@ async function generatePicsumImage(params: GenerationParams): Promise<Generation
 async function generateImage(params: GenerationParams): Promise<GenerationResult[]> {
   const modelId = normalizeModelId(params.modelId, "debug");
 
-  if (modelId === "debug/picsum") {
+  if (modelId === "picsum") {
     return generatePicsumImage(params);
   }
 
-  if (modelId === "debug/manual") {
+  if (modelId === "manual") {
     const ids = params.itemIds ?? [];
     return Promise.all(ids.map((id) => getOrCreateDeferred(id).promise));
   }
