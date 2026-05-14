@@ -141,7 +141,7 @@ function SourceTurn({
         )}
 
         {prompt && (
-          <div className="absolute right-0 bottom-0 left-0 bg-gradient-to-t from-black/70 to-transparent p-2">
+          <div className="absolute right-0 bottom-0 left-0 bg-linear-to-t from-black/70 to-transparent p-2">
             <p className="line-clamp-2 text-xs leading-snug text-white/80">{prompt}</p>
           </div>
         )}
