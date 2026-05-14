@@ -603,7 +603,7 @@ export function CharacterEditView() {
           referenceImageIds: refIds,
         });
       }
-      navigate("/settings");
+      navigate("/app/settings");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to save");
     } finally {
@@ -614,7 +614,7 @@ export function CharacterEditView() {
   const handleDelete = () => {
     if (!existing) return;
     removeCharacter(existing.id);
-    navigate("/settings");
+    navigate("/app/settings");
   };
 
   const referenceImagesSection = (
@@ -845,7 +845,7 @@ export function CharacterEditView() {
       {isNew && (
         <div className="flex items-center gap-3 px-6 py-2">
           <Link
-            to="/settings"
+            to="/app/settings"
             className="text-text-muted hover:text-text-secondary transition-colors"
           >
             <ArrowLeft className="h-4 w-4" />
@@ -911,7 +911,7 @@ export function CharacterEditView() {
             {saving ? "Saving..." : "Save"}
           </button>
           <Link
-            to="/settings"
+            to="/app/settings"
             className="bg-surface-interactive text-text-secondary hover:bg-c-border rounded-lg px-4 py-2 text-center text-sm font-medium transition-colors"
           >
             Cancel

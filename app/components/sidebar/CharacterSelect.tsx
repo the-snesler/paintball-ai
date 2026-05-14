@@ -97,7 +97,7 @@ export function CharacterSelect() {
                 type="button"
                 onClick={(e) => {
                   e.preventDefault();
-                  navigate("/settings#characters");
+                  navigate("/app/settings#characters");
                 }}
                 className="text-text-tertiary hover:bg-surface-raised flex w-full cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-left transition-colors outline-none"
               >

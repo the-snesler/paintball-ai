@@ -22,10 +22,10 @@ export function GalleryHeader({
   const navigate = useNavigate();
 
   const handleBack = () => navigate(-1);
-  const openGallery = () => navigate("/");
-  const openTimeline = () => navigate("/timeline");
-  const openSettings = () => navigate("/settings");
-  const openEditor = () => navigate("/editor");
+  const openGallery = () => navigate("/app");
+  const openTimeline = () => navigate("/app/timeline");
+  const openSettings = () => navigate("/app/settings");
+  const openEditor = () => navigate("/app/editor");
 
   return (
     <header className="border-border-subtle flex h-18 items-center gap-2 border-b px-6 py-4">
@@ -70,13 +70,13 @@ export function GalleryHeader({
         <div className="bg-surface-raised flex items-center gap-1 rounded-lg p-1">
           <ViewModeButton
             onClick={openGallery}
-            isActive={location.pathname === "/"}
+            isActive={location.pathname === "/app"}
             icon={<LayoutDashboard className="h-4 w-4" />}
             label=""
           />
           <ViewModeButton
             onClick={openTimeline}
-            isActive={location.pathname === "/timeline"}
+            isActive={location.pathname === "/app/timeline"}
             icon={<GalleryVertical className="h-4 w-4" />}
             label=""
           />
@@ -86,7 +86,7 @@ export function GalleryHeader({
           aria-label="Open Editor"
           title="Open Editor"
           className={`flex h-8 w-8 items-center justify-center rounded-md transition-colors ${
-            location.pathname === "/editor"
+            location.pathname === "/app/editor"
               ? "bg-surface-overlay text-text-primary"
               : "text-text-tertiary hover:bg-surface-overlay hover:text-text-secondary"
           }`}
@@ -97,7 +97,7 @@ export function GalleryHeader({
           onClick={openSettings}
           aria-label="Settings"
           className={`flex h-8 w-8 items-center justify-center rounded-md transition-colors ${
-            location.pathname === "/settings"
+            location.pathname === "/app/settings"
               ? "bg-surface-overlay text-text-primary"
               : "text-text-tertiary hover:bg-surface-overlay hover:text-text-secondary"
           }`}

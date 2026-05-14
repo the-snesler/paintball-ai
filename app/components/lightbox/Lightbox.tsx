@@ -172,7 +172,7 @@ export function Lightbox() {
         localStorage.setItem("editorSessionId", linkedSession.id);
         clearForSessionRestore();
         closeLightbox();
-        navigate("/editor");
+        navigate("/app/editor");
         return;
       }
 
@@ -194,7 +194,7 @@ export function Lightbox() {
         referenceId: refId,
       });
       closeLightbox();
-      navigate("/editor");
+      navigate("/app/editor");
     },
     [
       galleryImage,
@@ -283,7 +283,7 @@ export function Lightbox() {
                 {galleryImage.modelName}
               </h2>
               <div className="flex items-center gap-1">
-                {location.pathname !== "/editor" && (
+                {location.pathname !== "/app/editor" && (
                   <WideIconButton
                     icon={
                       <span className="relative">
@@ -298,7 +298,7 @@ export function Lightbox() {
                     onClick={handleSendToEditor}
                   />
                 )}
-                {location.pathname !== "/editor" && (
+                {location.pathname !== "/app/editor" && (
                   <WideIconButton
                     icon={<ImageUpscale className="h-4 w-4" />}
                     title="Upscale"

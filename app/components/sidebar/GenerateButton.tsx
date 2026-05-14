@@ -110,7 +110,7 @@ export function GenerateButton() {
 
   const handleGenerate = () => {
     if (missingKeys) {
-      navigate("/settings");
+      navigate("/app/settings");
       return;
     }
     if (canGenerate) {

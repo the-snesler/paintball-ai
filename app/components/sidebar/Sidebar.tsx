@@ -48,9 +48,9 @@ export const SIDEBAR_POPOVER_ID = "sidebar-popover";
 function SidebarContent() {
   const location = useLocation();
 
-  if (location.pathname.startsWith("/settings")) {
+  if (location.pathname.startsWith("/app/settings")) {
     return <SettingsSidebarContent />;
-  } else if (location.pathname.startsWith("/editor")) {
+  } else if (location.pathname.startsWith("/app/editor")) {
     return <EditorSidebarContent />;
   } else {
     return <GallerySidebarContent />;
@@ -300,7 +300,7 @@ function SettingsSidebarContent() {
       </DndContext>
 
       <Link
-        to="/characters/new"
+        to="/app/characters/new"
         className="border-c-border text-text-tertiary hover:border-c-border hover:text-text-secondary flex w-full items-center gap-2 rounded-lg border border-dashed p-2.5 transition-colors"
       >
         <Plus className="h-4 w-4" />

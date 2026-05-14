@@ -82,7 +82,7 @@ export default function CharacterItem({
         )}
       </div>
       <Link
-        to={`/characters/${character.id}`}
+        to={`/app/characters/${character.id}`}
         className="text-text-muted hover:text-accent-muted shrink-0 p-1 transition-colors"
         title="Edit character"
       >

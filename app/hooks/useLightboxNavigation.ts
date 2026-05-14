@@ -6,7 +6,7 @@ import { useLocation } from "react-router";
 export function useLightboxNavigation() {
   const { completedItems, completedItemsByPrompt, getItemById } = useGalleryDerivedIndexes();
   const location = useLocation();
-  const viewMode = location.pathname === "/timeline" ? "timeline" : "grid";
+  const viewMode = location.pathname === "/app/timeline" ? "timeline" : "grid";
   const lightboxTarget = useLightboxStore((s) => s.lightboxTarget);
   const setLightboxTarget = useLightboxStore((s) => s.setLightboxTarget);
 
