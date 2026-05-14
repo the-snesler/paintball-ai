@@ -1,8 +1,11 @@
 import {
+  AlertTriangle,
   ArrowLeft,
+  CircleAlert,
   ClipboardList,
   ImagePlus,
   Images,
+  Loader2,
   Pencil,
   Sparkles,
   Trash2,
@@ -29,6 +32,7 @@ import {
 import { providerRequiresApiKey } from "~/lib/providers";
 import { callTextModel, isTextModelAvailable } from "~/lib/textModel";
 import { ImproveTextButton } from "../ui/ImproveTextButton";
+import { OptionCombobox } from "../ui/OptionCombobox";
 import { useGalleryStore } from "~/stores/galleryStore";
 import { useGenerationStore } from "~/stores/generationStore";
 import { useSettingsStore } from "~/stores/settingsStore";
@@ -140,40 +144,6 @@ function buildCharacterFormDescription(form: CharacterFormState): string {
   return clothing ? `${description}. Usual clothing/style: ${clothing}.` : `${description}.`;
 }
 
-function FieldWithOptions({
-  label,
-  value,
-  options,
-  onChange,
-}: {
-  label: string;
-  value: string;
-  options: string[];
-  onChange: (value: string) => void;
-}) {
-  const listId = `character-${label.toLowerCase().replace(/\s+/g, "-")}`;
-  return (
-    <div>
-      <label className="text-text-tertiary mb-1.5 block text-xs font-medium tracking-wide uppercase">
-        {label}
-      </label>
-      <input
-        type="text"
-        list={listId}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder="Choose or type"
-        className="border-c-border bg-surface-overlay text-text-primary placeholder-text-muted w-full rounded-lg border px-3 py-2 text-sm focus:border-purple-500 focus:ring-1 focus:ring-purple-500 focus:outline-none"
-      />
-      <datalist id={listId}>
-        {options.map((option) => (
-          <option key={option} value={option} />
-        ))}
-      </datalist>
-    </div>
-  );
-}
-
 function RefTile({ ref: localRef, onRemove }: { ref: LocalRef; onRemove: (id: string) => void }) {
   const openLightbox = useLightboxStore((s) => s.openLightbox);
   return (
@@ -247,6 +217,30 @@ function RecentGalleryStrip({ onAdd }: { onAdd: (item: CompletedGalleryItem) => 
   );
 }
 
+function ModelWarningBanner() {
+  return (
+    <div className="border-yellow-500/30 bg-yellow-500/10 text-yellow-200 flex items-start gap-2 rounded-lg border px-3 py-2 text-xs">
+      <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-yellow-300" />
+      <p>
+        Select an image model in the sidebar to generate a reference. Open the sidebar on the left
+        and toggle a model under <span className="font-medium">Models</span>.
+      </p>
+    </div>
+  );
+}
+
+function InlineErrorBanner({ message }: { message: string }) {
+  return (
+    <div
+      role="alert"
+      className="border-red-500/30 bg-red-500/10 text-red-300 flex items-start gap-2 rounded-lg border px-3 py-2 text-xs"
+    >
+      <CircleAlert className="mt-0.5 h-3.5 w-3.5 shrink-0 text-red-400" />
+      <p>{message}</p>
+    </div>
+  );
+}
+
 export function CharacterEditView() {
   const { id } = useParams<{ id?: string }>();
   const navigate = useNavigate();
@@ -270,10 +264,13 @@ export function CharacterEditView() {
   const [refs, setRefs] = useState<LocalRef[]>([]);
   const [removedIds, setRemovedIds] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
-  const [generating, setGenerating] = useState(false);
+  const [phase, setPhase] = useState<"idle" | "analyzing" | "generatingImage">("idle");
   const [error, setError] = useState<string | null>(null);
   const [isDragOver, setIsDragOver] = useState(false);
   const [form, setForm] = useState<CharacterFormState>(DEFAULT_FORM_STATE);
+  const [extraInstructions, setExtraInstructions] = useState("");
+  const generating = phase !== "idle";
+  const hasImageModelSelected = Object.values(currentModelSelections).some((n) => n > 0);
   const fileRef = useRef<HTMLInputElement>(null);
   const galleryItems = useGalleryStore((s) => s.items);
   const objectUrlsRef = useRef<Set<string>>(new Set());
@@ -481,30 +478,32 @@ export function CharacterEditView() {
       setError("Add at least one reference photo first");
       return;
     }
-
-    const selectedModelId = Object.entries(currentModelSelections).find(
-      ([, count]) => count > 0
-    )?.[0];
-    if (!selectedModelId) {
-      throw new Error("Select an image model in the sidebar first");
+    if (!hasImageModelSelected) {
+      setError("Select an image model in the sidebar first");
+      return;
     }
 
-    setGenerating(true);
     setError(null);
     try {
+      setPhase("analyzing");
+      const trimmedInstructions = extraInstructions.trim();
+      const userMessage = trimmedInstructions
+        ? `Write a reusable character description from these reference images.\n\nAdditional instructions: ${trimmedInstructions}`
+        : "Write a reusable character description from these reference images.";
       const description = await callTextModel(
         CHARACTER_DESCRIPTION_FROM_REFERENCES_SYSTEM,
-        "Write a reusable character description from these reference images.",
+        userMessage,
         refs.map((r) => r.blob)
       );
       setText(description.trim());
       if (!name.trim()) setName("New character");
+      setPhase("generatingImage");
       await generateCharacterReference(description.trim(), refs);
       setMode("manual");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to generate character");
     } finally {
-      setGenerating(false);
+      setPhase("idle");
     }
   };
 
@@ -514,18 +513,22 @@ export function CharacterEditView() {
       setError("Fill out at least one character detail first");
       return;
     }
+    if (!hasImageModelSelected) {
+      setError("Select an image model in the sidebar first");
+      return;
+    }
 
-    setGenerating(true);
     setError(null);
     try {
       if (form.name.trim()) setName(form.name.trim());
       setText(description);
+      setPhase("generatingImage");
       await generateCharacterReference(description);
       setMode("manual");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to generate character reference");
     } finally {
-      setGenerating(false);
+      setPhase("idle");
     }
   };
 
@@ -636,8 +639,12 @@ export function CharacterEditView() {
           e.preventDefault();
           setIsDragOver(false);
         }}
-        className={`min-h-20 rounded-lg border-2 border-dashed p-3 transition-colors ${
-          isDragOver ? "border-purple-500 bg-purple-500/10" : "border-c-border"
+        className={`min-h-20 rounded-lg border-2 p-3 transition-colors ${
+          isDragOver
+            ? "border-dashed border-purple-500 bg-purple-500/10"
+            : refs.length > 0
+              ? "border-c-border/60 border-solid"
+              : "border-c-border border-dashed"
         }`}
       >
         <div className="grid grid-cols-4 gap-2 sm:grid-cols-6">
@@ -688,7 +695,18 @@ export function CharacterEditView() {
             placeholder="Text appended to your prompt when this character is selected (optional)"
             className="border-c-border bg-surface-overlay text-text-primary placeholder-text-muted w-full resize-y rounded-lg border px-3 py-2 text-sm focus:border-purple-500 focus:ring-1 focus:ring-purple-500 focus:outline-none"
           />
-          <div className="mt-1.5 flex justify-end">
+          <div className="mt-1.5 flex items-center justify-between gap-2">
+            {improveText.error ? (
+              <p
+                role="alert"
+                className="text-xs text-red-400"
+                title={improveText.error}
+              >
+                Couldn’t improve text — {improveText.error}
+              </p>
+            ) : (
+              <span />
+            )}
             <ImproveTextButton
               isImproving={improveText.isImproving}
               hasUndo={improveText.hasUndo}
@@ -707,23 +725,63 @@ export function CharacterEditView() {
 
   const referencesContent = (
     <>
-      <div className="space-y-3">
+      <div className="space-y-4">
+        <header className="flex items-start gap-3">
+          <div className="bg-purple-500/10 text-purple-300 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg">
+            <Images className="h-4 w-4" />
+          </div>
+          <div>
+            <h2 className="text-text-primary text-sm font-medium">Character from references</h2>
+            <p className="text-text-muted mt-0.5 text-xs">
+              Add photos, then generate a reusable description and one clean reference image.
+            </p>
+          </div>
+        </header>
+
+        {referenceImagesSection}
+
         <div>
-          <h2 className="text-text-primary text-sm font-medium">Character from references</h2>
+          <label
+            htmlFor="character-extra-instructions"
+            className="text-text-tertiary mb-1.5 block text-xs font-medium tracking-wide uppercase"
+          >
+            Additional instructions{" "}
+            <span className="text-text-muted text-[10px] normal-case">(optional)</span>
+          </label>
+          <textarea
+            id="character-extra-instructions"
+            value={extraInstructions}
+            onChange={(e) => setExtraInstructions(e.target.value)}
+            rows={2}
+            placeholder="e.g. focus on hairstyle and outfit, ignore the background"
+            className="border-c-border bg-surface-overlay text-text-primary placeholder-text-muted w-full resize-y rounded-lg border px-3 py-2 text-sm focus:border-purple-500 focus:ring-1 focus:ring-purple-500 focus:outline-none"
+          />
           <p className="text-text-muted mt-1 text-xs">
-            Add photos, then generate a reusable description and one clean reference image.
+            Guides the text model when it writes the character description from your photos.
           </p>
         </div>
-        {referenceImagesSection}
+
         <RecentGalleryStrip onAdd={addGalleryItem} />
+
+        {!hasImageModelSelected && <ModelWarningBanner />}
+        {error && <InlineErrorBanner message={error} />}
+
         <button
           type="button"
           onClick={handleGenerateFromReferences}
-          disabled={generating}
+          disabled={generating || !hasImageModelSelected}
           className="flex w-full items-center justify-center gap-2 rounded-lg bg-purple-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-purple-500 disabled:cursor-not-allowed disabled:opacity-50"
         >
-          <Sparkles className="h-4 w-4" />
-          {generating ? "Generating... (this may take a minute)" : "Generate character"}
+          {generating ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Sparkles className="h-4 w-4" />
+          )}
+          {phase === "analyzing"
+            ? "Analyzing references…"
+            : phase === "generatingImage"
+              ? "Generating reference image…"
+              : "Generate character"}
         </button>
       </div>
     </>
@@ -731,13 +789,18 @@ export function CharacterEditView() {
 
   const formContent = (
     <>
-      <div>
-        <h2 className="text-text-primary text-sm font-medium">Character from form</h2>
-        <p className="text-text-muted mt-1 text-xs">
-          Pick from the suggestions or type custom values; the description is built directly from
-          your entries.
-        </p>
-      </div>
+      <header className="flex items-start gap-3">
+        <div className="bg-purple-500/10 text-purple-300 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg">
+          <ClipboardList className="h-4 w-4" />
+        </div>
+        <div>
+          <h2 className="text-text-primary text-sm font-medium">Character from form</h2>
+          <p className="text-text-muted mt-0.5 text-xs">
+            Pick from the suggestions or type custom values; the description is built directly from
+            your entries.
+          </p>
+        </div>
+      </header>
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
           <label className="text-text-tertiary mb-1.5 block text-xs font-medium tracking-wide uppercase">
@@ -751,61 +814,61 @@ export function CharacterEditView() {
             className="border-c-border bg-surface-overlay text-text-primary placeholder-text-muted w-full rounded-lg border px-3 py-2 text-sm focus:border-purple-500 focus:ring-1 focus:ring-purple-500 focus:outline-none"
           />
         </div>
-        <FieldWithOptions
+        <OptionCombobox
           label="Age"
           value={form.age}
           options={FORM_OPTIONS.age}
           onChange={(value) => setForm((prev) => ({ ...prev, age: value }))}
         />
-        <FieldWithOptions
+        <OptionCombobox
           label="Presentation"
           value={form.presentation}
           options={FORM_OPTIONS.presentation}
           onChange={(value) => setForm((prev) => ({ ...prev, presentation: value }))}
         />
-        <FieldWithOptions
+        <OptionCombobox
           label="Eye color"
           value={form.eyeColor}
           options={FORM_OPTIONS.eyeColor}
           onChange={(value) => setForm((prev) => ({ ...prev, eyeColor: value }))}
         />
-        <FieldWithOptions
+        <OptionCombobox
           label="Build"
           value={form.build}
           options={FORM_OPTIONS.build}
           onChange={(value) => setForm((prev) => ({ ...prev, build: value }))}
         />
-        <FieldWithOptions
+        <OptionCombobox
           label="Nationality"
           value={form.nationality}
           options={FORM_OPTIONS.nationality}
           onChange={(value) => setForm((prev) => ({ ...prev, nationality: value }))}
         />
-        <FieldWithOptions
+        <OptionCombobox
           label="Ethnicity"
           value={form.ethnicity}
           options={FORM_OPTIONS.ethnicity}
           onChange={(value) => setForm((prev) => ({ ...prev, ethnicity: value }))}
         />
-        <FieldWithOptions
+        <OptionCombobox
           label="Height"
           value={form.height}
           options={FORM_OPTIONS.height}
           onChange={(value) => setForm((prev) => ({ ...prev, height: value }))}
         />
-        <FieldWithOptions
+        <OptionCombobox
           label="Hair style"
           value={form.hairStyle}
           options={FORM_OPTIONS.hairStyle}
           onChange={(value) => setForm((prev) => ({ ...prev, hairStyle: value }))}
         />
-        <FieldWithOptions
+        <OptionCombobox
           label="Hair color"
           value={form.hairColor}
           options={FORM_OPTIONS.hairColor}
           onChange={(value) => setForm((prev) => ({ ...prev, hairColor: value }))}
         />
-        <FieldWithOptions
+        <OptionCombobox
           label="Skin tone"
           value={form.skinTone}
           options={FORM_OPTIONS.skinTone}
@@ -824,14 +887,20 @@ export function CharacterEditView() {
           />
         </div>
       </div>
+      {!hasImageModelSelected && <ModelWarningBanner />}
+      {error && <InlineErrorBanner message={error} />}
       <button
         type="button"
         onClick={handleGenerateFromForm}
-        disabled={generating}
+        disabled={generating || !hasImageModelSelected}
         className="flex w-full items-center justify-center gap-2 rounded-lg bg-purple-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-purple-500 disabled:cursor-not-allowed disabled:opacity-50"
       >
-        <Sparkles className="h-4 w-4" />
-        {generating ? "Generating... (this may take a minute)" : "Generate reference"}
+        {generating ? (
+          <Loader2 className="h-4 w-4 animate-spin" />
+        ) : (
+          <Sparkles className="h-4 w-4" />
+        )}
+        {phase === "generatingImage" ? "Generating reference image…" : "Generate reference"}
       </button>
     </>
   );
@@ -898,7 +967,7 @@ export function CharacterEditView() {
           }}
         />
 
-        {error && <p className="text-xs text-red-400">{error}</p>}
+        {(!isNew || mode === "manual") && error && <InlineErrorBanner message={error} />}
 
         {/* Footer actions */}
         <div className="mt-auto flex gap-2 pt-2">

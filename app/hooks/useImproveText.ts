@@ -34,19 +34,21 @@ export function useImproveText({
   const setBaseText = isControlled ? controlledSetBaseText : setLocalBaseText;
 
   const [isImproving, setIsImproving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const improve = useCallback(async () => {
     if (!text.trim() || isImproving) return;
     const snapshot = text;
     setIsImproving(true);
+    setError(null);
     try {
       const images = getImages?.();
       const userPrompt = buildUserPrompt ? buildUserPrompt(text) : text;
       const improved = await callTextModel(systemPrompt, userPrompt, images);
       setText(improved.trim());
       setBaseText(snapshot);
-    } catch {
-      // Leave text unchanged on failure
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to improve text");
     } finally {
       setIsImproving(false);
     }
@@ -58,10 +60,14 @@ export function useImproveText({
     setBaseText(null);
   }, [baseText, setText, setBaseText]);
 
+  const clearError = useCallback(() => setError(null), []);
+
   return {
     isImproving,
     hasUndo: baseText !== null,
     improve,
     undo,
+    error,
+    clearError,
   };
 }
