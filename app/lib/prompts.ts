@@ -97,6 +97,7 @@ Rules:
 - Right 1/3rd: 4 rows and 3 columns of smaller reference images. 2 rows of facial expressions and 2 rows of detail close-ups (e.g. hair, distinctive features) for a total of 12 small reference images
 - Use a simple unobtrusive background
 - Prioritize stable physical identity over dramatic scene, lighting, or composition
+- If there is one, preserve the artistic style of the input images. Unify them with consistent lighting and color grading if they differ significantly.
 - Preserve the character's distinctive features exactly where possible, do not simplify or alter them for stylistic effect.
 - Do not include labels, captions, UI, or text in the image`;
 

@@ -11,6 +11,8 @@ import {
   Trash2,
   X,
 } from "lucide-react";
+import IconSave from "~icons/dinkie-icons/floppy-disk";
+import IconX from "~icons/dinkie-icons/black-cross-square";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { useImproveText } from "~/hooks/useImproveText";
@@ -727,7 +729,7 @@ export function CharacterEditView() {
     <>
       <div className="space-y-4">
         <header className="flex items-start gap-3">
-          <div className="bg-purple-500/10 text-purple-300 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-purple-500/10 text-purple-300">
             <Images className="h-4 w-4" />
           </div>
           <div>
@@ -770,7 +772,7 @@ export function CharacterEditView() {
           type="button"
           onClick={handleGenerateFromReferences}
           disabled={generating || !hasImageModelSelected}
-          className="flex w-full items-center justify-center gap-2 rounded-lg bg-purple-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-purple-500 disabled:cursor-not-allowed disabled:opacity-50"
+          className="mx-auto flex items-center justify-center gap-2 rounded-lg bg-purple-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-purple-500 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {generating ? (
             <Loader2 className="h-4 w-4 animate-spin" />
@@ -790,7 +792,7 @@ export function CharacterEditView() {
   const formContent = (
     <>
       <header className="flex items-start gap-3">
-        <div className="bg-purple-500/10 text-purple-300 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-purple-500/10 text-purple-300">
           <ClipboardList className="h-4 w-4" />
         </div>
         <div>
@@ -893,7 +895,7 @@ export function CharacterEditView() {
         type="button"
         onClick={handleGenerateFromForm}
         disabled={generating || !hasImageModelSelected}
-        className="flex w-full items-center justify-center gap-2 rounded-lg bg-purple-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-purple-500 disabled:cursor-not-allowed disabled:opacity-50"
+        className="mx-auto flex items-center justify-center gap-2 rounded-lg bg-purple-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-purple-500 disabled:cursor-not-allowed disabled:opacity-50"
       >
         {generating ? (
           <Loader2 className="h-4 w-4 animate-spin" />
@@ -975,14 +977,16 @@ export function CharacterEditView() {
             type="button"
             onClick={handleSave}
             disabled={saving || generating}
-            className="flex-1 rounded-lg bg-purple-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-purple-500 disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-purple-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-purple-500 disabled:cursor-not-allowed disabled:opacity-50"
           >
+            <IconSave className="h-4 w-4" />
             {saving ? "Saving..." : "Save"}
           </button>
           <Link
             to="/app/settings"
-            className="bg-surface-interactive text-text-secondary hover:bg-c-border rounded-lg px-4 py-2 text-center text-sm font-medium transition-colors"
+            className="bg-surface-interactive text-text-secondary hover:bg-c-border flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-center text-sm font-medium transition-colors"
           >
+            <IconX className="h-4 w-4" />
             Cancel
           </Link>
           {!isNew && existing && (
