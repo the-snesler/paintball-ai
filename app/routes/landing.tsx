@@ -1,6 +1,7 @@
 import { useEffect } from "react";
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
 import type { Route } from "./+types/landing";
+import { useSettingsStore } from "~/stores/settingsStore";
 import IconGithub from "~icons/dinkie-icons/github";
 import IconSparkles from "~icons/dinkie-icons/sparkles";
 import IconBrush from "~icons/dinkie-icons/brush";
@@ -83,6 +84,15 @@ function Feature({
 }
 
 export default function Landing() {
+  const navigate = useNavigate();
+  const isReturningUser = useSettingsStore((s) => s.requestedOutputCount > 0);
+
+  useEffect(() => {
+    if (isReturningUser) {
+      navigate("/app", { replace: true });
+    }
+  }, [isReturningUser, navigate]);
+
   useEffect(() => {
     const html = document.documentElement;
     const body = document.body;
@@ -103,6 +113,8 @@ export default function Landing() {
       body.style.height = prev.bodyHeight;
     };
   }, []);
+
+  if (isReturningUser) return null;
 
   return (
     <div className="min-h-screen bg-[#07070a] text-[#f4f4f7]">
