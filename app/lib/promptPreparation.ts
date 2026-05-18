@@ -87,11 +87,7 @@ export async function preparePromptBatch(
   let workingPrompt = prompt;
   let improved = false;
 
-  if (
-    improvePrompt &&
-    isTextModelAvailable() &&
-    !(workingPrompt.length > 1000 && selectedCharacters.length === 0 && !style)
-  ) {
+  if (improvePrompt && isTextModelAvailable() && !(workingPrompt.length > 700)) {
     onStageChange?.("writing");
     try {
       const elaborationContext = buildElaborationContext({

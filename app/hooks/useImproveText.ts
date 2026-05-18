@@ -1,5 +1,18 @@
 import { useCallback, useState } from "react";
 import { callTextModel } from "~/lib/textModel";
+import { useSettingsStore } from "~/stores/settingsStore";
+
+function notifyImproveComplete() {
+  if (!useSettingsStore.getState().desktopNotificationsEnabled) return;
+  if (typeof window === "undefined" || !("Notification" in window)) return;
+  if (Notification.permission !== "granted") return;
+  if (!document.hidden && document.hasFocus()) return;
+
+  new Notification("Paintball", {
+    body: "Text rewrite complete.",
+    tag: "paintball-improve-text-complete",
+  });
+}
 
 export function useImproveText({
   systemPrompt,
@@ -47,6 +60,7 @@ export function useImproveText({
       const improved = await callTextModel(systemPrompt, userPrompt, images);
       setText(improved.trim());
       setBaseText(snapshot);
+      notifyImproveComplete();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to improve text");
     } finally {
