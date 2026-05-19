@@ -17,6 +17,7 @@ import IconShield from "~icons/dinkie-icons/shield";
 import IconShuffle from "~icons/dinkie-icons/shuffle-arrows";
 import IconArrow from "~icons/dinkie-icons/right-arrow-circled";
 import IconDroplet from "~icons/dinkie-icons/droplet";
+import { InkDropGrid } from "~/components/landing/InkDropGrid";
 
 export function meta(_: Route.MetaArgs) {
   return [
@@ -118,8 +119,9 @@ export default function Landing() {
 
   return (
     <div className="min-h-screen bg-[#07070a] text-[#f4f4f7]">
+      <InkDropGrid className="pointer-events-none fixed inset-0 z-0 h-full w-full opacity-60" />
       <div
-        className="pointer-events-none absolute inset-x-0 top-0 z-0 h-150"
+        className="pointer-events-none absolute inset-x-0 top-0 z-1 h-150"
         style={{
           background:
             "radial-gradient(ellipse 80% 50% at 50% -10%, rgba(168, 85, 247, 0.18), transparent 60%)",
@@ -183,7 +185,7 @@ export default function Landing() {
       <section className="relative mx-auto max-w-300 px-7 pt-20 pb-16">
         <div className="relative z-10 text-center">
           <h1
-            className="mx-auto mb-6 max-w-225 text-[clamp(44px,7vw,88px)] leading-[0.98] font-semibold tracking-[-0.035em]"
+            className="mx-auto mb-4 max-w-225 pb-2 text-[clamp(44px,7vw,88px)] leading-[0.98] font-semibold tracking-[-0.035em]"
             style={{
               background: "linear-gradient(180deg, #fff 0%, #b8b8c4 100%)",
               WebkitBackgroundClip: "text",
@@ -206,11 +208,10 @@ export default function Landing() {
             </em>{" "}
             image model.
           </h1>
-          <p className="text-text-tertiary mx-auto mb-9 max-w-160 text-[clamp(16px,1.4vw,19px)] leading-[1.55]">
-            Paintball is a fast, opinionated app for generating with every modern image model —
-            OpenAI, Google, Replicate, and any custom checkpoint you can name. Compare side-by-side,
-            iterate in an editor, search your gallery semantically. Your keys never leave your
-            browser.
+          <p className="text-text-tertiary mx-auto mb-9 max-w-170 text-[clamp(16px,1.4vw,19px)] leading-[1.55]">
+            Paintball is a fast, local app for generating with every modern image model: OpenAI,
+            Google, Replicate, or any custom checkpoint you can name. Compare side-by-side, iterate
+            in an editor, search your gallery semantically. Your keys never leave your browser.
           </p>
           <div className="inline-flex flex-wrap justify-center gap-3">
             <Link
@@ -401,7 +402,9 @@ export default function Landing() {
           </div>
           <div className="border-c-border rounded-[14px] border bg-[#0c0c11] p-6">
             <div className="text-accent-muted mb-3 font-mono text-xs">03 / Generate</div>
-            <h3 className="mb-2 text-lg font-semibold tracking-[-0.01em]">Generate, edit, repeat</h3>
+            <h3 className="mb-2 text-lg font-semibold tracking-[-0.01em]">
+              Generate, edit, repeat
+            </h3>
             <p className="text-text-tertiary text-sm leading-[1.6]">
               Type a prompt, pick the models you want to race, hit ⌘↩. Cherry-pick a winner, open it
               in the editor, keep going.
