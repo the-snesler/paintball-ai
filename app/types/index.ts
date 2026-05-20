@@ -9,6 +9,8 @@ export type Resolution = "1K" | "2K" | "4K";
 export interface ModelCapabilities {
   supportsAspectRatios: boolean;
   supportedAspectRatios?: string[]; // should use doesModelSupportAspectRatio() from models.ts to check support
+  /** Model accepts any aspect ratio string within its own internal constraints (e.g. gpt-image-2). */
+  allowsArbitraryAspectRatio?: boolean;
   supportsResolution: boolean;
   resolutions?: Resolution[];
   supportsReferenceImages: boolean;

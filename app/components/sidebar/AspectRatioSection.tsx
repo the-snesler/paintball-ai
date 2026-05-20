@@ -1,14 +1,20 @@
 import { ChevronRight, Square } from "lucide-react";
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   ASPECT_RATIOS,
   getAspectRatioIntersection,
   getAspectRatioUnion,
+  isSoleArbitraryAspectRatioModel,
   parseAspectRatio,
 } from "~/lib/models";
 import { useGenerationStore } from "~/stores/generationStore";
 import { useSettingsStore } from "~/stores/settingsStore";
 import { Accordion } from "@base-ui/react/accordion";
+
+// gpt-image-2 (and any other arbitrary-AR model) requires long:short ≤ 3:1.
+const MAX_LONG_SHORT_RATIO = 3;
+
+const ARBITRARY_MODE_PRESETS = ["3:2", "2:3"];
 
 export function AspectRatioSection() {
   const aspectRatio = useGenerationStore((s) => s.currentAspectRatio);
@@ -20,6 +26,8 @@ export function AspectRatioSection() {
   const selectedModels = Object.entries(modelSelections)
     .filter(([, count]) => count > 0)
     .map(([modelId]) => modelId);
+
+  const arbitraryMode = isSoleArbitraryAspectRatioModel(models, selectedModels);
 
   const selectableRatios = getAspectRatioIntersection(models, selectedModels);
   const visibleRatios = getAspectRatioUnion(models, selectedModels);
@@ -46,13 +54,13 @@ export function AspectRatioSection() {
   const splitAt = primaryRatioValues.length;
   const primaryRatios = allRatios.slice(0, splitAt);
   const hiddenRatios = allRatios.slice(splitAt);
-  const hasAdditionalRatios = selectableRatios.length > splitAt;
+  const hasAdditionalRatios = arbitraryMode || selectableRatios.length > splitAt;
 
-  const renderRatio = (ratio: string) => {
+  const renderRatio = (ratio: string, opts?: { forceEnabled?: boolean }) => {
     const builtInMeta = ASPECT_RATIOS.find((ar) => ar.value === ratio);
     const parsed = parseAspectRatio(ratio);
     const isSelected = aspectRatio === ratio;
-    const isEnabled = selectableSet.has(ratio);
+    const isEnabled = opts?.forceEnabled || selectableSet.has(ratio);
 
     return (
       <button
@@ -102,12 +110,26 @@ export function AspectRatioSection() {
             )}
           </div>
 
-          <div className="grid grid-cols-6 gap-1.5">{primaryRatios.map(renderRatio)}</div>
+          <div className="grid grid-cols-6 gap-1.5">{primaryRatios.map((r) => renderRatio(r))}</div>
 
-          {hiddenRatios.length > 0 && (
+          {arbitraryMode ? (
             <Accordion.Panel className="h-(--accordion-panel-height) overflow-hidden transition-[height] duration-200 data-ending-style:h-0 data-starting-style:h-0">
-              <div className="mt-1.5 grid grid-cols-6 gap-1.5">{hiddenRatios.map(renderRatio)}</div>
+              <div className="mt-1.5 grid grid-cols-6 gap-1.5">
+                {ARBITRARY_MODE_PRESETS.map((r) => renderRatio(r, { forceEnabled: true }))}
+                <CustomAspectRatioInput
+                  currentAspectRatio={aspectRatio}
+                  setAspectRatio={setAspectRatio}
+                />
+              </div>
             </Accordion.Panel>
+          ) : (
+            hiddenRatios.length > 0 && (
+              <Accordion.Panel className="h-(--accordion-panel-height) overflow-hidden transition-[height] duration-200 data-ending-style:h-0 data-starting-style:h-0">
+                <div className="mt-1.5 grid grid-cols-6 gap-1.5">
+                  {hiddenRatios.map((r) => renderRatio(r))}
+                </div>
+              </Accordion.Panel>
+            )
           )}
         </Accordion.Item>
       </Accordion.Root>
@@ -137,5 +159,100 @@ function AspectRatioPreview({
       }`}
       style={{ width: `${w}px`, height: `${h}px` }}
     />
+  );
+}
+
+function parseCustomSeed(aspectRatio: string | null): { w: string; h: string } {
+  if (!aspectRatio) return { w: "3", h: "2" };
+  const [wStr, hStr] = aspectRatio.split(":");
+  const w = Number(wStr);
+  const h = Number(hStr);
+  if (!Number.isFinite(w) || !Number.isFinite(h) || w <= 0 || h <= 0) {
+    return { w: "3", h: "2" };
+  }
+  return { w: String(w), h: String(h) };
+}
+
+function CustomAspectRatioInput({
+  currentAspectRatio,
+  setAspectRatio,
+}: {
+  currentAspectRatio: string | null;
+  setAspectRatio: (ratio: string | null) => void;
+}) {
+  const seed = parseCustomSeed(currentAspectRatio);
+  const [wInput, setWInput] = useState(seed.w);
+  const [hInput, setHInput] = useState(seed.h);
+
+  // Keep inputs in sync when an external preset is clicked (e.g. 3:2 / 2:3).
+  useEffect(() => {
+    const next = parseCustomSeed(currentAspectRatio);
+    setWInput(next.w);
+    setHInput(next.h);
+  }, [currentAspectRatio]);
+
+  const wNum = Number(wInput);
+  const hNum = Number(hInput);
+  const numericValid =
+    Number.isFinite(wNum) && Number.isFinite(hNum) && wNum > 0 && hNum > 0;
+  const ratioValid =
+    numericValid && Math.max(wNum, hNum) / Math.min(wNum, hNum) <= MAX_LONG_SHORT_RATIO;
+
+  const candidate = numericValid ? `${wNum}:${hNum}` : null;
+  const isSelected = !!candidate && currentAspectRatio === candidate;
+
+  const apply = (nextW: string, nextH: string) => {
+    const w = Number(nextW);
+    const h = Number(nextH);
+    if (!Number.isFinite(w) || !Number.isFinite(h) || w <= 0 || h <= 0) return;
+    if (Math.max(w, h) / Math.min(w, h) > MAX_LONG_SHORT_RATIO) return;
+    setAspectRatio(`${w}:${h}`);
+  };
+
+  const previewW = numericValid ? wNum : 1;
+  const previewH = numericValid ? hNum : 1;
+
+  return (
+    <div
+      className={`col-span-4 flex items-center gap-2 rounded-lg p-1.5 transition-colors ${
+        isSelected
+          ? "border border-purple-500 bg-purple-500/20"
+          : "border-c-border bg-surface-overlay border"
+      }`}
+    >
+      <AspectRatioPreview width={previewW} height={previewH} isSelected={isSelected} />
+      <div className="flex flex-1 items-center gap-1">
+        <input
+          type="number"
+          min={1}
+          step={1}
+          value={wInput}
+          onChange={(e) => {
+            setWInput(e.target.value);
+            apply(e.target.value, hInput);
+          }}
+          aria-label="Custom aspect ratio width"
+          className="bg-surface-interactive text-text-primary focus:ring-purple-500 w-0 min-w-0 flex-1 rounded px-1.5 py-1 text-center text-xs tabular-nums focus:ring-1 focus:outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+        />
+        <span className="text-text-tertiary text-xs">:</span>
+        <input
+          type="number"
+          min={1}
+          step={1}
+          value={hInput}
+          onChange={(e) => {
+            setHInput(e.target.value);
+            apply(wInput, e.target.value);
+          }}
+          aria-label="Custom aspect ratio height"
+          className="bg-surface-interactive text-text-primary focus:ring-purple-500 w-0 min-w-0 flex-1 rounded px-1.5 py-1 text-center text-xs tabular-nums focus:ring-1 focus:outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+        />
+      </div>
+      {!ratioValid && numericValid && (
+        <span className="text-[10px] text-red-400" title="Long edge must be ≤ 3× short edge">
+          max 3:1
+        </span>
+      )}
+    </div>
   );
 }

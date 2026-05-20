@@ -102,6 +102,17 @@ export function getAspectRatioIntersection(
   return intersection ? [...intersection] : [];
 }
 
+// True when exactly one model is selected and it accepts arbitrary aspect ratios.
+// Used to enable the custom WxH picker UI.
+export function isSoleArbitraryAspectRatioModel(
+  models: StoredModel[],
+  selectedModelIds: string[]
+): boolean {
+  if (selectedModelIds.length !== 1) return false;
+  const model = getModel(models, selectedModelIds[0]);
+  return !!model?.capabilities.allowsArbitraryAspectRatio;
+}
+
 export function getAspectRatioUnion(models: StoredModel[], selectedModelIds: string[]): string[] {
   if (selectedModelIds.length === 0) {
     return PRIMARY_ASPECT_RATIO_VALUES;

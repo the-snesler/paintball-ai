@@ -11,6 +11,7 @@ import {
   getAspectRatioIntersection,
   getMaxImagesPerRequest,
   getQualityIntersection,
+  isSoleArbitraryAspectRatioModel,
 } from "~/lib/models";
 import { PROVIDERS } from "~/lib/providers";
 
@@ -40,6 +41,7 @@ export function ModelItem({ model, count }: ModelItemProps) {
 
     if (
       generationState.currentAspectRatio &&
+      !isSoleArbitraryAspectRatioModel(models, selectedIds) &&
       !getAspectRatioIntersection(models, selectedIds).includes(generationState.currentAspectRatio)
     ) {
       generationState.setAspectRatio(null);
