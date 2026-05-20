@@ -11,9 +11,6 @@ import { useGenerationStore } from "~/stores/generationStore";
 import { useSettingsStore } from "~/stores/settingsStore";
 import { Accordion } from "@base-ui/react/accordion";
 
-// gpt-image-2 (and any other arbitrary-AR model) requires long:short ≤ 3:1.
-const MAX_LONG_SHORT_RATIO = 3;
-
 const ARBITRARY_MODE_PRESETS = ["3:2", "2:3"];
 
 export function AspectRatioSection() {
@@ -28,6 +25,9 @@ export function AspectRatioSection() {
     .map(([modelId]) => modelId);
 
   const arbitraryMode = isSoleArbitraryAspectRatioModel(models, selectedModels);
+  const arbitraryMaxLongShort = arbitraryMode
+    ? (models.find((m) => m.id === selectedModels[0])?.capabilities.maxLongShortRatio ?? Infinity)
+    : Infinity;
 
   const selectableRatios = getAspectRatioIntersection(models, selectedModels);
   const visibleRatios = getAspectRatioUnion(models, selectedModels);
@@ -119,6 +119,7 @@ export function AspectRatioSection() {
                 <CustomAspectRatioInput
                   currentAspectRatio={aspectRatio}
                   setAspectRatio={setAspectRatio}
+                  maxLongShortRatio={arbitraryMaxLongShort}
                 />
               </div>
             </Accordion.Panel>
@@ -176,9 +177,11 @@ function parseCustomSeed(aspectRatio: string | null): { w: string; h: string } {
 function CustomAspectRatioInput({
   currentAspectRatio,
   setAspectRatio,
+  maxLongShortRatio,
 }: {
   currentAspectRatio: string | null;
   setAspectRatio: (ratio: string | null) => void;
+  maxLongShortRatio: number;
 }) {
   const seed = parseCustomSeed(currentAspectRatio);
   const [wInput, setWInput] = useState(seed.w);
@@ -196,7 +199,7 @@ function CustomAspectRatioInput({
   const numericValid =
     Number.isFinite(wNum) && Number.isFinite(hNum) && wNum > 0 && hNum > 0;
   const ratioValid =
-    numericValid && Math.max(wNum, hNum) / Math.min(wNum, hNum) <= MAX_LONG_SHORT_RATIO;
+    numericValid && Math.max(wNum, hNum) / Math.min(wNum, hNum) <= maxLongShortRatio;
 
   const candidate = numericValid ? `${wNum}:${hNum}` : null;
   const isSelected = !!candidate && currentAspectRatio === candidate;
@@ -205,9 +208,11 @@ function CustomAspectRatioInput({
     const w = Number(nextW);
     const h = Number(nextH);
     if (!Number.isFinite(w) || !Number.isFinite(h) || w <= 0 || h <= 0) return;
-    if (Math.max(w, h) / Math.min(w, h) > MAX_LONG_SHORT_RATIO) return;
+    if (Math.max(w, h) / Math.min(w, h) > maxLongShortRatio) return;
     setAspectRatio(`${w}:${h}`);
   };
+
+  const capLabel = Number.isFinite(maxLongShortRatio) ? `${maxLongShortRatio}:1` : "limit";
 
   const previewW = numericValid ? wNum : 1;
   const previewH = numericValid ? hNum : 1;
@@ -249,8 +254,11 @@ function CustomAspectRatioInput({
         />
       </div>
       {!ratioValid && numericValid && (
-        <span className="text-[10px] text-red-400" title="Long edge must be ≤ 3× short edge">
-          max 3:1
+        <span
+          className="text-[10px] text-red-400"
+          title={`Long edge must be ≤ ${maxLongShortRatio}× short edge`}
+        >
+          max {capLabel}
         </span>
       )}
     </div>

@@ -90,6 +90,7 @@ export const BUILT_IN_MODELS: StoredModel[] = [
       supportsAspectRatios: true,
       supportedAspectRatios: [],
       allowsArbitraryAspectRatio: true,
+      maxLongShortRatio: 3,
       supportsResolution: true,
       supportsReferenceImages: true,
       maxReferenceImages: 16,

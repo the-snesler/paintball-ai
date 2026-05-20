@@ -55,6 +55,13 @@ export function doesModelSupportAspectRatio(model: StoredModel, aspectRatio: str
     return false;
   }
 
+  if (model.capabilities.allowsArbitraryAspectRatio) {
+    const { width, height } = parseAspectRatio(aspectRatio);
+    const longShort = Math.max(width, height) / Math.min(width, height);
+    const cap = model.capabilities.maxLongShortRatio ?? Infinity;
+    return longShort <= cap;
+  }
+
   const supportedRatios = getSupportedAspectRatiosForModel(model);
   return supportedRatios.length === 0 || supportedRatios.includes(aspectRatio);
 }
@@ -79,27 +86,26 @@ export function getAspectRatioIntersection(
     return PRIMARY_ASPECT_RATIO_VALUES;
   }
 
-  let intersection: Set<string> | null = null;
+  const selectedModels = selectedModelIds
+    .map((id) => getModel(models, id))
+    .filter((m): m is StoredModel => !!m);
 
-  for (const modelId of selectedModelIds) {
-    const model = getModel(models, modelId);
-    if (!model) continue;
+  if (selectedModels.length === 0) return [];
+  if (selectedModels.some((m) => !m.capabilities.supportsAspectRatios)) return [];
 
-    const modelRatios = getSupportedAspectRatiosForModel(model);
-    if (modelRatios.length === 0) {
-      return [];
+  // Candidate universe: primaries plus any explicit ratios that non-arbitrary
+  // models declare. Arbitrary-AR models don't contribute concrete extras —
+  // they're filtered in via the predicate below.
+  const candidates = new Set<string>(PRIMARY_ASPECT_RATIO_VALUES);
+  for (const m of selectedModels) {
+    if (!m.capabilities.allowsArbitraryAspectRatio) {
+      for (const r of getSupportedAspectRatiosForModel(m)) candidates.add(r);
     }
-
-    const modelSet = new Set(modelRatios);
-    if (!intersection) {
-      intersection = modelSet;
-      continue;
-    }
-
-    intersection = new Set([...intersection].filter((ratio) => modelSet.has(ratio)));
   }
 
-  return intersection ? [...intersection] : [];
+  return [...candidates].filter((r) =>
+    selectedModels.every((m) => doesModelSupportAspectRatio(m, r))
+  );
 }
 
 // True when exactly one model is selected and it accepts arbitrary aspect ratios.

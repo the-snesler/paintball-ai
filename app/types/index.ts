@@ -11,6 +11,8 @@ export interface ModelCapabilities {
   supportedAspectRatios?: string[]; // should use doesModelSupportAspectRatio() from models.ts to check support
   /** Model accepts any aspect ratio string within its own internal constraints (e.g. gpt-image-2). */
   allowsArbitraryAspectRatio?: boolean;
+  /** For arbitrary-AR models, the maximum long:short edge ratio (e.g. 3 for gpt-image-2's 3:1 cap). */
+  maxLongShortRatio?: number;
   supportsResolution: boolean;
   resolutions?: Resolution[];
   supportsReferenceImages: boolean;
