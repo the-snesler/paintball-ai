@@ -10,28 +10,66 @@ import {
 } from "lucide-react";
 import { useSettingsStore } from "~/stores/settingsStore";
 import SVG from "react-inlinesvg";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import type { StoredModel } from "~/types";
 import { Tooltip } from "~/components/ui/Tooltip";
 import { Switch } from "~/components/ui/Switch";
+import { AspectRatioPreview } from "~/components/ui/AspectRatioPreview";
 import { getProvider, normalizeModelId, providerRequiresApiKey, PROVIDERS } from "~/lib/providers";
+import { getSupportedAspectRatiosForModel, parseAspectRatio } from "~/lib/models";
 
 function CapabilityBadge({
   icon: Icon,
   label,
   enabled,
+  maxWidth,
 }: {
   icon: React.ElementType;
-  label: string;
+  label: ReactNode;
   enabled: boolean;
+  maxWidth?: string;
 }) {
   if (!enabled) return null;
   return (
-    <Tooltip content={label} placement="top" delay={200}>
+    <Tooltip content={label} placement="top" delay={200} maxWidth={maxWidth}>
       <span className="bg-surface-interactive/50 text-text-tertiary inline-flex cursor-help items-center gap-1 rounded px-1.5 py-0.5 text-[10px]">
         <Icon className="h-2.5 w-2.5" />
       </span>
     </Tooltip>
+  );
+}
+
+function AspectRatioTooltipContent({ model }: { model: StoredModel }) {
+  if (!model.capabilities.supportsAspectRatios) return null;
+
+  const isArbitrary =
+    Array.isArray(model.capabilities.supportedAspectRatios) &&
+    model.capabilities.supportedAspectRatios.length === 0;
+
+  if (isArbitrary) {
+    return <span>Arbitrary aspect ratios supported</span>;
+  }
+
+  const ratios = [...getSupportedAspectRatiosForModel(model)].sort((a, b) => {
+    const aParsed = parseAspectRatio(a);
+    const bParsed = parseAspectRatio(b);
+    return bParsed.width / bParsed.height - aParsed.width / aParsed.height;
+  });
+
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {ratios.map((ratio) => {
+        const { width, height } = parseAspectRatio(ratio);
+        return (
+          <div key={ratio} className="flex flex-col items-center gap-0.5">
+            <div className="flex h-[18px] items-center justify-center">
+              <AspectRatioPreview width={width} height={height} maxDim={16} />
+            </div>
+            <span className="text-text-tertiary text-[10px] leading-none">{ratio}</span>
+          </div>
+        );
+      })}
+    </div>
   );
 }
 
@@ -125,8 +163,9 @@ export default function ModelToggleItem({
           </Tooltip>
           <CapabilityBadge
             icon={RectangleHorizontal}
-            label="Aspect ratio"
+            label={<AspectRatioTooltipContent model={model} />}
             enabled={capabilities.supportsAspectRatios}
+            maxWidth="max-w-72"
           />
           <CapabilityBadge
             icon={Maximize}

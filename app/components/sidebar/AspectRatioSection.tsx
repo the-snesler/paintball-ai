@@ -9,6 +9,7 @@ import {
 import { useGenerationStore } from "~/stores/generationStore";
 import { useSettingsStore } from "~/stores/settingsStore";
 import { Accordion } from "@base-ui/react/accordion";
+import { AspectRatioPreview } from "~/components/ui/AspectRatioPreview";
 
 export function AspectRatioSection() {
   const aspectRatio = useGenerationStore((s) => s.currentAspectRatio);
@@ -115,27 +116,3 @@ export function AspectRatioSection() {
   );
 }
 
-function AspectRatioPreview({
-  width,
-  height,
-  isSelected,
-}: {
-  width: number;
-  height: number;
-  isSelected: boolean;
-}) {
-  // Normalize to max dimension of 20px
-  const maxDim = 20;
-  const scale = maxDim / Math.max(width, height);
-  const w = Math.round(width * scale);
-  const h = Math.round(height * scale);
-
-  return (
-    <div
-      className={`rounded-sm border-2 ${
-        isSelected ? "border-purple-500 bg-purple-500/20" : "border-c-border"
-      }`}
-      style={{ width: `${w}px`, height: `${h}px` }}
-    />
-  );
-}
