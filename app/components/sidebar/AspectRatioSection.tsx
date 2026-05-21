@@ -163,13 +163,6 @@ function CustomAspectRatioInput({
   const [wInput, setWInput] = useState(seed.w);
   const [hInput, setHInput] = useState(seed.h);
 
-  // Keep inputs in sync when an external preset is clicked (e.g. 3:2 / 2:3).
-  useEffect(() => {
-    const next = parseCustomSeed(currentAspectRatio);
-    setWInput(next.w);
-    setHInput(next.h);
-  }, [currentAspectRatio]);
-
   const wNum = Number(wInput);
   const hNum = Number(hInput);
   const numericValid =
@@ -180,12 +173,16 @@ function CustomAspectRatioInput({
   const candidate = numericValid ? `${wNum}:${hNum}` : null;
   const isSelected = !!candidate && currentAspectRatio === candidate;
 
+  const handleOnClick = () => {
+    apply(wInput, hInput);
+  };
+
   const apply = (nextW: string, nextH: string) => {
     const w = Number(nextW);
     const h = Number(nextH);
     if (!Number.isFinite(w) || !Number.isFinite(h) || w <= 0 || h <= 0) return;
     if (Math.max(w, h) / Math.min(w, h) > maxLongShortRatio) return;
-    setAspectRatio(`${w}:${h}`);
+    setAspectRatio(isSelected ? null : `${w}:${h}`);
   };
 
   const capLabel = Number.isFinite(maxLongShortRatio) ? `${maxLongShortRatio}:1` : "limit";
@@ -194,15 +191,16 @@ function CustomAspectRatioInput({
   const previewH = numericValid ? hNum : 1;
 
   return (
-    <div
-      className={`col-span-4 flex items-center gap-2 rounded-lg p-1.5 transition-colors ${
+    <button
+      className={`relative col-span-3 grid grid-cols-3 items-center justify-items-center gap-4 rounded-lg p-2 transition-colors ${
         isSelected
           ? "border border-purple-500 bg-purple-500/20"
           : "border-c-border bg-surface-overlay border"
       }`}
+      onClick={handleOnClick}
     >
-      <AspectRatioPreview width={previewW} height={previewH} isSelected={isSelected} />
-      <div className="flex flex-1 items-center gap-1">
+      <AspectRatioPreview width={previewW} height={previewH} maxDim={25} isSelected={isSelected} />
+      <div className="col-span-2 flex w-full flex-1 items-center gap-1">
         <input
           type="number"
           min={1}
@@ -213,7 +211,7 @@ function CustomAspectRatioInput({
             apply(e.target.value, hInput);
           }}
           aria-label="Custom aspect ratio width"
-          className="bg-surface-interactive text-text-primary focus:ring-purple-500 w-0 min-w-0 flex-1 rounded px-1.5 py-1 text-center text-xs tabular-nums focus:ring-1 focus:outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+          className="bg-surface-interactive text-text-primary w-0 min-w-0 flex-1 [appearance:textfield] rounded px-1.5 py-1 text-center text-xs tabular-nums focus:ring-1 focus:ring-purple-500 focus:outline-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
         />
         <span className="text-text-tertiary text-xs">:</span>
         <input
@@ -226,17 +224,17 @@ function CustomAspectRatioInput({
             apply(wInput, e.target.value);
           }}
           aria-label="Custom aspect ratio height"
-          className="bg-surface-interactive text-text-primary focus:ring-purple-500 w-0 min-w-0 flex-1 rounded px-1.5 py-1 text-center text-xs tabular-nums focus:ring-1 focus:outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+          className="bg-surface-interactive text-text-primary w-0 min-w-0 flex-1 [appearance:textfield] rounded px-1.5 py-1 text-center text-xs tabular-nums focus:ring-1 focus:ring-purple-500 focus:outline-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
         />
       </div>
       {!ratioValid && numericValid && (
         <span
-          className="text-[10px] text-red-400"
+          className="absolute bottom-0.5 left-0 right-0 text-[10px] text-red-400"
           title={`Long edge must be ≤ ${maxLongShortRatio}× short edge`}
         >
           max {capLabel}
         </span>
       )}
-    </div>
+    </button>
   );
 }
