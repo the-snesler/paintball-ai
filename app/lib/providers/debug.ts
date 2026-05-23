@@ -73,7 +73,10 @@ async function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-async function generatePicsumImage(params: GenerationParams, sleepBase: number = 7000): Promise<GenerationResult[]> {
+async function generatePicsumImage(
+  params: GenerationParams,
+  sleepBase: number = 7000
+): Promise<GenerationResult[]> {
   const { width, height } = getDebugDimensions(params.aspectRatio, params.resolution);
   const n = Math.max(1, params.numberOfImages);
   const results: GenerationResult[] = [];
@@ -220,7 +223,7 @@ async function searchModels(query: string, apiKey: string): Promise<SearchResult
       name: "Manual Upload",
       description: "Prompts you to upload an image instead of generating one.",
       icon: "/icons/box.svg",
-    }
+    },
   ];
 }
 

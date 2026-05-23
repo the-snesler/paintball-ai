@@ -60,7 +60,7 @@ function SidebarContent() {
 function GallerySidebarContent() {
   return (
     <>
-      <div className="flex-1 space-y-6 overflow-x-hidden overflow-y-auto py-4 px-3 [scrollbar-gutter:stable_both-edges]">
+      <div className="flex-1 space-y-6 overflow-x-hidden overflow-y-auto px-3 py-4 [scrollbar-gutter:stable_both-edges]">
         <PromptInput />
         <PromptVariationsToggle />
         <AvoidPastVariationsToggle />
@@ -96,7 +96,7 @@ function EditorSidebarContent() {
   }, [pendingFocusedPanel, setPendingFocusedPanel]);
 
   return (
-    <div className="flex-1 space-y-6 overflow-y-auto py-4 px-3 [scrollbar-gutter:stable_both-edges]">
+    <div className="flex-1 space-y-6 overflow-y-auto px-3 py-4 [scrollbar-gutter:stable_both-edges]">
       <RecentSessions />
       <Accordion.Root
         multiple={false}
@@ -181,7 +181,7 @@ function SettingsSidebarContent() {
   );
 
   return (
-    <div className="flex-1 space-y-2 overflow-y-auto py-4 px-3 [scrollbar-gutter:stable_both-edges]">
+    <div className="flex-1 space-y-2 overflow-y-auto px-3 py-4 [scrollbar-gutter:stable_both-edges]">
       <div className="flex items-center gap-2">
         <span className="text-text-muted">
           <Layers className="h-4 w-4" />

@@ -43,11 +43,9 @@ export function InkDropGrid({
         for (let x = 0; x < cols; x++) {
           const i = y * cols + x;
           const fx =
-            Math.sin(x * 0.07 + y * 0.13) * 0.7 +
-            Math.sin(x * 0.23 - y * 0.05 + 1.3) * 0.35;
+            Math.sin(x * 0.07 + y * 0.13) * 0.7 + Math.sin(x * 0.23 - y * 0.05 + 1.3) * 0.35;
           const fy =
-            Math.cos(x * 0.11 + y * 0.07 + 2.1) * 0.7 +
-            Math.cos(x * 0.05 + y * 0.21) * 0.35;
+            Math.cos(x * 0.11 + y * 0.07 + 2.1) * 0.7 + Math.cos(x * 0.05 + y * 0.21) * 0.35;
           // clamp to roughly [-0.95, 0.95] so weights stay positive
           flowX[i] = Math.max(-0.95, Math.min(0.95, fx));
           flowY[i] = Math.max(-0.95, Math.min(0.95, fy));
@@ -188,11 +186,7 @@ export function InkDropGrid({
 
     // pre-seed: spawn drops and advance them most of the way so the canvas isn't empty on first paint
     for (let i = 0; i < 10; i++) {
-      spawnDrop(
-        Math.floor(Math.random() * cols),
-        Math.floor(Math.random() * rows),
-        Math.random()
-      );
+      spawnDrop(Math.floor(Math.random() * cols), Math.floor(Math.random() * rows), Math.random());
     }
     for (let step = 0; step < 30; step++) advanceDrops(1 / 60);
 

@@ -24,7 +24,9 @@ export function SineWaveGrid({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationRef = useRef<number>(0);
   const timeRef = useRef(0);
-  const randsRef = useRef(new Array(PURPLE_WAVE_COUNT * 4 + WAVE_COUNT * 4).fill(0).map(() => Math.random()));
+  const randsRef = useRef(
+    new Array(PURPLE_WAVE_COUNT * 4 + WAVE_COUNT * 4).fill(0).map(() => Math.random())
+  );
   const sampleDataRef = useRef<{
     data: Uint8ClampedArray;
     width: number;
@@ -79,7 +81,6 @@ export function SineWaveGrid({
       : { r: 138, g: 75, b: 207 }; // purple-500
     const rands = randsRef.current;
 
-
     function getWave(i: number, x: number, y: number, time: number) {
       if (i + 4 >= rands.length) return 0;
       // direction is a random angle in radians, frequency determines wave width, speed determines how fast the wave moves, phase determines the starting point
@@ -90,7 +91,6 @@ export function SineWaveGrid({
       const projected = x * Math.cos(direction) + y * Math.sin(direction);
       return Math.sin(projected * TAU * cycles + time * speed + phase);
     }
-
 
     const sampleColor = (x: number, y: number, width: number, height: number) => {
       const sample = sampleDataRef.current;
@@ -154,7 +154,6 @@ export function SineWaveGrid({
       const luminance = r * 0.299 + g * 0.587 + b * 0.114;
       return { r: luminance, g: luminance, b: luminance };
     };
-
 
     const animate = () => {
       const rect = canvas.getBoundingClientRect();
@@ -234,7 +233,6 @@ export function SineWaveGrid({
           ctx.fill();
         }
       }
-
 
       if (!frozen) timeRef.current += 0.016; // ~60fps timing
       animationRef.current = requestAnimationFrame(animate);

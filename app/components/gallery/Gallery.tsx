@@ -244,10 +244,11 @@ function PopupActionButton({
   return (
     <button
       onClick={onClick}
-      className={`inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors ${variant === "danger"
-        ? "text-red-300 hover:bg-red-500/10"
-        : "text-text-secondary hover:bg-surface-overlay"
-        }`}
+      className={`inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors ${
+        variant === "danger"
+          ? "text-red-300 hover:bg-red-500/10"
+          : "text-text-secondary hover:bg-surface-overlay"
+      }`}
     >
       {icon}
       {label}

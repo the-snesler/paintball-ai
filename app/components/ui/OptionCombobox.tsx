@@ -20,9 +20,7 @@ export function OptionCombobox({
   const [open, setOpen] = useState(false);
 
   const query = value.trim().toLowerCase();
-  const filtered = query
-    ? options.filter((o) => o.toLowerCase().includes(query))
-    : options;
+  const filtered = query ? options.filter((o) => o.toLowerCase().includes(query)) : options;
 
   return (
     <div>

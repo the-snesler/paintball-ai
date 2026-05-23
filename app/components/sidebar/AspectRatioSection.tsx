@@ -165,8 +165,7 @@ function CustomAspectRatioInput({
 
   const wNum = Number(wInput);
   const hNum = Number(hInput);
-  const numericValid =
-    Number.isFinite(wNum) && Number.isFinite(hNum) && wNum > 0 && hNum > 0;
+  const numericValid = Number.isFinite(wNum) && Number.isFinite(hNum) && wNum > 0 && hNum > 0;
   const ratioValid =
     numericValid && Math.max(wNum, hNum) / Math.min(wNum, hNum) <= maxLongShortRatio;
 
@@ -229,7 +228,7 @@ function CustomAspectRatioInput({
       </div>
       {!ratioValid && numericValid && (
         <span
-          className="absolute bottom-0.5 left-0 right-0 text-[10px] text-red-400"
+          className="absolute right-0 bottom-0.5 left-0 text-[10px] text-red-400"
           title={`Long edge must be ≤ ${maxLongShortRatio}× short edge`}
         >
           max {capLabel}
