@@ -130,6 +130,7 @@ export interface CompletedGalleryItemFields {
   embedding?: number[];
   /** Identifier of the model that produced `embedding`; cleared/recomputed if model changes. */
   embeddingModelId?: string;
+  scorecard?: ImageScorecard;
 }
 
 export type CompletedGalleryItem = BaseGalleryItem & CompletedGalleryItemFields;
@@ -167,6 +168,22 @@ export interface StoredImageRecord {
   metadata: Record<string, unknown>;
   embedding?: number[];
   embeddingModelId?: string;
+  scorecard?: ImageScorecard;
+}
+
+export type ScorecardCriterion =
+  | "likeness"
+  | "promptAdherence"
+  | "aesthetics"
+  | "textAccuracy"
+  | "speed"
+  | "cost";
+
+export type ScorecardScores = Record<ScorecardCriterion, number | null>;
+
+export interface ImageScorecard {
+  scores: ScorecardScores;
+  updatedAt: number;
 }
 
 export interface AttachSelectedItemsResult {

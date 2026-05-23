@@ -1,7 +1,15 @@
-import { LayoutDashboard, GalleryVertical, Settings, FilePenLine, ArrowLeft } from "lucide-react";
+import {
+  LayoutDashboard,
+  GalleryVertical,
+  Settings,
+  FilePenLine,
+  ArrowLeft,
+  BarChart3,
+} from "lucide-react";
 import NumberFlow from "@number-flow/react";
 import { useLocation, useNavigate } from "react-router";
 import { SearchBar } from "./SearchBar";
+import { Tooltip } from "../ui/Tooltip";
 
 interface GalleryHeaderProps {
   count?: number;
@@ -28,6 +36,7 @@ export function GalleryHeader({
   const handleBack = () => navigate(-1);
   const openGallery = () => navigate("/app");
   const openTimeline = () => navigate("/app/timeline");
+  const openStats = () => navigate("/app/stats");
   const openSettings = () => navigate("/app/settings");
   const openEditor = () => navigate("/app/editor");
 
@@ -81,38 +90,33 @@ export function GalleryHeader({
             onClick={openGallery}
             isActive={location.pathname === "/app"}
             icon={<LayoutDashboard className="h-4 w-4" />}
-            label=""
+            label="Gallery"
           />
           <ViewModeButton
             onClick={openTimeline}
             isActive={location.pathname === "/app/timeline"}
             icon={<GalleryVertical className="h-4 w-4" />}
-            label=""
+            label="Timeline"
           />
         </div>
-        <button
+        <ViewModeButton
           onClick={openEditor}
-          aria-label="Open Editor"
-          title="Open Editor"
-          className={`flex h-8 w-8 items-center justify-center rounded-md transition-colors ${
-            location.pathname === "/app/editor"
-              ? "bg-surface-overlay text-text-primary"
-              : "text-text-tertiary hover:bg-surface-overlay hover:text-text-secondary"
-          }`}
-        >
-          <FilePenLine className="h-4 w-4" />
-        </button>
-        <button
+          isActive={location.pathname === "/app/editor"}
+          icon={<FilePenLine className="h-4 w-4" />}
+          label="Editor"
+        />
+        <ViewModeButton
+          onClick={openStats}
+          isActive={location.pathname === "/app/stats"}
+          icon={<BarChart3 className="h-4 w-4" />}
+          label="Stats"
+        />
+        <ViewModeButton
           onClick={openSettings}
-          aria-label="Settings"
-          className={`flex h-8 w-8 items-center justify-center rounded-md transition-colors ${
-            location.pathname === "/app/settings"
-              ? "bg-surface-overlay text-text-primary"
-              : "text-text-tertiary hover:bg-surface-overlay hover:text-text-secondary"
-          }`}
-        >
-          <Settings className="h-4 w-4" />
-        </button>
+          isActive={location.pathname === "/app/settings"}
+          icon={<Settings className="h-4 w-4" />}
+          label="Settings"
+        />
       </div>
     </header>
   );
@@ -130,16 +134,17 @@ function ViewModeButton({
   label: string;
 }) {
   return (
-    <button
-      onClick={onClick}
-      className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
-        isActive
+    <Tooltip content={label} placement="bottom" delay={200}>
+      <button
+        onClick={onClick}
+        className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${isActive
           ? "bg-surface-overlay text-text-primary"
           : "text-text-tertiary hover:bg-surface-overlay hover:text-text-secondary"
-      }`}
-    >
-      {icon}
-      {label}
-    </button>
+          }`}
+        aria-label={label}
+      >
+        {icon}
+      </button>
+    </Tooltip>
   );
 }

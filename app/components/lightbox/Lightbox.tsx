@@ -27,6 +27,7 @@ import {
   useReuseGalleryItemPrompt,
 } from "~/hooks/useReuseGalleryItemPrompt";
 import { IconButton } from "./IconButton";
+import { ScorecardPanel } from "./ScorecardPanel";
 import { WideIconButton } from "./WideIconButton";
 import { findSessionForImage, getReferenceImagesByIds, saveReferenceImage } from "~/lib/db";
 import type { ReferenceImage, StoredEditorSession } from "~/types";
@@ -353,6 +354,8 @@ export function Lightbox() {
                   ))}
                 </div>
               )}
+
+              {galleryImage && <ScorecardPanel image={galleryImage} />}
 
               {/* Prompt */}
               <div className="space-y-2">

@@ -1,5 +1,6 @@
 import type {
   CompletedGalleryItem,
+  ImageScorecard,
   ReferenceImage,
   StoredEditorSession,
   StoredImageRecord,
@@ -93,6 +94,40 @@ export async function saveImage(image: StoredImageRecord): Promise<StoredImageRe
   store.add(image);
 
   return awaitTransaction(transaction, image);
+}
+
+export async function updateImageScorecard(
+  id: string,
+  scorecard: ImageScorecard | undefined
+): Promise<StoredImageRecord | null> {
+  const db = await initDB();
+
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(STORES.images, "readwrite");
+    const store = transaction.objectStore(STORES.images);
+    const getRequest = store.get(id);
+
+    getRequest.onerror = () => reject(getRequest.error);
+    getRequest.onsuccess = () => {
+      const record = getRequest.result as StoredImageRecord | undefined;
+      if (!record) {
+        resolve(null);
+        return;
+      }
+
+      const nextRecord: StoredImageRecord = { ...record };
+      if (scorecard) {
+        nextRecord.scorecard = scorecard;
+      } else {
+        delete nextRecord.scorecard;
+      }
+
+      store.put(nextRecord);
+      transaction.oncomplete = () => resolve(nextRecord);
+      transaction.onerror = () => reject(transaction.error);
+      transaction.onabort = () => reject(transaction.error);
+    };
+  });
 }
 
 export const PAGE_SIZE = 30;

@@ -5,6 +5,7 @@ import type {
   CompletedGalleryItem,
   CompletedGalleryItemFields,
   FailedGalleryItemFields,
+  ImageScorecard,
   PendingGalleryItemFields,
 } from "~/types";
 import {
@@ -15,6 +16,7 @@ import {
   deleteReferenceImage,
   toDisplayImage,
   updateImageFavorite,
+  updateImageScorecard,
 } from "~/lib/db";
 import { useLightboxStore } from "./lightboxStore";
 import { useEmbeddingStatusStore } from "./embeddingStatusStore";
@@ -93,6 +95,7 @@ interface GalleryState {
   setSearchQuery: (query: string) => void;
   toggleFavoritesFilter: () => void;
   setItemEmbedding: (id: string, embedding: number[], embeddingModelId: string) => void;
+  updateScorecard: (id: string, scorecard: ImageScorecard | undefined) => Promise<void>;
 }
 
 export const useGalleryStore = create<GalleryState>()((set, get) => ({
@@ -405,6 +408,22 @@ export const useGalleryStore = create<GalleryState>()((set, get) => ({
       console.error("Failed to update selected favorites:", error);
       throw error;
     }
+  },
+
+  updateScorecard: async (id, scorecard) => {
+    const record = await updateImageScorecard(id, scorecard);
+    if (!record) return;
+
+    set((state) => ({
+      items: state.items.map((item) => {
+        if (item.id !== id || item.status !== "completed") return item;
+        if (scorecard) return { ...item, scorecard };
+
+        const { scorecard: _scorecard, ...rest } = item;
+        void _scorecard;
+        return rest;
+      }),
+    }));
   },
 
   deleteSelectedItems: async () => {
