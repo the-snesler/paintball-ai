@@ -48,7 +48,7 @@ export function ScorecardPanel({ image }: ScorecardPanelProps) {
             </span>
           </Accordion.Trigger>
         </Accordion.Header>
-        <Accordion.Panel className="h-(--accordion-panel-height) p-3 overflow-hidden transition-[height] data-ending-style:h-0 data-starting-style:h-0">
+        <Accordion.Panel className="h-(--accordion-panel-height) overflow-hidden p-3 transition-[height] data-ending-style:h-0 data-starting-style:h-0">
           <div className="mt-3 space-y-2">
             {SCORECARD_CRITERIA.map(({ key, label }) => {
               const value = scores?.[key] ?? null;
@@ -70,10 +70,11 @@ export function ScorecardPanel({ image }: ScorecardPanelProps) {
                           disabled={isSaving}
                           aria-label={`${label}: ${score} out of 5`}
                           title={`${score} out of 5`}
-                          className={`flex h-6 w-6 items-center justify-center rounded-md transition-colors disabled:cursor-wait ${selected
-                            ? "text-amber-300 hover:bg-amber-300/10"
-                            : "text-text-muted hover:bg-surface-overlay hover:text-text-secondary"
-                            }`}
+                          className={`flex h-6 w-6 items-center justify-center rounded-md transition-colors disabled:cursor-wait ${
+                            selected
+                              ? "text-amber-300 hover:bg-amber-300/10"
+                              : "text-text-muted hover:bg-surface-overlay hover:text-text-secondary"
+                          }`}
                         >
                           <Star className={`h-3.5 w-3.5 ${selected ? "fill-current" : ""}`} />
                         </button>

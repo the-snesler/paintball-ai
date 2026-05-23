@@ -137,10 +137,11 @@ function ViewModeButton({
     <Tooltip content={label} placement="bottom" delay={200}>
       <button
         onClick={onClick}
-        className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${isActive
-          ? "bg-surface-overlay text-text-primary"
-          : "text-text-tertiary hover:bg-surface-overlay hover:text-text-secondary"
-          }`}
+        className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+          isActive
+            ? "bg-surface-overlay text-text-primary"
+            : "text-text-tertiary hover:bg-surface-overlay hover:text-text-secondary"
+        }`}
         aria-label={label}
       >
         {icon}
