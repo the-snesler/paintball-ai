@@ -306,6 +306,9 @@ function getFrameDimensions(item: GalleryItem): { width: number; height: number 
     const [w, h] = item.aspectRatio.split(":").map(Number);
     if (w && h) return { width: w, height: h };
   }
+  if (item.loadingPreview) {
+    return { width: item.loadingPreview.width, height: item.loadingPreview.height };
+  }
   return { width: 1, height: 1 };
 }
 

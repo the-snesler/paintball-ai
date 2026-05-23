@@ -57,6 +57,12 @@ export interface ReferenceImage {
   sourceGalleryItemId?: string;
 }
 
+export interface LoadingPreview {
+  dataUrl: string;
+  width: number;
+  height: number;
+}
+
 export interface LightboxGalleryTarget {
   kind: "gallery";
   imageId: string;
@@ -93,6 +99,7 @@ export interface BaseGalleryItem {
   resolution: Resolution | null;
   quality?: string | null;
   referenceImageIds: string[];
+  loadingPreview?: LoadingPreview;
 }
 
 export interface PendingGalleryItemFields {

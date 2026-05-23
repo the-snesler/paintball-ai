@@ -73,14 +73,14 @@ async function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-async function generatePicsumImage(params: GenerationParams): Promise<GenerationResult[]> {
+async function generatePicsumImage(params: GenerationParams, sleepBase: number = 7000): Promise<GenerationResult[]> {
   const { width, height } = getDebugDimensions(params.aspectRatio, params.resolution);
   const n = Math.max(1, params.numberOfImages);
   const results: GenerationResult[] = [];
 
   for (let i = 0; i < n; i++) {
-    // "finish generating" at a random time
-    await sleep(Math.floor(Math.random() * 3000) + 7000);
+    // "finish generating" at a random time between sleepBase and sleepBase * 1.3
+    await sleep(Math.floor(Math.random() * 0.3 + 1) * sleepBase);
     // Append a cache-busting seed so each request in the batch yields a different photo.
     const seed = Math.floor(Math.random() * 1_000_000);
     const url = `https://picsum.photos/seed/${seed}/${width}/${height}`;
@@ -108,18 +108,7 @@ async function generatePicsumImage(params: GenerationParams): Promise<Generation
   return results;
 }
 
-async function generateImage(params: GenerationParams): Promise<GenerationResult[]> {
-  const modelId = normalizeModelId(params.modelId, "debug");
-
-  if (modelId === "picsum") {
-    return generatePicsumImage(params);
-  }
-
-  if (modelId === "manual") {
-    const ids = params.itemIds ?? [];
-    return Promise.all(ids.map((id) => getOrCreateDeferred(id).promise));
-  }
-
+async function generateCanvasImage(params: GenerationParams): Promise<GenerationResult[]> {
   const { width, height } = getDebugDimensions(params.aspectRatio, params.resolution);
   const canvas = document.createElement("canvas");
   canvas.width = width;
@@ -188,18 +177,42 @@ async function generateImage(params: GenerationParams): Promise<GenerationResult
   return results;
 }
 
+async function generateImage(params: GenerationParams): Promise<GenerationResult[]> {
+  const modelId = normalizeModelId(params.modelId, "debug");
+
+  switch (modelId) {
+    case "picsum":
+      return generatePicsumImage(params, 7000);
+    case "slow":
+      return generatePicsumImage(params, 10 * 1000 * 60);
+    case "manual":
+      const ids = params.itemIds ?? [];
+      return Promise.all(ids.map((id) => getOrCreateDeferred(id).promise));
+    case "debug-model":
+      return generateCanvasImage(params);
+    default:
+      throw new Error(`Unknown model: ${modelId}`);
+  }
+}
+
 async function searchModels(query: string, apiKey: string): Promise<SearchResult[]> {
   return [
     {
       id: "debug-model",
       name: "Debug Model",
-      description: "A built-in model that generates placeholder images for testing.",
+      description: "Generates basic placeholder images in the browser.",
       icon: "/icons/box.svg",
     },
     {
       id: "picsum",
       name: "Picsum Photos",
-      description: "Fetches random placeholder photos from picsum.photos for testing.",
+      description: "Fetches random placeholder photos from picsum.photos.",
+      icon: "/icons/box.svg",
+    },
+    {
+      id: "slow",
+      name: "Slow",
+      description: "Waits 10 minutes to fetch an image from picsum.photos.",
       icon: "/icons/box.svg",
     },
     {
@@ -207,7 +220,7 @@ async function searchModels(query: string, apiKey: string): Promise<SearchResult
       name: "Manual Upload",
       description: "Prompts you to upload an image instead of generating one.",
       icon: "/icons/box.svg",
-    },
+    }
   ];
 }
 

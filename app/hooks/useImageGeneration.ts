@@ -4,6 +4,7 @@ import { useGenerationStore } from "~/stores/generationStore";
 import { useSettingsStore } from "~/stores/settingsStore";
 import { saveReferenceImage } from "~/lib/db";
 import { buildGenerationSignature } from "~/lib/generationSignature";
+import { createLoadingPreview } from "~/lib/imageProcessing";
 import { doesModelSupportAspectRatio, getModel, getStrictReferenceImageLimit } from "~/lib/models";
 import { preparePromptBatch } from "~/lib/promptPreparation";
 import type { GalleryItem } from "~/types";
@@ -75,6 +76,9 @@ export function useImageGeneration() {
     if (totalTasks === 0) return;
 
     const originalPrompt = prompt;
+    const loadingPreview = referenceImages[0]
+      ? await createLoadingPreview(referenceImages[0].blob)
+      : undefined;
     const taskSlots: Array<{
       itemIds: string[];
       modelId: string;
@@ -126,6 +130,7 @@ export function useImageGeneration() {
             resolution: taskResolution,
             quality: taskQuality,
             referenceImageIds: referenceImages.map((r) => r.id),
+            loadingPreview,
             retryCount: 0,
           });
         }

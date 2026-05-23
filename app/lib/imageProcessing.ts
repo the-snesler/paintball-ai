@@ -1,3 +1,5 @@
+import type { LoadingPreview } from "~/types";
+
 export async function getImageDimensions(blob: Blob): Promise<{ width: number; height: number }> {
   return new Promise((resolve) => {
     const img = new Image();
@@ -45,6 +47,41 @@ export async function createThumbnailBlob(
 
   const thumbnail = await canvasToBlob(canvas, "image/webp", 0.88);
   return thumbnail ?? originalBlob;
+}
+
+export async function createLoadingPreview(
+  originalBlob: Blob,
+  maxEdge: number = 24
+): Promise<LoadingPreview | undefined> {
+  try {
+    const image = await loadImageFromBlob(originalBlob);
+    const width = image.naturalWidth || image.width;
+    const height = image.naturalHeight || image.height;
+
+    if (!width || !height) return undefined;
+
+    const scale = Math.min(1, maxEdge / Math.max(width, height));
+    const targetWidth = Math.max(1, Math.round(width * scale));
+    const targetHeight = Math.max(1, Math.round(height * scale));
+
+    const canvas = document.createElement("canvas");
+    canvas.width = targetWidth;
+    canvas.height = targetHeight;
+
+    const context = canvas.getContext("2d");
+    if (!context) return undefined;
+
+    context.imageSmoothingEnabled = true;
+    context.drawImage(image, 0, 0, targetWidth, targetHeight);
+
+    return {
+      dataUrl: canvas.toDataURL("image/webp", 0.65),
+      width,
+      height,
+    };
+  } catch {
+    return undefined;
+  }
 }
 
 function canvasToBlob(

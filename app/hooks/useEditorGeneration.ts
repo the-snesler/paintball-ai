@@ -4,7 +4,7 @@ import { useGalleryStore } from "~/stores/galleryStore";
 import { doesModelSupportAspectRatio, getModel } from "~/lib/models";
 import { deleteImage as dbDeleteImage, saveImage, saveReferenceImage } from "~/lib/db";
 import { preparePromptBatch } from "~/lib/promptPreparation";
-import { createThumbnailBlob } from "~/lib/imageProcessing";
+import { createLoadingPreview, createThumbnailBlob } from "~/lib/imageProcessing";
 import { executeUpscale } from "~/lib/upscaling";
 import type { AspectRatio, GalleryItem, Resolution, StoredUpscaler } from "~/types";
 import { useGenerationTask, type GenerationTask } from "~/hooks/useGenerationTask";
@@ -79,6 +79,7 @@ export function useEditorGeneration() {
         })),
       ];
       const allReferenceIds = allReferences.map((r) => r.id);
+      const loadingPreview = await createLoadingPreview(referenceBlob);
 
       const taskSlots: Array<{
         itemIds: string[];
@@ -132,6 +133,7 @@ export function useEditorGeneration() {
               resolution: taskResolution,
               quality: taskQuality,
               referenceImageIds: allReferenceIds,
+              loadingPreview,
               retryCount: 0,
             });
           }
@@ -232,6 +234,7 @@ export function useEditorGeneration() {
       const itemId = crypto.randomUUID();
       const modelName = `${upscaler.name} ↑`;
       const instruction = `Upscale with ${upscaler.name}`;
+      const loadingPreview = await createLoadingPreview(referenceBlob);
 
       const pendingItem: GalleryItem = {
         id: itemId,
@@ -242,6 +245,7 @@ export function useEditorGeneration() {
         aspectRatio: null,
         resolution: null,
         referenceImageIds: [referenceId],
+        loadingPreview,
         retryCount: 0,
       };
 

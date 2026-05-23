@@ -37,7 +37,13 @@ export function LoadingCard({ item, variant = "gallery" }: LoadingCardProps) {
           ? "Variating..."
           : "Generating..."
       : "Generating...";
-  const aspectRatio = getAspectRatioValue(item.aspectRatio);
+  const hasLoadingPreview = !!item.loadingPreview;
+  const aspectRatio =
+    item.aspectRatio !== null
+      ? getAspectRatioValue(item.aspectRatio)
+      : item.loadingPreview
+        ? item.loadingPreview.width / item.loadingPreview.height
+        : 1;
 
   // Countdown timer for waiting state
   useEffect(() => {
@@ -118,10 +124,23 @@ export function LoadingCard({ item, variant = "gallery" }: LoadingCardProps) {
       style={{ aspectRatio }}
     >
       {/* Animated background for generating/pending */}
-      {isGenerating && !isManual && <SineWaveGrid />}
+      {isGenerating && !isManual && (
+        <SineWaveGrid
+          opacity={hasLoadingPreview ? 0.85 : 1}
+          sampleImageUrl={item.loadingPreview?.dataUrl}
+        />
+      )}
 
       {/* Animated background for waiting state (greyscale, darkened) */}
-      {isWaiting && <SineWaveGrid frozen />}
+      {isWaiting && (
+        <SineWaveGrid
+          frozen
+          opacity={hasLoadingPreview ? 0.85 : 1}
+          sampleImageUrl={item.loadingPreview?.dataUrl}
+        />
+      )}
+
+      {hasLoadingPreview && <div className="absolute inset-0 bg-black/35" />}
 
       {/* Failed state background */}
       {isFailed && <div className="absolute inset-0 bg-red-950/30" />}
