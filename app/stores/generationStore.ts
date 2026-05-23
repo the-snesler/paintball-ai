@@ -30,6 +30,7 @@ interface GenerationState {
   setAvoidPastVariations: (enabled: boolean) => void;
   addReferenceImage: (image: ReferenceImage) => void;
   addReferenceImages: (images: ReferenceImage[]) => void;
+  replaceReferenceImage: (id: string, image: Omit<ReferenceImage, "id">) => void;
   removeReferenceImage: (id: string) => void;
   reorderReferenceImages: (fromId: string, toId: string) => void;
   clearReferenceImages: () => void;
@@ -100,6 +101,18 @@ export const useGenerationStore = create<GenerationState>()((set) => ({
     set((state) => ({
       currentReferenceImages: [...state.currentReferenceImages, ...images],
     })),
+
+  replaceReferenceImage: (id, image) =>
+    set((state) => {
+      const previous = state.currentReferenceImages.find((entry) => entry.id === id);
+      if (!previous) return {};
+      URL.revokeObjectURL(previous.url);
+      return {
+        currentReferenceImages: state.currentReferenceImages.map((entry) =>
+          entry.id === id ? { ...image, id } : entry
+        ),
+      };
+    }),
 
   removeReferenceImage: (id) =>
     set((state) => {

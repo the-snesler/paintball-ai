@@ -65,6 +65,7 @@ interface EditorState {
   setIsGenerating: (val: boolean) => void;
   setPendingFocusedPanel: (panel: "upscalers" | null) => void;
   addReferenceImage: (image: ReferenceImage) => void;
+  replaceReferenceImage: (id: string, image: Omit<ReferenceImage, "id">) => void;
   removeReferenceImage: (id: string) => void;
   reorderReferenceImages: (fromId: string, toId: string) => void;
   setTurnContextBrief: (turnId: string, brief: string) => void;
@@ -269,6 +270,20 @@ export const useEditorStore = create<EditorState>()((set, get) => {
       set((state) => ({
         referenceImages: [...state.referenceImages, image],
       }));
+      persistSession();
+    },
+
+    replaceReferenceImage: (id, image) => {
+      set((state) => {
+        const previous = state.referenceImages.find((entry) => entry.id === id);
+        if (!previous) return {};
+        URL.revokeObjectURL(previous.url);
+        return {
+          referenceImages: state.referenceImages.map((entry) =>
+            entry.id === id ? { ...image, id } : entry
+          ),
+        };
+      });
       persistSession();
     },
 

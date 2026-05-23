@@ -13,9 +13,7 @@ import {
   SortableContext,
   rectSortingStrategy,
   sortableKeyboardCoordinates,
-  useSortable,
 } from "@dnd-kit/sortable";
-import { CSS as DndCSS } from "@dnd-kit/utilities";
 import { useEditorStore } from "~/stores/editorStore";
 import { useEditorGeneration } from "~/hooks/useEditorGeneration";
 import { useImproveText } from "~/hooks/useImproveText";
@@ -29,53 +27,8 @@ import { ELABORATE_PROMPT_SYSTEM, REVERSE_PROMPT_SYSTEM } from "~/lib/prompts";
 import { saveReferenceImage } from "~/lib/db";
 import { generateContextBrief, getSourceTurnBrief } from "~/lib/contextBrief";
 import { Tooltip } from "../ui/Tooltip";
-
-function SortableReferenceImage({
-  img,
-  onRemove,
-  onOpen,
-}: {
-  img: { id: string; url: string; name: string };
-  onRemove: (id: string) => void;
-  onOpen: (img: { id: string; url: string; name: string }) => void;
-}) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
-    id: img.id,
-  });
-
-  const style = {
-    transform: DndCSS.Transform.toString(transform),
-    transition,
-  };
-
-  return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      className={`group relative aspect-square ${isDragging ? "z-50 opacity-75" : ""}`}
-    >
-      <button
-        type="button"
-        onClick={() => onOpen(img)}
-        className="block h-full w-full cursor-zoom-in"
-        {...attributes}
-        {...listeners}
-      >
-        <img src={img.url} alt={img.name} className="h-full w-full rounded object-cover" />
-      </button>
-      <button
-        type="button"
-        onClick={(e) => {
-          e.stopPropagation();
-          onRemove(img.id);
-        }}
-        className="border-c-border bg-surface-raised absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full border opacity-0 transition-opacity group-hover:opacity-100"
-      >
-        <X className="text-text-tertiary h-3 w-3" />
-      </button>
-    </div>
-  );
-}
+import { ReferenceImageMarkupOverlay } from "../reference/ReferenceImageMarkupOverlay";
+import { SortableReferenceImage } from "../reference/SortableReferenceImage";
 
 interface EditorInputBarProps {
   /** Called when user pastes/drops an image and no source is set yet */
@@ -102,6 +55,7 @@ export function EditorInputBar({ onSourceFile }: EditorInputBarProps) {
   const referenceImages = useEditorStore((s) => s.referenceImages);
   const addReferenceImage = useEditorStore((s) => s.addReferenceImage);
   const removeReferenceImage = useEditorStore((s) => s.removeReferenceImage);
+  const replaceReferenceImage = useEditorStore((s) => s.replaceReferenceImage);
   const reorderReferenceImages = useEditorStore((s) => s.reorderReferenceImages);
   const openLightbox = useLightboxStore((s) => s.openLightbox);
 
@@ -136,6 +90,7 @@ export function EditorInputBar({ onSourceFile }: EditorInputBarProps) {
 
   const [isDragOver, setIsDragOver] = useState(false);
   const [contextBriefDismissed, setContextBriefDismissed] = useState(false);
+  const [editingReferenceId, setEditingReferenceId] = useState<string | null>(null);
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -188,6 +143,9 @@ export function EditorInputBar({ onSourceFile }: EditorInputBarProps) {
   );
 
   const referenceEnabled = anyModelSupportsReferenceImages(models, selectedModelIds);
+  const editingReference = editingReferenceId
+    ? (referenceImages.find((img) => img.id === editingReferenceId) ?? null)
+    : null;
 
   const referenceLimit = useMemo(() => {
     const limit = getStrictReferenceImageLimit(models, selectedModelIds);
@@ -594,6 +552,7 @@ export function EditorInputBar({ onSourceFile }: EditorInputBarProps) {
                               image: { id: img.id, url: img.url, name: img.name },
                             })
                           }
+                          onEdit={setEditingReferenceId}
                         />
                       ))}
 
@@ -722,6 +681,13 @@ export function EditorInputBar({ onSourceFile }: EditorInputBarProps) {
           </div>
         </div>
       </div>
+      {editingReference && (
+        <ReferenceImageMarkupOverlay
+          image={editingReference}
+          onClose={() => setEditingReferenceId(null)}
+          onApply={(nextImage) => replaceReferenceImage(editingReference.id, nextImage)}
+        />
+      )}
     </div>
   );
 }

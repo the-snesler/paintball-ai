@@ -1,4 +1,4 @@
-import { ImagePlus, Wand2, X } from "lucide-react";
+import { ImagePlus, Wand2 } from "lucide-react";
 import { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
   DndContext,
@@ -13,9 +13,7 @@ import {
   SortableContext,
   rectSortingStrategy,
   sortableKeyboardCoordinates,
-  useSortable,
 } from "@dnd-kit/sortable";
-import { CSS as DndCSS } from "@dnd-kit/utilities";
 import { useImproveText } from "~/hooks/useImproveText";
 import { anyModelSupportsReferenceImages } from "~/lib/models";
 import { ELABORATE_PROMPT_SYSTEM } from "~/lib/prompts";
@@ -28,56 +26,8 @@ import { useSettingsStore } from "~/stores/settingsStore";
 import { ImproveTextButton } from "../ui/ImproveTextButton";
 import { StyleSelect } from "./StyleSelect";
 import { CharacterSelect } from "./CharacterSelect";
-
-function SortableReferenceImage({
-  img,
-  onRemove,
-  onOpen,
-  referenceEnabled,
-}: {
-  img: { id: string; url: string; name: string };
-  onRemove: (id: string) => void;
-  onOpen: (img: { id: string; url: string; name: string }) => void;
-  referenceEnabled: boolean;
-}) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
-    id: img.id,
-  });
-
-  const style = {
-    transform: DndCSS.Transform.toString(transform),
-    transition,
-  };
-
-  return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      className={`group relative aspect-square ${isDragging ? "z-50 opacity-75" : ""}`}
-    >
-      <button
-        type="button"
-        onClick={() => onOpen(img)}
-        className="block h-full w-full cursor-zoom-in"
-        {...attributes}
-        {...listeners}
-      >
-        <img src={img.url} alt={img.name} className="h-full w-full rounded object-cover" />
-      </button>
-      <button
-        type="button"
-        onClick={(e) => {
-          e.stopPropagation();
-          onRemove(img.id);
-        }}
-        disabled={!referenceEnabled}
-        className="border-c-border bg-surface-raised absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full border opacity-0 transition-opacity group-hover:opacity-100"
-      >
-        <X className="text-text-tertiary h-3 w-3" />
-      </button>
-    </div>
-  );
-}
+import { ReferenceImageMarkupOverlay } from "../reference/ReferenceImageMarkupOverlay";
+import { SortableReferenceImage } from "../reference/SortableReferenceImage";
 
 export function PromptInput() {
   const prompt = useGenerationStore((s) => s.currentPrompt);
@@ -87,6 +37,7 @@ export function PromptInput() {
   const referenceImages = useGenerationStore((s) => s.currentReferenceImages);
   const addReferenceImage = useGenerationStore((s) => s.addReferenceImage);
   const removeReferenceImage = useGenerationStore((s) => s.removeReferenceImage);
+  const replaceReferenceImage = useGenerationStore((s) => s.replaceReferenceImage);
   const reorderReferenceImages = useGenerationStore((s) => s.reorderReferenceImages);
   const openLightbox = useLightboxStore((s) => s.openLightbox);
 
@@ -112,6 +63,7 @@ export function PromptInput() {
   const styles = useSettingsStore((s) => s.styles);
   const characters = useSettingsStore((s) => s.characters);
   const [isDragOver, setIsDragOver] = useState(false);
+  const [editingReferenceId, setEditingReferenceId] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const selectedStyle = useMemo(
@@ -160,6 +112,9 @@ export function PromptInput() {
 
   const referenceEnabled = anyModelSupportsReferenceImages(models, selectedModels);
   const isExpanded = isDragOver || referenceImages.length > 0;
+  const editingReference = editingReferenceId
+    ? (referenceImages.find((img) => img.id === editingReferenceId) ?? null)
+    : null;
 
   const addFiles = useCallback(
     (files: File[]) => {
@@ -365,6 +320,7 @@ export function PromptInput() {
                           image: { id: img.id, url: img.url, name: img.name },
                         })
                       }
+                      onEdit={setEditingReferenceId}
                       referenceEnabled={referenceEnabled}
                     />
                   ))}
@@ -404,6 +360,13 @@ export function PromptInput() {
           <StyleSelect />
         </div>
       </div>
+      {editingReference && (
+        <ReferenceImageMarkupOverlay
+          image={editingReference}
+          onClose={() => setEditingReferenceId(null)}
+          onApply={(nextImage) => replaceReferenceImage(editingReference.id, nextImage)}
+        />
+      )}
     </section>
   );
 }
