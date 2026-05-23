@@ -99,6 +99,7 @@ export interface BaseGalleryItem {
   resolution: Resolution | null;
   quality?: string | null;
   referenceImageIds: string[];
+  isFavorite?: boolean;
   loadingPreview?: LoadingPreview;
 }
 
@@ -161,6 +162,7 @@ export interface StoredImageRecord {
   createdAt: number;
   generationTimeMs?: number;
   referenceImageIds: string[];
+  isFavorite?: boolean;
   parentGalleryItemIds?: string[];
   metadata: Record<string, unknown>;
   embedding?: number[];

@@ -146,6 +146,7 @@ export function useGenerationTask() {
             createdAt,
             generationTimeMs,
             referenceImageIds: task.referenceImages.map((r) => r.id),
+            isFavorite: false,
             parentGalleryItemIds:
               parentGalleryItemIds.length > 0 ? parentGalleryItemIds : undefined,
             metadata: result.metadata,
@@ -166,6 +167,7 @@ export function useGenerationTask() {
             createdAt,
             generationTimeMs,
             referenceImageIds: task.referenceImages.map((r) => r.id),
+            isFavorite: false,
             metadata: result.metadata,
             parentGalleryItemIds:
               parentGalleryItemIds.length > 0 ? parentGalleryItemIds : undefined,

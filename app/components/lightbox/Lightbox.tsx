@@ -12,6 +12,7 @@ import {
   Check,
   CopyPlus,
   ImageUpscale,
+  Star,
 } from "lucide-react";
 import { useLocation, useNavigate } from "react-router";
 import { useGalleryStore } from "~/stores/galleryStore";
@@ -37,6 +38,7 @@ export function Lightbox() {
   const location = useLocation();
   const closeLightbox = useLightboxStore((s) => s.closeLightbox);
   const deleteItem = useGalleryStore((s) => s.deleteItem);
+  const toggleItemFavorite = useGalleryStore((s) => s.toggleItemFavorite);
   const reuseGalleryItemPrompt = useReuseGalleryItemPrompt();
   const reuseGalleryItemBasePrompt = useReuseGalleryItemBasePrompt();
   const { lightboxTarget, galleryImage, referenceImage, showNavigation, navigateLightbox } =
@@ -217,6 +219,11 @@ export function Lightbox() {
     }
   }, [galleryImage, deleteItem]);
 
+  const handleToggleFavorite = useCallback(() => {
+    if (!galleryImage) return;
+    void toggleItemFavorite(galleryImage.id);
+  }, [galleryImage, toggleItemFavorite]);
+
   if (!galleryImage && !referenceImage) return null;
 
   const imageSrc = galleryImage?.originalUrl ?? referenceImage?.url ?? "";
@@ -311,6 +318,15 @@ export function Lightbox() {
                     disabled={!replicateKey || galleryImage.status !== "completed"}
                   />
                 )}
+                <IconButton
+                  icon={
+                    <Star
+                      className={`h-4 w-4 ${galleryImage.isFavorite ? "fill-current text-yellow-300" : ""}`}
+                    />
+                  }
+                  title={galleryImage.isFavorite ? "Unfavorite" : "Favorite"}
+                  onClick={handleToggleFavorite}
+                />
                 <IconButton
                   icon={<Download className="h-4 w-4" />}
                   title="Download"

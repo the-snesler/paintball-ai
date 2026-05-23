@@ -8,6 +8,8 @@ interface GalleryHeaderProps {
   title?: string;
   searchQuery?: string;
   onSearchChange?: (query: string) => void;
+  showFavoritesOnly?: boolean;
+  onToggleFavorites?: () => void;
   showBackButton?: boolean;
 }
 
@@ -16,6 +18,8 @@ export function GalleryHeader({
   title,
   searchQuery,
   onSearchChange,
+  showFavoritesOnly = false,
+  onToggleFavorites,
   showBackButton = false,
 }: GalleryHeaderProps) {
   const location = useLocation();
@@ -59,7 +63,12 @@ export function GalleryHeader({
       {onSearchChange ? (
         <div className="flex-1 px-4">
           <div className="mx-auto max-w-sm">
-            <SearchBar value={searchQuery ?? ""} onChange={onSearchChange} />
+            <SearchBar
+              value={searchQuery ?? ""}
+              onChange={onSearchChange}
+              showFavoritesOnly={showFavoritesOnly}
+              onToggleFavorites={onToggleFavorites}
+            />
           </div>
         </div>
       ) : (

@@ -242,6 +242,31 @@ export async function updateImageEmbedding(
   });
 }
 
+export async function updateImageFavorite(id: string, isFavorite: boolean): Promise<void> {
+  const db = await initDB();
+
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(STORES.images, "readwrite");
+    const store = transaction.objectStore(STORES.images);
+    const getReq = store.get(id);
+
+    getReq.onerror = () => reject(getReq.error);
+    getReq.onsuccess = () => {
+      const record = getReq.result as StoredImageRecord | undefined;
+      if (!record) {
+        resolve();
+        return;
+      }
+      record.isFavorite = isFavorite;
+      store.put(record);
+    };
+
+    transaction.oncomplete = () => resolve();
+    transaction.onerror = () => reject(transaction.error);
+    transaction.onabort = () => reject(transaction.error);
+  });
+}
+
 export async function getEmbeddingCounts(
   modelId: string | null
 ): Promise<{ total: number; indexed: number }> {
@@ -483,6 +508,7 @@ export async function getExistingImageIds(): Promise<Set<string>> {
 export function toDisplayImage(stored: StoredImageRecord): CompletedGalleryItem {
   return {
     ...stored,
+    isFavorite: stored.isFavorite ?? false,
     status: "completed",
     originalUrl: URL.createObjectURL(stored.originalBlob),
     thumbnailUrl: URL.createObjectURL(stored.thumbnailBlob),
@@ -524,6 +550,7 @@ async function normalizeStoredImageRecord(
     height: legacy.height,
     createdAt: legacy.createdAt,
     referenceImageIds: legacy.referenceImageIds ?? [],
+    isFavorite: false,
     metadata: legacy.metadata ?? {},
   };
 

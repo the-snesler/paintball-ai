@@ -221,7 +221,7 @@ function RecentGalleryStrip({ onAdd }: { onAdd: (item: CompletedGalleryItem) => 
 
 function ModelWarningBanner() {
   return (
-    <div className="border-yellow-500/30 bg-yellow-500/10 text-yellow-200 flex items-start gap-2 rounded-lg border px-3 py-2 text-xs">
+    <div className="flex items-start gap-2 rounded-lg border border-yellow-500/30 bg-yellow-500/10 px-3 py-2 text-xs text-yellow-200">
       <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-yellow-300" />
       <p>
         Select an image model in the sidebar to generate a reference. Open the sidebar on the left
@@ -235,7 +235,7 @@ function InlineErrorBanner({ message }: { message: string }) {
   return (
     <div
       role="alert"
-      className="border-red-500/30 bg-red-500/10 text-red-300 flex items-start gap-2 rounded-lg border px-3 py-2 text-xs"
+      className="flex items-start gap-2 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-300"
     >
       <CircleAlert className="mt-0.5 h-3.5 w-3.5 shrink-0 text-red-400" />
       <p>{message}</p>
@@ -436,6 +436,7 @@ export function CharacterEditView() {
         createdAt,
         generationTimeMs,
         referenceImageIds,
+        isFavorite: false,
         metadata: result.metadata,
       });
 
@@ -457,6 +458,7 @@ export function CharacterEditView() {
         height: result.height,
         createdAt,
         generationTimeMs,
+        isFavorite: false,
         metadata: result.metadata,
       });
 
@@ -699,11 +701,7 @@ export function CharacterEditView() {
           />
           <div className="mt-1.5 flex items-center justify-between gap-2">
             {improveText.error ? (
-              <p
-                role="alert"
-                className="text-xs text-red-400"
-                title={improveText.error}
-              >
+              <p role="alert" className="text-xs text-red-400" title={improveText.error}>
                 Couldn’t improve text — {improveText.error}
               </p>
             ) : (

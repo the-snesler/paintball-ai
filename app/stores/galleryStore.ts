@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import type {
+  BaseGalleryItem,
   GalleryItem,
   CompletedGalleryItem,
   CompletedGalleryItemFields,
@@ -13,6 +14,7 @@ import {
   deleteImage as dbDeleteImage,
   deleteReferenceImage,
   toDisplayImage,
+  updateImageFavorite,
 } from "~/lib/db";
 import { useLightboxStore } from "./lightboxStore";
 import { useEmbeddingStatusStore } from "./embeddingStatusStore";
@@ -46,6 +48,9 @@ function getOrphanedReferenceIds(removingIds: Set<string>, allItems: GalleryItem
 
 const canceledItemIds = new Set<string>();
 
+type GalleryItemUpdate = Partial<BaseGalleryItem> &
+  (PendingGalleryItemFields | CompletedGalleryItemFields | FailedGalleryItemFields);
+
 interface GalleryState {
   items: GalleryItem[];
   selectedItemIds: string[];
@@ -57,15 +62,13 @@ interface GalleryState {
   isLoadingMore: boolean;
   totalCount: number;
   searchQuery: string;
+  showFavoritesOnly: boolean;
 
   loadImages: () => Promise<void>;
   loadMoreImages: () => Promise<void>;
   addItem: (item: GalleryItem) => void;
   addItems: (items: GalleryItem[]) => void;
-  updateItem: (
-    id: string,
-    updates: PendingGalleryItemFields | CompletedGalleryItemFields | FailedGalleryItemFields
-  ) => void;
+  updateItem: (id: string, updates: GalleryItemUpdate) => void;
   updatePendingPromptFields: (
     updates: Array<{
       id: string;
@@ -85,7 +88,10 @@ interface GalleryState {
   clearSelection: () => void;
   deleteSelectedItems: () => Promise<number>;
   downloadSelectedItems: () => number;
+  toggleItemFavorite: (id: string) => Promise<void>;
+  setSelectedItemsFavorite: (isFavorite: boolean) => Promise<number>;
   setSearchQuery: (query: string) => void;
+  toggleFavoritesFilter: () => void;
   setItemEmbedding: (id: string, embedding: number[], embeddingModelId: string) => void;
 }
 
@@ -100,6 +106,7 @@ export const useGalleryStore = create<GalleryState>()((set, get) => ({
   isLoadingMore: false,
   totalCount: 0,
   searchQuery: "",
+  showFavoritesOnly: false,
 
   loadImages: async () => {
     set({ isLoading: true });
@@ -323,6 +330,8 @@ export const useGalleryStore = create<GalleryState>()((set, get) => ({
 
   setSearchQuery: (query) => set({ searchQuery: query }),
 
+  toggleFavoritesFilter: () => set((state) => ({ showFavoritesOnly: !state.showFavoritesOnly })),
+
   setItemEmbedding: (id, embedding, embeddingModelId) =>
     set((state) => ({
       items: state.items.map((item) =>
@@ -331,6 +340,72 @@ export const useGalleryStore = create<GalleryState>()((set, get) => ({
           : item
       ),
     })),
+
+  toggleItemFavorite: async (id) => {
+    const item = get().items.find((entry) => entry.id === id);
+    if (!item || item.status !== "completed") return;
+
+    const nextIsFavorite = !item.isFavorite;
+    set((state) => ({
+      items: state.items.map((entry) =>
+        entry.id === id && entry.status === "completed"
+          ? { ...entry, isFavorite: nextIsFavorite }
+          : entry
+      ),
+    }));
+
+    try {
+      await updateImageFavorite(id, nextIsFavorite);
+    } catch (error) {
+      set((state) => ({
+        items: state.items.map((entry) =>
+          entry.id === id && entry.status === "completed"
+            ? { ...entry, isFavorite: item.isFavorite ?? false }
+            : entry
+        ),
+      }));
+      console.error("Failed to update favorite:", error);
+      throw error;
+    }
+  },
+
+  setSelectedItemsFavorite: async (isFavorite) => {
+    const state = get();
+    const selectedSet = new Set(state.selectedItemIds);
+    const selectedItems = state.items.filter(
+      (item): item is CompletedGalleryItem =>
+        item.status === "completed" && selectedSet.has(item.id)
+    );
+
+    if (selectedItems.length === 0) {
+      return 0;
+    }
+
+    const previousFavorites = new Map(
+      selectedItems.map((item) => [item.id, item.isFavorite ?? false])
+    );
+
+    set((currentState) => ({
+      items: currentState.items.map((item) =>
+        item.status === "completed" && selectedSet.has(item.id) ? { ...item, isFavorite } : item
+      ),
+    }));
+
+    try {
+      await Promise.all(selectedItems.map((item) => updateImageFavorite(item.id, isFavorite)));
+      return selectedItems.length;
+    } catch (error) {
+      set((currentState) => ({
+        items: currentState.items.map((item) =>
+          item.status === "completed" && previousFavorites.has(item.id)
+            ? { ...item, isFavorite: previousFavorites.get(item.id) ?? false }
+            : item
+        ),
+      }));
+      console.error("Failed to update selected favorites:", error);
+      throw error;
+    }
+  },
 
   deleteSelectedItems: async () => {
     const state = get();

@@ -1,4 +1,4 @@
-import { Check } from "lucide-react";
+import { Check, Star } from "lucide-react";
 import { useState, useCallback, type ChangeEvent, type MouseEvent } from "react";
 import { useGalleryStore } from "~/stores/galleryStore";
 import { useLightboxStore } from "~/stores/lightboxStore";
@@ -126,6 +126,11 @@ export function ImageCard({ image, selectionDisabled = false }: ImageCardProps) 
       <div className="absolute bottom-2 left-2 rounded bg-black/60 px-2 py-1 text-xs text-white/90 backdrop-blur-sm">
         {image.modelName}
       </div>
+      {image.isFavorite && (
+        <div className="absolute top-2 right-2 flex h-7 w-7 items-center justify-center rounded-full bg-black/60 text-yellow-300 backdrop-blur-sm">
+          <Star className="h-4 w-4 fill-current" />
+        </div>
+      )}
     </div>
   );
 }

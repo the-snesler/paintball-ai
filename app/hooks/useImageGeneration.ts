@@ -130,6 +130,7 @@ export function useImageGeneration() {
             resolution: taskResolution,
             quality: taskQuality,
             referenceImageIds: referenceImages.map((r) => r.id),
+            isFavorite: false,
             loadingPreview,
             retryCount: 0,
           });

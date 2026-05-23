@@ -5,7 +5,7 @@ import { GalleryHeader } from "./GalleryHeader";
 import { MasonryGrid, MasonryFrame } from "./MasonryGrid";
 import { GalleryImageCard } from "./GalleryImageCard";
 import { TimelineDivider } from "./TimelineDivider";
-import { ImageOff, Download, Loader2, Trash2, X, ImagePlus } from "lucide-react";
+import { ImageOff, Download, Loader2, Trash2, X, ImagePlus, Star } from "lucide-react";
 import type { GalleryItem } from "~/types";
 import { formatRelativeDate } from "~/lib/util";
 import { getFirstCreatedAt, groupItemsByPrompt } from "~/lib/galleryGrouping";
@@ -31,15 +31,20 @@ export function Gallery({ viewMode }: { viewMode: "grid" | "timeline" }) {
   const totalCount = useGalleryStore((s) => s.totalCount);
   const searchQuery = useGalleryStore((s) => s.searchQuery);
   const setSearchQuery = useGalleryStore((s) => s.setSearchQuery);
+  const showFavoritesOnly = useGalleryStore((s) => s.showFavoritesOnly);
+  const toggleFavoritesFilter = useGalleryStore((s) => s.toggleFavoritesFilter);
   const semanticSearchEnabled = useSettingsStore((s) => s.semanticSearchEnabled);
   const { itemsByPrompt } = useGalleryDerivedIndexes();
 
   const queryEmbedding = useQueryEmbedding(searchQuery, semanticSearchEnabled);
 
   const filteredItems = useMemo(() => {
-    if (!searchQuery.trim()) return items;
+    const sourceItems = showFavoritesOnly
+      ? items.filter((item) => item.status === "completed" && item.isFavorite)
+      : items;
+    if (!searchQuery.trim()) return sourceItems;
     const q = searchQuery.trim().toLowerCase();
-    const substringMatches = items.filter(
+    const substringMatches = sourceItems.filter(
       (item) =>
         item.prompt.toLowerCase().includes(q) ||
         (item.basePrompt?.toLowerCase().includes(q) ?? false) ||
@@ -56,7 +61,7 @@ export function Gallery({ viewMode }: { viewMode: "grid" | "timeline" }) {
     const substringIds = new Set(substringMatches.map((i) => i.id));
     const semanticMatches: GalleryItem[] = [];
     const scored: Array<{ item: GalleryItem; score: number }> = [];
-    for (const item of items) {
+    for (const item of sourceItems) {
       if (item.status !== "completed") continue;
       if (!item.embedding || item.embedding.length === 0) continue;
       const score = cosine(queryEmbedding, item.embedding);
@@ -72,11 +77,12 @@ export function Gallery({ viewMode }: { viewMode: "grid" | "timeline" }) {
     });
 
     return semanticMatches;
-  }, [items, searchQuery, semanticSearchEnabled, queryEmbedding]);
+  }, [items, searchQuery, showFavoritesOnly, semanticSearchEnabled, queryEmbedding]);
 
   const filteredItemsByPrompt = useMemo(
-    () => (searchQuery.trim() ? groupItemsByPrompt(filteredItems) : itemsByPrompt),
-    [filteredItems, itemsByPrompt, searchQuery]
+    () =>
+      searchQuery.trim() || showFavoritesOnly ? groupItemsByPrompt(filteredItems) : itemsByPrompt,
+    [filteredItems, itemsByPrompt, searchQuery, showFavoritesOnly]
   );
 
   const sentinelRef = useRef<HTMLDivElement>(null);
@@ -105,15 +111,17 @@ export function Gallery({ viewMode }: { viewMode: "grid" | "timeline" }) {
   return (
     <main className="bg-surface relative flex h-full flex-1 flex-col overflow-hidden">
       <GalleryHeader
-        count={searchQuery.trim() ? filteredItems.length : totalCount}
+        count={searchQuery.trim() || showFavoritesOnly ? filteredItems.length : totalCount}
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
+        showFavoritesOnly={showFavoritesOnly}
+        onToggleFavorites={toggleFavoritesFilter}
       />
 
       <div className={`flex-1 overflow-y-auto p-2 md:p-6 ${selectedCount > 0 ? "pb-28" : ""}`}>
         {filteredItems.length === 0 ? (
-          searchQuery.trim() ? (
-            <NoSearchResults />
+          searchQuery.trim() || showFavoritesOnly ? (
+            <NoSearchResults showFavoritesOnly={showFavoritesOnly} />
           ) : (
             <EmptyState />
           )
@@ -136,11 +144,20 @@ export function Gallery({ viewMode }: { viewMode: "grid" | "timeline" }) {
 
 function SelectionActionPopup() {
   const selectedCount = useGalleryStore((s) => s.selectedItemIds.length);
+  const selectedItemIds = useGalleryStore((s) => s.selectedItemIds);
+  const items = useGalleryStore((s) => s.items);
   const clearSelection = useGalleryStore((s) => s.clearSelection);
   const deleteSelectedItems = useGalleryStore((s) => s.deleteSelectedItems);
   const downloadSelectedItems = useGalleryStore((s) => s.downloadSelectedItems);
+  const setSelectedItemsFavorite = useGalleryStore((s) => s.setSelectedItemsFavorite);
   const attachSelectedItemsToGeneration = useAttachSelectedItemsToGeneration();
   const [isDeleting, setIsDeleting] = useState(false);
+  const selectedSet = useMemo(() => new Set(selectedItemIds), [selectedItemIds]);
+  const selectedItems = useMemo(
+    () => items.filter((item) => item.status === "completed" && selectedSet.has(item.id)),
+    [items, selectedSet]
+  );
+  const shouldFavoriteSelected = selectedItems.some((item) => !item.isFavorite);
 
   if (selectedCount === 0) {
     return null;
@@ -167,6 +184,10 @@ function SelectionActionPopup() {
     }
   };
 
+  const handleFavoriteSelected = () => {
+    void setSelectedItemsFavorite(shouldFavoriteSelected);
+  };
+
   return (
     <div className="pointer-events-none absolute inset-x-0 bottom-5 z-20 flex justify-center px-6">
       <div className="animate-slide-up border-c-border bg-surface-raised/95 pointer-events-auto flex items-center gap-2 rounded-xl border px-3 py-2 shadow-lg backdrop-blur-sm">
@@ -185,6 +206,11 @@ function SelectionActionPopup() {
           icon={<ImagePlus className="h-3.5 w-3.5" />}
           label="Attach to prompt"
           onClick={handleAttachSelected}
+        />
+        <PopupActionButton
+          icon={<Star className={`h-3.5 w-3.5 ${shouldFavoriteSelected ? "" : "fill-current"}`} />}
+          label={shouldFavoriteSelected ? "Favorite" : "Unfavorite"}
+          onClick={handleFavoriteSelected}
         />
         <PopupActionButton
           icon={<Download className="h-3.5 w-3.5" />}
@@ -218,11 +244,10 @@ function PopupActionButton({
   return (
     <button
       onClick={onClick}
-      className={`inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors ${
-        variant === "danger"
-          ? "text-red-300 hover:bg-red-500/10"
-          : "text-text-secondary hover:bg-surface-overlay"
-      }`}
+      className={`inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors ${variant === "danger"
+        ? "text-red-300 hover:bg-red-500/10"
+        : "text-text-secondary hover:bg-surface-overlay"
+        }`}
     >
       {icon}
       {label}
@@ -230,15 +255,23 @@ function PopupActionButton({
   );
 }
 
-function NoSearchResults() {
+function NoSearchResults({ showFavoritesOnly }: { showFavoritesOnly?: boolean }) {
   return (
     <div className="flex h-full flex-col items-center justify-center text-center">
       <div className="bg-surface-raised mb-4 flex h-16 w-16 items-center justify-center rounded-full">
-        <ImageOff className="text-text-muted h-8 w-8" />
+        {showFavoritesOnly ? (
+          <Star className="text-text-muted h-8 w-8" />
+        ) : (
+          <ImageOff className="text-text-muted h-8 w-8" />
+        )}
       </div>
-      <h3 className="text-text-secondary mb-2 text-lg font-medium">No results</h3>
+      <h3 className="text-text-secondary mb-2 text-lg font-medium">
+        {showFavoritesOnly ? "No favorites" : "No results"}
+      </h3>
       <p className="text-text-muted max-w-xs text-sm">
-        No images match your search. Try a different prompt or model name.
+        {showFavoritesOnly
+          ? "Star images in the gallery or lightbox to collect them here."
+          : "No images match your search. Try a different prompt or model name."}
       </p>
     </div>
   );

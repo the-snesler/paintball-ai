@@ -13,7 +13,7 @@ export function MasonryGrid({ children }: MasonryGridProps) {
   return (
     <div
       ref={containerRef}
-      className="mt-1 grid grid-cols-[repeat(auto-fill,minmax(175px,1fr))] gap-2 overflow-hidden md:grid-cols-[repeat(auto-fill,minmax(200px,1fr))] md:gap-4"
+      className="mt-1 grid grid-cols-[repeat(auto-fill,minmax(175px,1fr))] gap-2 md:grid-cols-[repeat(auto-fill,minmax(200px,1fr))] md:gap-4"
     >
       {children}
     </div>

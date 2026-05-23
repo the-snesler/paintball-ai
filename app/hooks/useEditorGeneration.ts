@@ -133,6 +133,7 @@ export function useEditorGeneration() {
               resolution: taskResolution,
               quality: taskQuality,
               referenceImageIds: allReferenceIds,
+              isFavorite: false,
               loadingPreview,
               retryCount: 0,
             });
@@ -279,6 +280,7 @@ export function useEditorGeneration() {
           height: result.height,
           createdAt,
           referenceImageIds: [referenceId],
+          isFavorite: false,
           parentGalleryItemIds: sourceGalleryItemId ? [sourceGalleryItemId] : undefined,
           metadata,
         });
@@ -296,6 +298,7 @@ export function useEditorGeneration() {
           width: result.width,
           height: result.height,
           createdAt,
+          isFavorite: false,
           metadata,
           parentGalleryItemIds: sourceGalleryItemId ? [sourceGalleryItemId] : undefined,
         });
