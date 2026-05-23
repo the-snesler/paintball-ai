@@ -14,6 +14,7 @@ export interface RetryWaitInfo {
 export interface RetryOptions {
   maxRetries?: number;
   baseBackoffMs?: number;
+  shouldContinue?: () => boolean;
   onWaiting?: (info: RetryWaitInfo) => void;
   onRetrying?: (info: { retryCount: number }) => void;
 }
@@ -28,6 +29,10 @@ export async function retryWithBackoff<T>(
   let retryCount = 0;
 
   while (true) {
+    if (opts.shouldContinue && !opts.shouldContinue()) {
+      throw new Error("Retry cancelled");
+    }
+
     try {
       return await fn();
     } catch (error) {
@@ -40,6 +45,9 @@ export async function retryWithBackoff<T>(
           reason: "rate-limit",
         });
         await sleep(waitMs);
+        if (opts.shouldContinue && !opts.shouldContinue()) {
+          throw new Error("Retry cancelled");
+        }
         opts.onRetrying?.({ retryCount });
         // Don't increment retryCount for rate limits
         continue;
@@ -55,6 +63,9 @@ export async function retryWithBackoff<T>(
           reason: "backoff",
         });
         await sleep(waitMs);
+        if (opts.shouldContinue && !opts.shouldContinue()) {
+          throw new Error("Retry cancelled");
+        }
         opts.onRetrying?.({ retryCount });
         continue;
       }

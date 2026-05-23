@@ -1,5 +1,5 @@
 import { useCallback } from "react";
-import { getReferenceImagesByIds, saveImage } from "~/lib/db";
+import { deleteImage as dbDeleteImage, getReferenceImagesByIds, saveImage } from "~/lib/db";
 import { enqueueImageEmbedding } from "~/lib/embeddingQueue";
 import { executeGeneration, type GenerationResult } from "~/lib/generation";
 import { createThumbnailBlob } from "~/lib/imageProcessing";
@@ -38,16 +38,29 @@ export function useGenerationTask() {
   const incrementRequestedOutputCount = useSettingsStore((s) => s.incrementRequestedOutputCount);
   const updateItem = useGalleryStore((s) => s.updateItem);
   const getItem = useGalleryStore((s) => s.getItem);
+  const isItemCanceled = useGalleryStore((s) => s.isItemCanceled);
+
+  const getActiveItemIds = useCallback(
+    (ids: string[]) => ids.filter((id) => !isItemCanceled(id)),
+    [isItemCanceled]
+  );
+
+  const isTaskCanceled = useCallback(
+    (task: GenerationTask) => getActiveItemIds(task.itemIds).length === 0,
+    [getActiveItemIds]
+  );
 
   const updateAll = useCallback(
     (ids: string[], patch: Parameters<typeof updateItem>[1]) => {
-      for (const id of ids) updateItem(id, patch);
+      for (const id of getActiveItemIds(ids)) updateItem(id, patch);
     },
-    [updateItem]
+    [getActiveItemIds, updateItem]
   );
 
   const executeTask = useCallback(
     async (task: GenerationTask): Promise<GenerationResult[]> => {
+      if (isTaskCanceled(task)) return [];
+
       const apiKey = providerRequiresApiKey(task.provider) ? apiKeys[task.provider] : undefined;
       if (providerRequiresApiKey(task.provider) && !apiKey) {
         throw new Error(`No API key for ${task.provider}`);
@@ -68,12 +81,13 @@ export function useGenerationTask() {
         apiKey || undefined
       );
     },
-    [apiKeys]
+    [apiKeys, isTaskCanceled]
   );
 
   const executeWithRetry = useCallback(
     (task: GenerationTask) =>
       retryWithBackoff(() => executeTask(task), {
+        shouldContinue: () => !isTaskCanceled(task),
         onWaiting: ({ retryCount, waitMs, waitingUntil }) => {
           updateAll(task.itemIds, {
             status: "waiting",
@@ -86,7 +100,7 @@ export function useGenerationTask() {
           updateAll(task.itemIds, { status: "generating", retryCount });
         },
       }),
-    [executeTask, updateAll]
+    [executeTask, isTaskCanceled, updateAll]
   );
 
   const completeTask = useCallback(
@@ -100,6 +114,8 @@ export function useGenerationTask() {
       // Pair each expected itemId with a result; fail the extras if fewer results arrived.
       await Promise.all(
         task.itemIds.map(async (itemId, index) => {
+          if (isItemCanceled(itemId)) return;
+
           const result = results[index];
           if (!result) {
             updateItem(itemId, {
@@ -111,6 +127,7 @@ export function useGenerationTask() {
           }
 
           const thumbnailBlob = await createThumbnailBlob(result.blob, 400);
+          if (isItemCanceled(itemId)) return;
 
           await saveImage({
             id: itemId,
@@ -133,6 +150,10 @@ export function useGenerationTask() {
               parentGalleryItemIds.length > 0 ? parentGalleryItemIds : undefined,
             metadata: result.metadata,
           });
+          if (isItemCanceled(itemId)) {
+            await dbDeleteImage(itemId);
+            return;
+          }
 
           updateItem(itemId, {
             status: "completed",
@@ -150,27 +171,34 @@ export function useGenerationTask() {
               parentGalleryItemIds.length > 0 ? parentGalleryItemIds : undefined,
           });
 
+          if (isItemCanceled(itemId)) return;
           enqueueImageEmbedding(itemId);
         })
       );
 
       return results;
     },
-    [updateItem]
+    [isItemCanceled, updateItem]
   );
 
   const runTask = useCallback(
     async (task: GenerationTask, options: RunTaskOptions = {}) => {
       const { useRetry = true, getCanRetry = () => true } = options;
+      if (isTaskCanceled(task)) return [];
+
       updateAll(task.itemIds, { status: "generating" });
 
       try {
         const startTime = Date.now();
         const results = useRetry ? await executeWithRetry(task) : await executeTask(task);
+        if (isTaskCanceled(task)) return results;
         return await completeTask(task, results, Date.now() - startTime);
       } catch (error) {
+        const activeItemIds = getActiveItemIds(task.itemIds);
+        if (activeItemIds.length === 0) return [];
+
         const message = error instanceof Error ? error.message : "Generation failed";
-        updateAll(task.itemIds, {
+        updateAll(activeItemIds, {
           status: "failed",
           error: message,
           canRetry: getCanRetry(error, task),
@@ -178,7 +206,7 @@ export function useGenerationTask() {
         throw error;
       }
     },
-    [completeTask, executeTask, executeWithRetry, updateAll]
+    [completeTask, executeTask, executeWithRetry, getActiveItemIds, isTaskCanceled, updateAll]
   );
 
   const runTasks = useCallback(

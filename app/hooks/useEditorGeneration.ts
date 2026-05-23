@@ -2,7 +2,7 @@ import { useCallback } from "react";
 import { useSettingsStore } from "~/stores/settingsStore";
 import { useGalleryStore } from "~/stores/galleryStore";
 import { doesModelSupportAspectRatio, getModel } from "~/lib/models";
-import { saveImage, saveReferenceImage } from "~/lib/db";
+import { deleteImage as dbDeleteImage, saveImage, saveReferenceImage } from "~/lib/db";
 import { preparePromptBatch } from "~/lib/promptPreparation";
 import { createThumbnailBlob } from "~/lib/imageProcessing";
 import { executeUpscale } from "~/lib/upscaling";
@@ -15,6 +15,7 @@ export function useEditorGeneration() {
   const replicateKey = useSettingsStore((s) => s.apiKeys.replicate);
   const addItems = useGalleryStore((s) => s.addItems);
   const updateItem = useGalleryStore((s) => s.updateItem);
+  const isItemCanceled = useGalleryStore((s) => s.isItemCanceled);
   const updatePendingPromptFields = useGalleryStore((s) => s.updatePendingPromptFields);
   const updatePendingPhase = useGalleryStore((s) => s.updatePendingPhase);
   const { runTasks } = useGenerationTask();
@@ -249,8 +250,11 @@ export function useEditorGeneration() {
 
       try {
         const result = await executeUpscale(referenceBlob, upscaler, replicateKey);
+        if (isItemCanceled(itemId)) return;
 
         const thumbnailBlob = await createThumbnailBlob(result.blob, 400);
+        if (isItemCanceled(itemId)) return;
+
         const createdAt = Date.now();
         const metadata = {
           upscaledFrom: sourceGalleryItemId,
@@ -274,6 +278,10 @@ export function useEditorGeneration() {
           parentGalleryItemIds: sourceGalleryItemId ? [sourceGalleryItemId] : undefined,
           metadata,
         });
+        if (isItemCanceled(itemId)) {
+          await dbDeleteImage(itemId);
+          return;
+        }
 
         updateItem(itemId, {
           status: "completed",
@@ -288,11 +296,12 @@ export function useEditorGeneration() {
           parentGalleryItemIds: sourceGalleryItemId ? [sourceGalleryItemId] : undefined,
         });
       } catch (err) {
+        if (isItemCanceled(itemId)) return;
         const message = err instanceof Error ? err.message : "Upscale failed";
         updateItem(itemId, { status: "failed", error: message, canRetry: false });
       }
     },
-    [addItems, replicateKey, updateItem]
+    [addItems, isItemCanceled, replicateKey, updateItem]
   );
 
   return { generateEdit, generateUpscale };

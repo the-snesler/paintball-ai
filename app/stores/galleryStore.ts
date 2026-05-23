@@ -44,6 +44,8 @@ function getOrphanedReferenceIds(removingIds: Set<string>, allItems: GalleryItem
   return [...removingRefs].filter((id) => !remainingRefs.has(id));
 }
 
+const canceledItemIds = new Set<string>();
+
 interface GalleryState {
   items: GalleryItem[];
   selectedItemIds: string[];
@@ -75,6 +77,8 @@ interface GalleryState {
   updatePendingPhase: (ids: string[], pendingPhase?: "writing" | "variating") => void;
   deleteItem: (id: string) => Promise<void>;
   dismissItem: (id: string) => void;
+  cancelItem: (id: string) => void;
+  isItemCanceled: (id: string) => boolean;
   getItem: (id: string) => GalleryItem | undefined;
   toggleItemSelection: (id: string) => void;
   selectItemRange: (id: string) => void;
@@ -145,19 +149,25 @@ export const useGalleryStore = create<GalleryState>()((set, get) => ({
     }
   },
 
-  addItem: (item) =>
+  addItem: (item) => {
+    canceledItemIds.delete(item.id);
     set((state) => ({
       items: [item, ...state.items],
-    })),
+    }));
+  },
 
-  addItems: (newItems) =>
+  addItems: (newItems) => {
+    newItems.forEach((item) => canceledItemIds.delete(item.id));
     set((state) => ({
       items: [...newItems, ...state.items],
-    })),
+    }));
+  },
 
   updateItem: (id, updates) =>
     set((state) => {
+      if (canceledItemIds.has(id)) return state;
       const existing = state.items.find((item) => item.id === id);
+      if (!existing) return state;
       const becomingCompleted = updates.status === "completed" && existing?.status !== "completed";
       return {
         items: state.items.map((item) => (item.id === id ? { ...item, ...updates } : item)),
@@ -234,6 +244,22 @@ export const useGalleryStore = create<GalleryState>()((set, get) => ({
     void Promise.all(orphanedRefIds.map((refId) => deleteReferenceImage(refId)));
     set((s) => ({ items: s.items.filter((i) => i.id !== id) }));
   },
+
+  cancelItem: (id) => {
+    const state = get();
+    const item = state.items.find((i) => i.id === id);
+    if (!item || item.status === "completed") return;
+
+    canceledItemIds.add(id);
+    const orphanedRefIds = getOrphanedReferenceIds(new Set([id]), state.items);
+    void Promise.all(orphanedRefIds.map((refId) => deleteReferenceImage(refId)));
+    set((s) => ({
+      items: s.items.filter((i) => i.id !== id),
+      selectedItemIds: s.selectedItemIds.filter((selectedId) => selectedId !== id),
+    }));
+  },
+
+  isItemCanceled: (id) => canceledItemIds.has(id),
 
   getItem: (id) => get().items.find((i) => i.id === id),
 

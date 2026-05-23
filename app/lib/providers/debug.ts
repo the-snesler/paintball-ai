@@ -69,12 +69,18 @@ function getDebugDimensions(
   };
 }
 
+async function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 async function generatePicsumImage(params: GenerationParams): Promise<GenerationResult[]> {
   const { width, height } = getDebugDimensions(params.aspectRatio, params.resolution);
   const n = Math.max(1, params.numberOfImages);
   const results: GenerationResult[] = [];
 
   for (let i = 0; i < n; i++) {
+    // "finish generating" at a random time
+    await sleep(Math.floor(Math.random() * 3000) + 7000);
     // Append a cache-busting seed so each request in the batch yields a different photo.
     const seed = Math.floor(Math.random() * 1_000_000);
     const url = `https://picsum.photos/seed/${seed}/${width}/${height}`;

@@ -16,6 +16,7 @@ interface LoadingCardProps {
 
 export function LoadingCard({ item, variant = "gallery" }: LoadingCardProps) {
   const dismissItem = useGalleryStore((s) => s.dismissItem);
+  const cancelItem = useGalleryStore((s) => s.cancelItem);
   const { retryItem } = useImageGeneration();
   const [countdown, setCountdown] = useState<number | null>(null);
   const [isRetrying, setIsRetrying] = useState(false);
@@ -27,6 +28,7 @@ export function LoadingCard({ item, variant = "gallery" }: LoadingCardProps) {
   const isWaiting = item.status === "waiting";
   const isGenerating = item.status === "generating" || item.status === "pending";
   const isManual = item.modelId === "debug/manual";
+  const canCancel = !isFailed && !isManual && (isGenerating || isWaiting);
   const generationLabel =
     item.status === "pending"
       ? item.pendingPhase === "writing"
@@ -65,6 +67,11 @@ export function LoadingCard({ item, variant = "gallery" }: LoadingCardProps) {
     e.stopPropagation();
     if (isManual && !isFailed) rejectManualItem(item.id);
     dismissItem(item.id);
+  };
+
+  const handleCancel = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    cancelItem(item.id);
   };
 
   const handleManualFile = async (file: File) => {
@@ -148,6 +155,17 @@ export function LoadingCard({ item, variant = "gallery" }: LoadingCardProps) {
             <p className="text-text-muted text-xs">or click to browse</p>
           </div>
         </>
+      )}
+
+      {/* Cancel button for live generations */}
+      {canCancel && (
+        <button
+          onClick={handleCancel}
+          className="absolute top-2 right-2 z-10 rounded-full bg-black/60 p-1.5 transition-colors hover:bg-black/80"
+          aria-label="Cancel generation"
+        >
+          <X className="text-text-tertiary h-4 w-4" />
+        </button>
       )}
 
       {/* Dismiss button — shown for failed generations and manual pending items */}
