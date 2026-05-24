@@ -1,6 +1,6 @@
 import JSZip from "jszip";
 import mime from "mime/lite";
-import type { StoredImageRecord } from "~/types";
+import type { StoredCharacter, StoredImageRecord, StoredStyle } from "~/types";
 import {
   getAllImages,
   getAllReferenceImages,
@@ -10,6 +10,7 @@ import {
   saveReferenceImage,
 } from "./db";
 import { createThumbnailBlob } from "./imageProcessing";
+import { useSettingsStore } from "~/stores/settingsStore";
 
 // Derived from StoredImageRecord so any new field added there is automatically
 // included in the export manifest. Only the binary blobs are stripped (they
@@ -65,6 +66,11 @@ export async function exportAllImages(
   }
   zip.file("references-manifest.json", JSON.stringify(referencesManifest, null, 2));
 
+  const { characters, styles } = useSettingsStore.getState();
+  zip.file("characters.json", JSON.stringify(characters, null, 2));
+  const customStyles = styles.filter((s) => s.isCustom);
+  zip.file("custom-styles.json", JSON.stringify(customStyles, null, 2));
+
   const blob = await zip.generateAsync({ type: "blob" });
   const date = new Date().toISOString().slice(0, 10);
   const url = URL.createObjectURL(blob);
@@ -80,6 +86,8 @@ export async function exportAllImages(
 export interface ImportResult {
   imported: number;
   referencesImported: number;
+  charactersImported: number;
+  stylesImported: number;
   skipped: number;
   failed: number;
 }
@@ -99,7 +107,14 @@ export async function importFromZip(
   const manifest: ManifestEntry[] = JSON.parse(manifestText);
 
   const existingIds = await getExistingImageIds();
-  const result: ImportResult = { imported: 0, referencesImported: 0, skipped: 0, failed: 0 };
+  const result: ImportResult = {
+    imported: 0,
+    referencesImported: 0,
+    charactersImported: 0,
+    stylesImported: 0,
+    skipped: 0,
+    failed: 0,
+  };
 
   for (let i = 0; i < manifest.length; i++) {
     const entry = manifest[i];
@@ -177,6 +192,25 @@ export async function importFromZip(
         result.failed++;
       }
     }
+  }
+
+  const { importCharacters, importCustomStyles } = useSettingsStore.getState();
+
+  const charsFile = zip.file("characters.json");
+  if (charsFile) {
+    const chars: StoredCharacter[] = JSON.parse(await charsFile.async("text"));
+    const before = useSettingsStore.getState().characters.length;
+    importCharacters(chars);
+    result.charactersImported = useSettingsStore.getState().characters.length - before;
+  }
+
+  const stylesFile = zip.file("custom-styles.json");
+  if (stylesFile) {
+    const importedStyles: StoredStyle[] = JSON.parse(await stylesFile.async("text"));
+    const before = useSettingsStore.getState().styles.filter((s) => s.isCustom).length;
+    importCustomStyles(importedStyles);
+    result.stylesImported =
+      useSettingsStore.getState().styles.filter((s) => s.isCustom).length - before;
   }
 
   return result;

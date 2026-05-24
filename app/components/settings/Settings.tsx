@@ -333,6 +333,10 @@ function DataSection() {
       const parts = [`${result.imported} generations imported`];
       if (result.referencesImported > 0)
         parts.push(`${result.referencesImported} references imported`);
+      if (result.charactersImported > 0)
+        parts.push(`${result.charactersImported} character${result.charactersImported !== 1 ? "s" : ""} imported`);
+      if (result.stylesImported > 0)
+        parts.push(`${result.stylesImported} custom style${result.stylesImported !== 1 ? "s" : ""} imported`);
       if (result.skipped > 0) parts.push(`${result.skipped} skipped (already exist)`);
       if (result.failed > 0) parts.push(`${result.failed} failed`);
       setStatus(parts.join(", "));
@@ -360,7 +364,7 @@ function DataSection() {
 
       <div className="border-border-subtle bg-surface-raised/60 ml-6 space-y-3 rounded-lg border p-3">
         <p className="text-text-muted text-xs">
-          Export or import all images and their metadata as a ZIP file.
+          Export or import all images, characters, and custom styles as a ZIP file.
           {imageCount !== null && (
             <span className="text-text-tertiary ml-1">
               {imageCount} image{imageCount !== 1 ? "s" : ""} in gallery.
