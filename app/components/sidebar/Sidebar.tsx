@@ -1,5 +1,16 @@
-import { Expand, Layers, MessageSquareText, Palette, Plus, Users, X } from "lucide-react";
+import {
+  Archive,
+  Expand,
+  Image,
+  KeyRound,
+  Layers,
+  MessageSquareText,
+  Palette,
+  Users,
+  X,
+} from "lucide-react";
 import { useLocation } from "react-router";
+import { useEffect, useRef, useState } from "react";
 import { PromptInput } from "./PromptInput";
 import { ModelList } from "./ModelList";
 import { UpscalerList } from "./UpscalerList";
@@ -12,38 +23,22 @@ import { PromptVariationsToggle } from "./PromptVariationsToggle";
 import { AvoidPastVariationsToggle } from "./AvoidPastVariationsToggle";
 import SVG from "react-inlinesvg";
 import drop from "~/drop.svg";
-import AddCustomModelButton from "../settings/AddCustomModelButton";
-import AddCustomStyleButton from "../settings/AddCustomStyleButton";
-import AddCustomTextModelButton from "../settings/AddCustomTextModelButton";
-import AddCustomUpscalerButton from "../settings/AddCustomUpscalerButton";
-import SortableModelItem from "../settings/SortableModelItem";
-import SortableStyleItem from "../settings/SortableStyleItem";
-import SortableCharacterItem from "../settings/SortableCharacterItem";
-import SortableUpscalerItem from "../settings/SortableUpscalerItem";
-import TextModelItem from "../settings/TextModelItem";
-import { Link } from "react-router";
-import { hasProviderAccess } from "~/lib/providers";
-import { useSettingsStore } from "~/stores/settingsStore";
 import { useEditorStore } from "~/stores/editorStore";
-import { useCallback, useEffect, useState } from "react";
 import { Accordion } from "@base-ui/react/accordion";
-import {
-  DndContext,
-  closestCenter,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  type DragEndEvent,
-} from "@dnd-kit/core";
-import {
-  SortableContext,
-  verticalListSortingStrategy,
-  sortableKeyboardCoordinates,
-} from "@dnd-kit/sortable";
 import { RecentSessions } from "./RecentSessions";
 
 export const SIDEBAR_POPOVER_ID = "sidebar-popover";
+
+const SETTINGS_TOC = [
+  { id: "api-keys", label: "API Keys", Icon: KeyRound },
+  { id: "image-models", label: "Image models", Icon: Layers },
+  { id: "characters", label: "Characters", Icon: Users },
+  { id: "styles", label: "Styles", Icon: Palette },
+  { id: "text-models", label: "Text models", Icon: MessageSquareText },
+  { id: "gallery", label: "Gallery", Icon: Image },
+  { id: "editor", label: "Editor", Icon: Expand },
+  { id: "data", label: "Data", Icon: Archive },
+] as const;
 
 function SidebarContent() {
   const location = useLocation();
@@ -116,197 +111,59 @@ function EditorSidebarContent() {
 }
 
 function SettingsSidebarContent() {
-  const models = useSettingsStore((s) => s.models);
-  const textModels = useSettingsStore((s) => s.textModels);
-  const upscalers = useSettingsStore((s) => s.upscalers);
-  const styles = useSettingsStore((s) => s.styles);
-  const characters = useSettingsStore((s) => s.characters);
-  const apiKeys = useSettingsStore((s) => s.apiKeys);
-  const reorderModels = useSettingsStore((s) => s.reorderModels);
-  const reorderUpscalers = useSettingsStore((s) => s.reorderUpscalers);
-  const reorderStyles = useSettingsStore((s) => s.reorderStyles);
-  const reorderCharacters = useSettingsStore((s) => s.reorderCharacters);
-  const location = useLocation();
+  const [activeId, setActiveId] = useState<string>(SETTINGS_TOC[0].id);
+  const intersectingRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
-    if (location.hash === "#characters") {
-      const el = document.getElementById("characters");
-      if (el) el.scrollIntoView({ behavior: "smooth" });
-    }
-  }, [location.hash]);
+    const scrollRoot = document.getElementById("settings-scroll");
+    const sectionIds = SETTINGS_TOC.map((s) => s.id);
 
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
-  );
+    const updateActive = () => {
+      const first = sectionIds.find((id) => intersectingRef.current.has(id));
+      if (first) setActiveId(first);
+    };
 
-  const handleDragEnd = useCallback(
-    (event: DragEndEvent) => {
-      const { active, over } = event;
-      if (over && active.id !== over.id) {
-        reorderModels(active.id as string, over.id as string);
-      }
-    },
-    [reorderModels]
-  );
+    const observers = sectionIds.map((id) => {
+      const el = document.getElementById(id);
+      if (!el) return null;
+      const obs = new IntersectionObserver(
+        ([entry]) => {
+          if (entry.isIntersecting) intersectingRef.current.add(id);
+          else intersectingRef.current.delete(id);
+          updateActive();
+        },
+        { root: scrollRoot, rootMargin: "0px 0px -60% 0px", threshold: 0 }
+      );
+      obs.observe(el);
+      return obs;
+    });
 
-  const handleUpscalerDragEnd = useCallback(
-    (event: DragEndEvent) => {
-      const { active, over } = event;
-      if (over && active.id !== over.id) {
-        reorderUpscalers(active.id as string, over.id as string);
-      }
-    },
-    [reorderUpscalers]
-  );
+    return () => observers.forEach((o) => o?.disconnect());
+  }, []);
 
-  const handleStyleDragEnd = useCallback(
-    (event: DragEndEvent) => {
-      const { active, over } = event;
-      if (over && active.id !== over.id) {
-        reorderStyles(active.id as string, over.id as string);
-      }
-    },
-    [reorderStyles]
-  );
-
-  const handleCharacterDragEnd = useCallback(
-    (event: DragEndEvent) => {
-      const { active, over } = event;
-      if (over && active.id !== over.id) {
-        reorderCharacters(active.id as string, over.id as string);
-      }
-    },
-    [reorderCharacters]
-  );
+  const scrollTo = (id: string) => {
+    document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
+  };
 
   return (
-    <div className="flex-1 space-y-2 overflow-y-auto px-3 py-4 [scrollbar-gutter:stable_both-edges]">
-      <div className="flex items-center gap-2">
-        <span className="text-text-muted">
-          <Layers className="h-4 w-4" />
-        </span>
-        <h2 className="text-text-tertiary text-xs font-medium tracking-wide uppercase">
-          Image Models
-        </h2>
-      </div>
-
-      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-        <SortableContext items={models.map((m) => m.id)} strategy={verticalListSortingStrategy}>
-          <div className="space-y-1">
-            {models.map((model) => (
-              <SortableModelItem
-                key={model.id}
-                model={model}
-                hasApiKey={hasProviderAccess(apiKeys, model.provider)}
-              />
-            ))}
-          </div>
-        </SortableContext>
-      </DndContext>
-
-      <AddCustomModelButton />
-
-      <div className="flex items-center gap-2 pt-4">
-        <span className="text-text-muted">
-          <MessageSquareText className="h-4 w-4" />
-        </span>
-        <h2 className="text-text-tertiary text-xs font-medium tracking-wide uppercase">
-          Text Model
-        </h2>
-      </div>
-
-      <div className="space-y-1">
-        {textModels.map((model) => (
-          <TextModelItem
-            key={model.id}
-            model={model}
-            hasApiKey={hasProviderAccess(apiKeys, model.provider)}
+    <nav className="bg-surface flex flex-1 flex-col justify-center gap-0.5 px-3 py-4">
+      {SETTINGS_TOC.map(({ id, label, Icon }) => (
+        <button
+          key={id}
+          onClick={() => scrollTo(id)}
+          className={`flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-left text-sm transition-colors ${
+            activeId === id
+              ? "bg-surface-overlay text-text-primary"
+              : "text-text-secondary hover:bg-surface-overlay"
+          }`}
+        >
+          <Icon
+            className={`h-4 w-4 shrink-0 ${activeId === id ? "text-accent" : "text-text-muted"}`}
           />
-        ))}
-      </div>
-
-      <AddCustomTextModelButton />
-
-      <div className="flex items-center gap-2 pt-4">
-        <span className="text-text-muted">
-          <Expand className="h-4 w-4" />
-        </span>
-        <h2 className="text-text-tertiary text-xs font-medium tracking-wide uppercase">
-          Upscalers
-        </h2>
-      </div>
-
-      <DndContext
-        sensors={sensors}
-        collisionDetection={closestCenter}
-        onDragEnd={handleUpscalerDragEnd}
-      >
-        <SortableContext items={upscalers.map((u) => u.id)} strategy={verticalListSortingStrategy}>
-          <div className="space-y-1">
-            {upscalers.map((u) => (
-              <SortableUpscalerItem key={u.id} upscaler={u} hasApiKey={!!apiKeys.replicate} />
-            ))}
-          </div>
-        </SortableContext>
-      </DndContext>
-
-      <AddCustomUpscalerButton />
-
-      <div className="flex items-center gap-2 pt-4">
-        <span className="text-text-muted">
-          <Palette className="h-4 w-4" />
-        </span>
-        <h2 className="text-text-tertiary text-xs font-medium tracking-wide uppercase">Styles</h2>
-      </div>
-
-      <DndContext
-        sensors={sensors}
-        collisionDetection={closestCenter}
-        onDragEnd={handleStyleDragEnd}
-      >
-        <SortableContext items={styles.map((s) => s.id)} strategy={verticalListSortingStrategy}>
-          <div className="space-y-1">
-            {styles.map((style) => (
-              <SortableStyleItem key={style.id} style={style} />
-            ))}
-          </div>
-        </SortableContext>
-      </DndContext>
-
-      <AddCustomStyleButton />
-
-      <div id="characters" className="flex items-center gap-2 pt-4">
-        <span className="text-text-muted">
-          <Users className="h-4 w-4" />
-        </span>
-        <h2 className="text-text-tertiary text-xs font-medium tracking-wide uppercase">
-          Characters
-        </h2>
-      </div>
-
-      <DndContext
-        sensors={sensors}
-        collisionDetection={closestCenter}
-        onDragEnd={handleCharacterDragEnd}
-      >
-        <SortableContext items={characters.map((c) => c.id)} strategy={verticalListSortingStrategy}>
-          <div className="space-y-1">
-            {characters.map((character) => (
-              <SortableCharacterItem key={character.id} character={character} />
-            ))}
-          </div>
-        </SortableContext>
-      </DndContext>
-
-      <Link
-        to="/app/characters/new"
-        className="border-c-border text-text-tertiary hover:border-c-border hover:text-text-secondary flex w-full items-center gap-2 rounded-lg border border-dashed p-2.5 transition-colors"
-      >
-        <Plus className="h-4 w-4" />
-        <span className="text-sm">Add character</span>
-      </Link>
-    </div>
+          {label}
+        </button>
+      ))}
+    </nav>
   );
 }
 
