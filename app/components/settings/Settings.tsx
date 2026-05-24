@@ -177,8 +177,7 @@ export function SettingsModal() {
   const handleCharacterDragEnd = useCallback(
     (event: DragEndEvent) => {
       const { active, over } = event;
-      if (over && active.id !== over.id)
-        reorderCharacters(active.id as string, over.id as string);
+      if (over && active.id !== over.id) reorderCharacters(active.id as string, over.id as string);
     },
     [reorderCharacters]
   );

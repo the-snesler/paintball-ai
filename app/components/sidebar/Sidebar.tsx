@@ -146,12 +146,12 @@ function SettingsSidebarContent() {
   };
 
   return (
-    <nav className="flex-1 flex flex-col justify-center bg-surface px-3 py-4 gap-0.5">
+    <nav className="bg-surface flex flex-1 flex-col justify-center gap-0.5 px-3 py-4">
       {SETTINGS_TOC.map(({ id, label, Icon }) => (
         <button
           key={id}
           onClick={() => scrollTo(id)}
-          className={`flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm transition-colors text-left ${
+          className={`flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-left text-sm transition-colors ${
             activeId === id
               ? "bg-surface-overlay text-text-primary"
               : "text-text-secondary hover:bg-surface-overlay"
