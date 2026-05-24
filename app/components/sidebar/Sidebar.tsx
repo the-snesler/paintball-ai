@@ -10,7 +10,7 @@ import {
   X,
 } from "lucide-react";
 import { useLocation } from "react-router";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { PromptInput } from "./PromptInput";
 import { ModelList } from "./ModelList";
 import { UpscalerList } from "./UpscalerList";

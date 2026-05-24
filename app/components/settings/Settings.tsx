@@ -8,7 +8,6 @@ import {
   Archive,
   Download,
   Upload,
-  Sparkles,
   Layers,
   Users,
   Palette,
