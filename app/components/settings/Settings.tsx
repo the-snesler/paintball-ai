@@ -4,7 +4,6 @@ import {
   EyeOff,
   Check,
   Loader2,
-  Bell,
   MessageSquareText,
   Archive,
   Download,
@@ -189,7 +188,7 @@ export function SettingsModal() {
     <main className="bg-surface flex h-full flex-1 flex-col overflow-hidden">
       <GalleryHeader title="Settings" />
 
-      <div className="flex-1 space-y-6 overflow-y-auto p-4">
+      <div id="settings-scroll" className="flex-1 space-y-6 overflow-y-auto p-4">
         {/* API Keys */}
         <section id="api-keys" className="group space-y-3">
           <div className="flex items-center gap-2">
@@ -355,64 +354,57 @@ export function SettingsModal() {
             <span className="text-sm font-medium">Gallery</span>
           </div>
 
-          <div className="space-y-3 pl-6">
-            <div className="border-border-subtle bg-surface-raised/60 space-y-3 rounded-lg border p-3">
-              <label className="flex items-center justify-between gap-3">
-                <span className="text-text-secondary text-sm">Enable semantic image search</span>
-                <Switch
-                  checked={semanticSearchEnabled}
-                  onChange={(e) => handleToggleSemanticSearch(e.target.checked)}
-                  aria-label="Toggle semantic image search"
-                />
-              </label>
-              <p className="text-text-muted text-xs">
-                Downloads a ~400MB model on first use and runs it locally. Embeddings are computed
-                in the background while you wait for generations and let you search by image content
-                as well as prompt text. All processing stays in your browser.
-              </p>
-              {semanticSearchEnabled && <SemanticSearchStatus />}
-            </div>
+          <div className="pl-6">
+            <div className="border-border-subtle bg-surface-raised/60 divide-border-subtle divide-y rounded-lg border">
+              <div className="space-y-3 p-3">
+                <label className="flex items-center justify-between gap-3">
+                  <span className="text-text-secondary text-sm">Enable semantic image search</span>
+                  <Switch
+                    checked={semanticSearchEnabled}
+                    onChange={(e) => handleToggleSemanticSearch(e.target.checked)}
+                    aria-label="Toggle semantic image search"
+                  />
+                </label>
+                <p className="text-text-muted text-xs">
+                  Downloads a ~400MB model on first use and runs it locally. Embeddings are computed
+                  in the background while you wait for generations and let you search by image
+                  content as well as prompt text. All processing stays in your browser.
+                </p>
+                {semanticSearchEnabled && <SemanticSearchStatus />}
+              </div>
 
-            <div className="border-border-subtle bg-surface-raised/60 space-y-3 rounded-lg border p-3">
-              <div className="flex items-center gap-2">
-                <Bell className="text-accent-muted h-4 w-4" />
-                <span className="text-text-secondary text-sm font-medium">
-                  Desktop notifications
-                </span>
-                {desktopNotificationsEnabled && notificationPermission === "granted" && (
-                  <Check className="h-4 w-4 text-green-500" />
+              <div className="space-y-3 p-3">
+                <label className="flex items-center justify-between gap-3">
+                  <span className="text-text-secondary text-sm">
+                    Notify when generations complete in background
+                  </span>
+                  <Switch
+                    checked={desktopNotificationsEnabled && notificationPermission === "granted"}
+                    disabled={notificationPermission !== "granted"}
+                    onChange={(e) => setDesktopNotificationsEnabled(e.target.checked)}
+                    aria-label="Toggle desktop notifications"
+                  />
+                </label>
+                <p className="text-text-muted text-xs">
+                  {notificationPermission === "unsupported"
+                    ? "Desktop notifications are not supported in this browser."
+                    : notificationPermission === "granted"
+                      ? "Permission granted. You can toggle notifications on or off."
+                      : notificationPermission === "denied"
+                        ? "Permission is blocked. Enable notifications for this site in your browser settings."
+                        : "Grant permission to enable completion notifications."}
+                </p>
+                {notificationPermission === "default" && (
+                  <button
+                    type="button"
+                    onClick={requestNotificationPermission}
+                    disabled={requestingPermission}
+                    className="bg-surface-overlay text-text-secondary hover:bg-surface-interactive rounded-lg px-3 py-1.5 text-xs font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {requestingPermission ? "Requesting..." : "Request permission"}
+                  </button>
                 )}
               </div>
-              <label className="flex items-center justify-between gap-3">
-                <span className="text-text-secondary text-sm">
-                  Notify when generations complete in background
-                </span>
-                <Switch
-                  checked={desktopNotificationsEnabled && notificationPermission === "granted"}
-                  disabled={notificationPermission !== "granted"}
-                  onChange={(e) => setDesktopNotificationsEnabled(e.target.checked)}
-                  aria-label="Toggle desktop notifications"
-                />
-              </label>
-              <p className="text-text-muted text-xs">
-                {notificationPermission === "unsupported"
-                  ? "Desktop notifications are not supported in this browser."
-                  : notificationPermission === "granted"
-                    ? "Permission granted. You can toggle notifications on or off."
-                    : notificationPermission === "denied"
-                      ? "Permission is blocked. Enable notifications for this site in your browser settings."
-                      : "Grant permission to enable completion notifications."}
-              </p>
-              {notificationPermission === "default" && (
-                <button
-                  type="button"
-                  onClick={requestNotificationPermission}
-                  disabled={requestingPermission}
-                  className="bg-surface-overlay text-text-secondary hover:bg-surface-interactive rounded-lg px-3 py-1.5 text-xs font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {requestingPermission ? "Requesting..." : "Request permission"}
-                </button>
-              )}
             </div>
           </div>
         </section>

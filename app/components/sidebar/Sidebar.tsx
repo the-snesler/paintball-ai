@@ -10,6 +10,7 @@ import {
   X,
 } from "lucide-react";
 import { useLocation } from "react-router";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { PromptInput } from "./PromptInput";
 import { ModelList } from "./ModelList";
 import { UpscalerList } from "./UpscalerList";
@@ -23,7 +24,6 @@ import { AvoidPastVariationsToggle } from "./AvoidPastVariationsToggle";
 import SVG from "react-inlinesvg";
 import drop from "~/drop.svg";
 import { useEditorStore } from "~/stores/editorStore";
-import { useCallback, useEffect, useState } from "react";
 import { Accordion } from "@base-ui/react/accordion";
 import { RecentSessions } from "./RecentSessions";
 
@@ -111,19 +111,55 @@ function EditorSidebarContent() {
 }
 
 function SettingsSidebarContent() {
+  const [activeId, setActiveId] = useState<string>(SETTINGS_TOC[0].id);
+  const intersectingRef = useRef<Set<string>>(new Set());
+
+  useEffect(() => {
+    const scrollRoot = document.getElementById("settings-scroll");
+    const sectionIds = SETTINGS_TOC.map((s) => s.id);
+
+    const updateActive = () => {
+      const first = sectionIds.find((id) => intersectingRef.current.has(id));
+      if (first) setActiveId(first);
+    };
+
+    const observers = sectionIds.map((id) => {
+      const el = document.getElementById(id);
+      if (!el) return null;
+      const obs = new IntersectionObserver(
+        ([entry]) => {
+          if (entry.isIntersecting) intersectingRef.current.add(id);
+          else intersectingRef.current.delete(id);
+          updateActive();
+        },
+        { root: scrollRoot, rootMargin: "0px 0px -60% 0px", threshold: 0 }
+      );
+      obs.observe(el);
+      return obs;
+    });
+
+    return () => observers.forEach((o) => o?.disconnect());
+  }, []);
+
   const scrollTo = (id: string) => {
     document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
   };
 
   return (
-    <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-0.5">
+    <nav className="flex-1 flex flex-col justify-center bg-surface px-3 py-4 gap-0.5">
       {SETTINGS_TOC.map(({ id, label, Icon }) => (
         <button
           key={id}
           onClick={() => scrollTo(id)}
-          className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm text-text-secondary hover:bg-surface-overlay transition-colors text-left"
+          className={`flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm transition-colors text-left ${
+            activeId === id
+              ? "bg-surface-overlay text-text-primary"
+              : "text-text-secondary hover:bg-surface-overlay"
+          }`}
         >
-          <Icon className="h-4 w-4 text-text-muted shrink-0" />
+          <Icon
+            className={`h-4 w-4 shrink-0 ${activeId === id ? "text-accent" : "text-text-muted"}`}
+          />
           {label}
         </button>
       ))}
