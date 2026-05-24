@@ -95,7 +95,7 @@ export const BUILT_IN_MODELS: StoredModel[] = [
       supportsReferenceImages: true,
       maxReferenceImages: 16,
       supportsQuality: true,
-      supportedQualities: ["low", "medium", "high", "auto"],
+      supportedQualities: ["low", "medium", "high"],
       supportsNumberOfImages: true,
       maxImagesPerRequest: 10,
     },

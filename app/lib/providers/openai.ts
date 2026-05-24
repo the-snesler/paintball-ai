@@ -241,7 +241,7 @@ function inferOpenAiImageCapabilities(modelId: string): ResolvedImageModel["capa
       supportsReferenceImages: true,
       maxReferenceImages: 16,
       supportsQuality: true,
-      supportedQualities: ["low", "medium", "high", "auto"],
+      supportedQualities: ["low", "medium", "high"],
       supportsNumberOfImages: true,
       maxImagesPerRequest: 10,
     };
@@ -254,7 +254,7 @@ function inferOpenAiImageCapabilities(modelId: string): ResolvedImageModel["capa
     supportsReferenceImages: true,
     maxReferenceImages: 16,
     supportsQuality: true,
-    supportedQualities: ["low", "medium", "high", "auto"],
+    supportedQualities: ["low", "medium", "high"],
     supportsNumberOfImages: true,
     maxImagesPerRequest: 10,
   };
