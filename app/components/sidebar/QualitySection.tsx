@@ -8,7 +8,6 @@ const QUALITY_LABELS: Record<string, string> = {
   low: "Low",
   medium: "Medium",
   high: "High",
-  auto: "Auto",
 };
 
 export function QualitySection() {

@@ -18,7 +18,7 @@ export const RESOLUTIONS_LABELS: [string, Resolution][] = [
   ["Ultra", "4K"],
 ];
 
-export const QUALITIES = ["low", "medium", "high", "auto"] as const;
+export const QUALITIES = ["low", "medium", "high"] as const;
 export type Quality = (typeof QUALITIES)[number];
 
 // Helper to get a model by ID from a models array
