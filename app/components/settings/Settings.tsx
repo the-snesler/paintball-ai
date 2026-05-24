@@ -3,7 +3,6 @@ import {
   Eye,
   EyeOff,
   Check,
-  ChevronDown,
   Loader2,
   Bell,
   MessageSquareText,
@@ -11,8 +10,15 @@ import {
   Download,
   Upload,
   Sparkles,
+  Layers,
+  Users,
+  Palette,
+  Expand,
+  Image,
+  Plus,
 } from "lucide-react";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { Link } from "react-router";
 import { GalleryHeader } from "~/components/gallery/GalleryHeader";
 import { useSettingsStore } from "~/stores/settingsStore";
 import { useGalleryStore } from "~/stores/galleryStore";
@@ -23,6 +29,30 @@ import { useEmbeddingStatusStore } from "~/stores/embeddingStatusStore";
 import type { ApiKeyProvider } from "~/types";
 import { Switch } from "~/components/ui/Switch";
 import { SemanticSearchStatus } from "./SemanticSearchStatus";
+import { hasProviderAccess } from "~/lib/providers";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+  sortableKeyboardCoordinates,
+} from "@dnd-kit/sortable";
+import SortableModelItem from "./SortableModelItem";
+import SortableStyleItem from "./SortableStyleItem";
+import SortableCharacterItem from "./SortableCharacterItem";
+import SortableUpscalerItem from "./SortableUpscalerItem";
+import TextModelItem from "./TextModelItem";
+import AddCustomModelButton from "./AddCustomModelButton";
+import AddCustomStyleButton from "./AddCustomStyleButton";
+import AddCustomTextModelButton from "./AddCustomTextModelButton";
+import AddCustomUpscalerButton from "./AddCustomUpscalerButton";
 
 const providers: { id: ApiKeyProvider; name: string; description: string; link: string }[] = [
   {
@@ -47,6 +77,11 @@ const providers: { id: ApiKeyProvider; name: string; description: string; link: 
 
 export function SettingsModal() {
   const apiKeys = useSettingsStore((s) => s.apiKeys);
+  const models = useSettingsStore((s) => s.models);
+  const textModels = useSettingsStore((s) => s.textModels);
+  const upscalers = useSettingsStore((s) => s.upscalers);
+  const styles = useSettingsStore((s) => s.styles);
+  const characters = useSettingsStore((s) => s.characters);
   const desktopNotificationsEnabled = useSettingsStore((s) => s.desktopNotificationsEnabled);
   const setApiKey = useSettingsStore((s) => s.setApiKey);
   const editorContextInjectionEnabled = useSettingsStore((s) => s.editorContextInjectionEnabled);
@@ -58,19 +93,20 @@ export function SettingsModal() {
   );
   const setAlwaysImprovePromptEnabled = useSettingsStore((s) => s.setAlwaysImprovePromptEnabled);
   const setSemanticSearchEnabled = useSettingsStore((s) => s.setSemanticSearchEnabled);
+  const reorderModels = useSettingsStore((s) => s.reorderModels);
+  const reorderUpscalers = useSettingsStore((s) => s.reorderUpscalers);
+  const reorderStyles = useSettingsStore((s) => s.reorderStyles);
+  const reorderCharacters = useSettingsStore((s) => s.reorderCharacters);
   const semanticModelId = useEmbeddingStatusStore((s) => s.modelId);
 
   const handleToggleSemanticSearch = (enabled: boolean) => {
     setSemanticSearchEnabled(enabled);
     if (enabled) {
-      // Kick off model preload + backfill of any missing embeddings.
       enqueueMissingEmbeddings(semanticModelId);
       refreshEmbeddingCounts(semanticModelId);
     }
   };
 
-  const apiKeysDetailsRef = useRef<HTMLDetailsElement | null>(null);
-  const desktopNotificationsDetailsRef = useRef<HTMLDetailsElement | null>(null);
   const [requestingPermission, setRequestingPermission] = useState(false);
   const [notificationPermission, setNotificationPermission] = useState<
     NotificationPermission | "unsupported"
@@ -78,20 +114,14 @@ export function SettingsModal() {
     if (typeof window === "undefined" || !("Notification" in window)) {
       return "unsupported";
     }
-
     return Notification.permission;
   });
 
   useEffect(() => {
     if (notificationPermission === "unsupported") return;
-
-    const syncPermission = () => {
-      setNotificationPermission(Notification.permission);
-    };
-
+    const syncPermission = () => setNotificationPermission(Notification.permission);
     window.addEventListener("focus", syncPermission);
     document.addEventListener("visibilitychange", syncPermission);
-
     return () => {
       window.removeEventListener("focus", syncPermission);
       document.removeEventListener("visibilitychange", syncPermission);
@@ -105,43 +135,69 @@ export function SettingsModal() {
   }, [notificationPermission, desktopNotificationsEnabled, setDesktopNotificationsEnabled]);
 
   const requestNotificationPermission = async () => {
-    if (typeof window === "undefined" || !("Notification" in window)) {
-      return;
-    }
-
+    if (typeof window === "undefined" || !("Notification" in window)) return;
     setRequestingPermission(true);
     try {
       const nextPermission = await Notification.requestPermission();
       setNotificationPermission(nextPermission);
-
-      if (nextPermission === "granted") {
-        setDesktopNotificationsEnabled(true);
-      }
-
-      if (nextPermission === "denied") {
-        setDesktopNotificationsEnabled(false);
-      }
+      if (nextPermission === "granted") setDesktopNotificationsEnabled(true);
+      if (nextPermission === "denied") setDesktopNotificationsEnabled(false);
     } finally {
       setRequestingPermission(false);
     }
   };
 
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+
+  const handleModelDragEnd = useCallback(
+    (event: DragEndEvent) => {
+      const { active, over } = event;
+      if (over && active.id !== over.id) reorderModels(active.id as string, over.id as string);
+    },
+    [reorderModels]
+  );
+
+  const handleUpscalerDragEnd = useCallback(
+    (event: DragEndEvent) => {
+      const { active, over } = event;
+      if (over && active.id !== over.id) reorderUpscalers(active.id as string, over.id as string);
+    },
+    [reorderUpscalers]
+  );
+
+  const handleStyleDragEnd = useCallback(
+    (event: DragEndEvent) => {
+      const { active, over } = event;
+      if (over && active.id !== over.id) reorderStyles(active.id as string, over.id as string);
+    },
+    [reorderStyles]
+  );
+
+  const handleCharacterDragEnd = useCallback(
+    (event: DragEndEvent) => {
+      const { active, over } = event;
+      if (over && active.id !== over.id)
+        reorderCharacters(active.id as string, over.id as string);
+    },
+    [reorderCharacters]
+  );
+
   return (
     <main className="bg-surface flex h-full flex-1 flex-col overflow-hidden">
       <GalleryHeader title="Settings" />
 
-      {/* Content */}
       <div className="flex-1 space-y-6 overflow-y-auto p-4">
-        {/* API Keys Section */}
-        <section className="group space-y-3">
-          <div className="flex w-full items-center justify-between text-left">
-            <div className="flex items-center gap-2">
-              <KeyRound className="text-accent-muted h-4 w-4" />
-              <span className="text-sm font-medium">API Keys</span>
-              {apiKeys.google && apiKeys.replicate && apiKeys.openai && (
-                <Check className="h-4 w-4 text-green-500" />
-              )}
-            </div>
+        {/* API Keys */}
+        <section id="api-keys" className="group space-y-3">
+          <div className="flex items-center gap-2">
+            <KeyRound className="text-accent-muted h-4 w-4" />
+            <span className="text-sm font-medium">API Keys</span>
+            {apiKeys.google && apiKeys.replicate && apiKeys.openai && (
+              <Check className="h-4 w-4 text-green-500" />
+            )}
           </div>
 
           <div className="space-y-3 pl-6">
@@ -160,102 +216,120 @@ export function SettingsModal() {
           </div>
         </section>
 
-        {/* Desktop Notifications Section */}
-        <section className="group space-y-3">
-          <div className="flex w-full items-center justify-between text-left">
-            <div className="flex items-center gap-2">
-              <Bell className="text-accent-muted h-4 w-4" />
-              <span className="text-sm font-medium">Desktop notifications</span>
-              {desktopNotificationsEnabled && notificationPermission === "granted" && (
-                <Check className="h-4 w-4 text-green-500" />
-              )}
-            </div>
+        {/* Image Models */}
+        <section id="image-models" className="group space-y-3">
+          <div className="flex items-center gap-2">
+            <Layers className="text-accent-muted h-4 w-4" />
+            <span className="text-sm font-medium">Image models</span>
           </div>
 
-          <div className="border-border-subtle bg-surface-raised/60 ml-6 space-y-3 rounded-lg border p-3">
-            <label className="flex items-center justify-between gap-3">
-              <span className="text-text-secondary text-sm">
-                Notify when generations complete in background
-              </span>
-              <Switch
-                checked={desktopNotificationsEnabled && notificationPermission === "granted"}
-                disabled={notificationPermission !== "granted"}
-                onChange={(e) => setDesktopNotificationsEnabled(e.target.checked)}
-                aria-label="Toggle desktop notifications"
-              />
-            </label>
-
-            <p className="text-text-muted text-xs">
-              {notificationPermission === "unsupported"
-                ? "Desktop notifications are not supported in this browser."
-                : notificationPermission === "granted"
-                  ? "Permission granted. You can toggle notifications on or off."
-                  : notificationPermission === "denied"
-                    ? "Permission is blocked. Enable notifications for this site in your browser settings."
-                    : "Grant permission to enable completion notifications."}
-            </p>
-
-            {notificationPermission === "default" && (
-              <button
-                type="button"
-                onClick={requestNotificationPermission}
-                disabled={requestingPermission}
-                className="bg-surface-overlay text-text-secondary hover:bg-surface-interactive rounded-lg px-3 py-1.5 text-xs font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-60"
+          <div className="space-y-1 pl-6">
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleModelDragEnd}
+            >
+              <SortableContext
+                items={models.map((m) => m.id)}
+                strategy={verticalListSortingStrategy}
               >
-                {requestingPermission ? "Requesting..." : "Request permission"}
-              </button>
-            )}
+                <div className="space-y-1">
+                  {models.map((model) => (
+                    <SortableModelItem
+                      key={model.id}
+                      model={model}
+                      hasApiKey={hasProviderAccess(apiKeys, model.provider)}
+                    />
+                  ))}
+                </div>
+              </SortableContext>
+            </DndContext>
+            <AddCustomModelButton />
           </div>
         </section>
 
-        {/* Semantic Search Section */}
-        <section className="group space-y-3">
-          <div className="flex w-full items-center justify-between text-left">
-            <div className="flex items-center gap-2">
-              <Sparkles className="text-accent-muted h-4 w-4" />
-              <span className="text-sm font-medium">Semantic image search</span>
-              {semanticSearchEnabled && <Check className="h-4 w-4 text-green-500" />}
-            </div>
+        {/* Characters */}
+        <section id="characters" className="group space-y-3">
+          <div className="flex items-center gap-2">
+            <Users className="text-accent-muted h-4 w-4" />
+            <span className="text-sm font-medium">Characters</span>
           </div>
 
-          <div className="border-border-subtle bg-surface-raised/60 ml-6 space-y-3 rounded-lg border p-3">
-            <label className="flex items-center justify-between gap-3">
-              <span className="text-text-secondary text-sm">Enable semantic image search</span>
-              <Switch
-                checked={semanticSearchEnabled}
-                onChange={(e) => handleToggleSemanticSearch(e.target.checked)}
-                aria-label="Toggle semantic image search"
-              />
-            </label>
-
-            <p className="text-text-muted text-xs">
-              Downloads a ~400MB model on first use and runs it locally. Embeddings are computed in
-              the background while you wait for generations and let you search by image content as
-              well as prompt text. All processing stays in your browser.
-            </p>
-
-            {semanticSearchEnabled && <SemanticSearchStatus />}
+          <div className="space-y-1 pl-6">
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleCharacterDragEnd}
+            >
+              <SortableContext
+                items={characters.map((c) => c.id)}
+                strategy={verticalListSortingStrategy}
+              >
+                <div className="space-y-1">
+                  {characters.map((character) => (
+                    <SortableCharacterItem key={character.id} character={character} />
+                  ))}
+                </div>
+              </SortableContext>
+            </DndContext>
+            <Link
+              to="/app/characters/new"
+              className="border-c-border text-text-tertiary hover:border-c-border hover:text-text-secondary flex w-full items-center gap-2 rounded-lg border border-dashed p-2.5 transition-colors"
+            >
+              <Plus className="h-4 w-4" />
+              <span className="text-sm">Add character</span>
+            </Link>
           </div>
         </section>
 
-        {/* Text Generation Section */}
-        <section className="group space-y-3">
-          <div className="flex w-full items-center justify-between text-left">
-            <div className="flex items-center gap-2">
-              <MessageSquareText className="text-accent-muted h-4 w-4" />
-              <span className="text-sm font-medium">Text generation</span>
-              {(apiKeys.google || apiKeys.replicate || apiKeys.openai) && (
-                <Check className="h-4 w-4 text-green-500" />
-              )}
-            </div>
+        {/* Styles */}
+        <section id="styles" className="group space-y-3">
+          <div className="flex items-center gap-2">
+            <Palette className="text-accent-muted h-4 w-4" />
+            <span className="text-sm font-medium">Styles</span>
           </div>
 
-          <div className="border-border-subtle bg-surface-raised/60 ml-6 space-y-3 rounded-lg border p-3">
-            <p className="text-text-muted text-xs">
-              The active text model is chosen in the sidebar. These settings control how it's used.
-            </p>
+          <div className="space-y-1 pl-6">
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleStyleDragEnd}
+            >
+              <SortableContext
+                items={styles.map((s) => s.id)}
+                strategy={verticalListSortingStrategy}
+              >
+                <div className="space-y-1">
+                  {styles.map((style) => (
+                    <SortableStyleItem key={style.id} style={style} />
+                  ))}
+                </div>
+              </SortableContext>
+            </DndContext>
+            <AddCustomStyleButton />
+          </div>
+        </section>
 
-            <div className="space-y-3">
+        {/* Text Models */}
+        <section id="text-models" className="group space-y-3">
+          <div className="flex items-center gap-2">
+            <MessageSquareText className="text-accent-muted h-4 w-4" />
+            <span className="text-sm font-medium">Text models</span>
+          </div>
+
+          <div className="space-y-3 pl-6">
+            <div className="space-y-1">
+              {textModels.map((model) => (
+                <TextModelItem
+                  key={model.id}
+                  model={model}
+                  hasApiKey={hasProviderAccess(apiKeys, model.provider)}
+                />
+              ))}
+            </div>
+            <AddCustomTextModelButton />
+
+            <div className="border-border-subtle bg-surface-raised/60 space-y-3 rounded-lg border p-3">
               <label className="flex items-center justify-between gap-3">
                 <span className="text-text-secondary text-sm">Always rewrite prompt</span>
                 <Switch
@@ -271,8 +345,111 @@ export function SettingsModal() {
                 in the lightbox.
               </p>
             </div>
+          </div>
+        </section>
 
-            <div className="border-border-subtle space-y-3 border-t pt-3">
+        {/* Gallery */}
+        <section id="gallery" className="group space-y-3">
+          <div className="flex items-center gap-2">
+            <Image className="text-accent-muted h-4 w-4" />
+            <span className="text-sm font-medium">Gallery</span>
+          </div>
+
+          <div className="space-y-3 pl-6">
+            <div className="border-border-subtle bg-surface-raised/60 space-y-3 rounded-lg border p-3">
+              <label className="flex items-center justify-between gap-3">
+                <span className="text-text-secondary text-sm">Enable semantic image search</span>
+                <Switch
+                  checked={semanticSearchEnabled}
+                  onChange={(e) => handleToggleSemanticSearch(e.target.checked)}
+                  aria-label="Toggle semantic image search"
+                />
+              </label>
+              <p className="text-text-muted text-xs">
+                Downloads a ~400MB model on first use and runs it locally. Embeddings are computed
+                in the background while you wait for generations and let you search by image content
+                as well as prompt text. All processing stays in your browser.
+              </p>
+              {semanticSearchEnabled && <SemanticSearchStatus />}
+            </div>
+
+            <div className="border-border-subtle bg-surface-raised/60 space-y-3 rounded-lg border p-3">
+              <div className="flex items-center gap-2">
+                <Bell className="text-accent-muted h-4 w-4" />
+                <span className="text-text-secondary text-sm font-medium">
+                  Desktop notifications
+                </span>
+                {desktopNotificationsEnabled && notificationPermission === "granted" && (
+                  <Check className="h-4 w-4 text-green-500" />
+                )}
+              </div>
+              <label className="flex items-center justify-between gap-3">
+                <span className="text-text-secondary text-sm">
+                  Notify when generations complete in background
+                </span>
+                <Switch
+                  checked={desktopNotificationsEnabled && notificationPermission === "granted"}
+                  disabled={notificationPermission !== "granted"}
+                  onChange={(e) => setDesktopNotificationsEnabled(e.target.checked)}
+                  aria-label="Toggle desktop notifications"
+                />
+              </label>
+              <p className="text-text-muted text-xs">
+                {notificationPermission === "unsupported"
+                  ? "Desktop notifications are not supported in this browser."
+                  : notificationPermission === "granted"
+                    ? "Permission granted. You can toggle notifications on or off."
+                    : notificationPermission === "denied"
+                      ? "Permission is blocked. Enable notifications for this site in your browser settings."
+                      : "Grant permission to enable completion notifications."}
+              </p>
+              {notificationPermission === "default" && (
+                <button
+                  type="button"
+                  onClick={requestNotificationPermission}
+                  disabled={requestingPermission}
+                  className="bg-surface-overlay text-text-secondary hover:bg-surface-interactive rounded-lg px-3 py-1.5 text-xs font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {requestingPermission ? "Requesting..." : "Request permission"}
+                </button>
+              )}
+            </div>
+          </div>
+        </section>
+
+        {/* Editor */}
+        <section id="editor" className="group space-y-3">
+          <div className="flex items-center gap-2">
+            <Expand className="text-accent-muted h-4 w-4" />
+            <span className="text-sm font-medium">Editor</span>
+          </div>
+
+          <div className="space-y-3 pl-6">
+            <div className="space-y-1">
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragEnd={handleUpscalerDragEnd}
+              >
+                <SortableContext
+                  items={upscalers.map((u) => u.id)}
+                  strategy={verticalListSortingStrategy}
+                >
+                  <div className="space-y-1">
+                    {upscalers.map((u) => (
+                      <SortableUpscalerItem
+                        key={u.id}
+                        upscaler={u}
+                        hasApiKey={!!apiKeys.replicate}
+                      />
+                    ))}
+                  </div>
+                </SortableContext>
+              </DndContext>
+              <AddCustomUpscalerButton />
+            </div>
+
+            <div className="border-border-subtle bg-surface-raised/60 space-y-3 rounded-lg border p-3">
               <label className="flex items-center justify-between gap-3">
                 <span className="text-text-secondary text-sm">Editor context briefs</span>
                 <Switch
@@ -290,7 +467,7 @@ export function SettingsModal() {
           </div>
         </section>
 
-        {/* Data Section */}
+        {/* Data */}
         <DataSection />
       </div>
     </main>
@@ -350,12 +527,10 @@ function DataSection() {
   };
 
   return (
-    <section className="group space-y-3">
-      <div className="flex w-full items-center justify-between text-left">
-        <div className="flex items-center gap-2">
-          <Archive className="text-accent-muted h-4 w-4" />
-          <span className="text-sm font-medium">Data</span>
-        </div>
+    <section id="data" className="group space-y-3">
+      <div className="flex items-center gap-2">
+        <Archive className="text-accent-muted h-4 w-4" />
+        <span className="text-sm font-medium">Data</span>
       </div>
 
       <div className="border-border-subtle bg-surface-raised/60 ml-6 space-y-3 rounded-lg border p-3">
