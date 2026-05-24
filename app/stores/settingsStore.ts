@@ -85,6 +85,8 @@ interface SettingsState {
   ) => void;
   removeCharacter: (id: string) => void;
   reorderCharacters: (activeId: string, overId: string) => void;
+  importCharacters: (characters: StoredCharacter[]) => void;
+  importCustomStyles: (styles: StoredStyle[]) => void;
 
   // Text model actions
   selectTextModel: (id: string) => void;
@@ -375,6 +377,20 @@ export const useSettingsStore = create<SettingsState>()(
           const [moved] = newCharacters.splice(oldIndex, 1);
           newCharacters.splice(newIndex, 0, moved);
           return { characters: newCharacters };
+        }),
+
+      importCharacters: (incoming) =>
+        set((state) => {
+          const existingIds = new Set(state.characters.map((c) => c.id));
+          const newOnes = incoming.filter((c) => !existingIds.has(c.id));
+          return newOnes.length ? { characters: [...state.characters, ...newOnes] } : state;
+        }),
+
+      importCustomStyles: (incoming) =>
+        set((state) => {
+          const existingIds = new Set(state.styles.map((s) => s.id));
+          const newOnes = incoming.filter((s) => !existingIds.has(s.id));
+          return newOnes.length ? { styles: [...state.styles, ...newOnes] } : state;
         }),
 
       setDesktopNotificationsEnabled: (enabled) => set({ desktopNotificationsEnabled: enabled }),
