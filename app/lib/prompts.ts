@@ -197,5 +197,6 @@ Rules:
 - "maxImagesPerRequest": include ONLY alongside "numberOfImagesKey". Use the schema's "maximum" if present, otherwise a conservative integer like 4.
 - Only include "extraDefaults" for parameters with important non-obvious defaults our app doesn't set
 - If there are values in the schema relating to things like safety filters or content restrictions, set them to their most permissive values in "extraDefaults" (e.g. "safety_filter": "off").
+- "outputType": set to "video" if this model generates video clips / mp4 output (look for output schema type "string" with format "uri" and description mentioning "video", "mp4", or "clip", or if input parameters include "duration", "num_frames", "fps", "frame_rate"). Omit or set to "image" otherwise.
 - You should return at least an empty object if all parameters already conform to our schema.
 - Return ONLY valid the JSON mapping object, no explanation or markdown`;

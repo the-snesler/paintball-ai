@@ -7,6 +7,8 @@ export type AspectRatio = string;
 export type Resolution = "1K" | "2K" | "4K";
 
 export interface ModelCapabilities {
+  /** "video" for models that produce video clips; omit or "image" for still images. */
+  outputType?: "image" | "video";
   supportsAspectRatios: boolean;
   supportedAspectRatios?: string[]; // should use doesModelSupportAspectRatio() from models.ts to check support
   /** Model accepts any aspect ratio string within its own internal constraints (e.g. gpt-image-2). */

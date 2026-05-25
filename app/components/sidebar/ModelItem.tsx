@@ -98,9 +98,16 @@ export function ModelItem({ model, count }: ModelItemProps) {
 
       {/* Info */}
       <div className="min-w-0 flex-1">
-        <p className="text-text-primary truncate text-sm font-medium" title={model.name}>
-          {model.name}
-        </p>
+        <div className="flex items-center gap-1.5">
+          <p className="text-text-primary truncate text-sm font-medium" title={model.name}>
+            {model.name}
+          </p>
+          {model.capabilities.outputType === "video" && (
+            <span className="shrink-0 rounded bg-blue-500/20 px-1 py-0.5 text-[10px] font-medium text-blue-400">
+              Video
+            </span>
+          )}
+        </div>
         <p className="text-text-muted text-xs">{provider.label}</p>
       </div>
 

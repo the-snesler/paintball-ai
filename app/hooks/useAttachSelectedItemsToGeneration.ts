@@ -18,12 +18,20 @@ export function useAttachSelectedItemsToGeneration() {
         item.status === "completed" && selectedSet.has(item.id)
     );
 
-    if (selectedItems.length === 0) {
+    // Exclude video items — reference images must be still frames.
+    const imageOnlyItems = selectedItems.filter(
+      (item) => !item.originalBlob.type.startsWith("video/")
+    );
+
+    if (imageOnlyItems.length === 0) {
       return {
         success: false,
         attachedCount: 0,
         maxAllowed: null,
-        reason: "No images selected.",
+        reason:
+          selectedItems.length > 0
+            ? "Videos cannot be used as reference images."
+            : "No images selected.",
       };
     }
 
@@ -31,7 +39,7 @@ export function useAttachSelectedItemsToGeneration() {
       .filter(([, count]) => count > 0)
       .map(([modelId]) => modelId);
 
-    const totalReferences = generationState.currentReferenceImages.length + selectedItems.length;
+    const totalReferences = generationState.currentReferenceImages.length + imageOnlyItems.length;
     const fit = canAttachReferenceCount(models, selectedModelIds, totalReferences);
 
     if (!fit.allowed) {
@@ -46,7 +54,7 @@ export function useAttachSelectedItemsToGeneration() {
       };
     }
 
-    const newReferences: ReferenceImage[] = selectedItems.map((item) => ({
+    const newReferences: ReferenceImage[] = imageOnlyItems.map((item) => ({
       id: crypto.randomUUID(),
       blob: item.originalBlob,
       url: URL.createObjectURL(item.originalBlob),
