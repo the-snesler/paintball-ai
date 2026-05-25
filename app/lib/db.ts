@@ -277,6 +277,31 @@ export async function updateImageEmbedding(
   });
 }
 
+export async function updateImageCharacters(id: string, characterIds: string[]): Promise<void> {
+  const db = await initDB();
+
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(STORES.images, "readwrite");
+    const store = transaction.objectStore(STORES.images);
+    const getReq = store.get(id);
+
+    getReq.onerror = () => reject(getReq.error);
+    getReq.onsuccess = () => {
+      const record = getReq.result as StoredImageRecord | undefined;
+      if (!record) {
+        resolve();
+        return;
+      }
+      record.characterIds = characterIds.length > 0 ? characterIds : undefined;
+      store.put(record);
+    };
+
+    transaction.oncomplete = () => resolve();
+    transaction.onerror = () => reject(transaction.error);
+    transaction.onabort = () => reject(transaction.error);
+  });
+}
+
 export async function updateImageFavorite(id: string, isFavorite: boolean): Promise<void> {
   const db = await initDB();
 

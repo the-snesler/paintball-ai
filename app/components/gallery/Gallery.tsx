@@ -33,15 +33,22 @@ export function Gallery({ viewMode }: { viewMode: "grid" | "timeline" }) {
   const setSearchQuery = useGalleryStore((s) => s.setSearchQuery);
   const showFavoritesOnly = useGalleryStore((s) => s.showFavoritesOnly);
   const toggleFavoritesFilter = useGalleryStore((s) => s.toggleFavoritesFilter);
+  const characterFilter = useGalleryStore((s) => s.characterFilter);
+  const setCharacterFilter = useGalleryStore((s) => s.setCharacterFilter);
   const semanticSearchEnabled = useSettingsStore((s) => s.semanticSearchEnabled);
   const { itemsByPrompt } = useGalleryDerivedIndexes();
 
   const queryEmbedding = useQueryEmbedding(searchQuery, semanticSearchEnabled);
 
   const filteredItems = useMemo(() => {
-    const sourceItems = showFavoritesOnly
+    let sourceItems = showFavoritesOnly
       ? items.filter((item) => item.status === "completed" && item.isFavorite)
       : items;
+
+    if (characterFilter) {
+      sourceItems = sourceItems.filter((item) => item.characterIds?.includes(characterFilter));
+    }
+
     if (!searchQuery.trim()) return sourceItems;
     const q = searchQuery.trim().toLowerCase();
     const substringMatches = sourceItems.filter(
@@ -77,12 +84,12 @@ export function Gallery({ viewMode }: { viewMode: "grid" | "timeline" }) {
     });
 
     return semanticMatches;
-  }, [items, searchQuery, showFavoritesOnly, semanticSearchEnabled, queryEmbedding]);
+  }, [items, searchQuery, showFavoritesOnly, characterFilter, semanticSearchEnabled, queryEmbedding]);
 
+  const isFiltered = Boolean(searchQuery.trim() || showFavoritesOnly || characterFilter);
   const filteredItemsByPrompt = useMemo(
-    () =>
-      searchQuery.trim() || showFavoritesOnly ? groupItemsByPrompt(filteredItems) : itemsByPrompt,
-    [filteredItems, itemsByPrompt, searchQuery, showFavoritesOnly]
+    () => (isFiltered ? groupItemsByPrompt(filteredItems) : itemsByPrompt),
+    [filteredItems, itemsByPrompt, isFiltered]
   );
 
   const sentinelRef = useRef<HTMLDivElement>(null);
@@ -111,17 +118,22 @@ export function Gallery({ viewMode }: { viewMode: "grid" | "timeline" }) {
   return (
     <main className="bg-surface relative flex h-full flex-1 flex-col overflow-hidden">
       <GalleryHeader
-        count={searchQuery.trim() || showFavoritesOnly ? filteredItems.length : totalCount}
+        count={isFiltered ? filteredItems.length : totalCount}
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
         showFavoritesOnly={showFavoritesOnly}
         onToggleFavorites={toggleFavoritesFilter}
+        characterFilter={characterFilter}
+        onCharacterFilterChange={setCharacterFilter}
       />
 
       <div className={`flex-1 overflow-y-auto p-2 md:p-6 ${selectedCount > 0 ? "pb-28" : ""}`}>
         {filteredItems.length === 0 ? (
-          searchQuery.trim() || showFavoritesOnly ? (
-            <NoSearchResults showFavoritesOnly={showFavoritesOnly} />
+          isFiltered ? (
+            <NoSearchResults
+              showFavoritesOnly={showFavoritesOnly}
+              hasCharacterFilter={Boolean(characterFilter)}
+            />
           ) : (
             <EmptyState />
           )
@@ -256,24 +268,36 @@ function PopupActionButton({
   );
 }
 
-function NoSearchResults({ showFavoritesOnly }: { showFavoritesOnly?: boolean }) {
+function NoSearchResults({
+  showFavoritesOnly,
+  hasCharacterFilter,
+}: {
+  showFavoritesOnly?: boolean;
+  hasCharacterFilter?: boolean;
+}) {
+  const icon = showFavoritesOnly ? (
+    <Star className="text-text-muted h-8 w-8" />
+  ) : (
+    <ImageOff className="text-text-muted h-8 w-8" />
+  );
+
+  const heading = showFavoritesOnly ? "No favorites" : "No results";
+
+  let description = "No images match your search. Try a different prompt or model name.";
+  if (showFavoritesOnly) {
+    description = "Star images in the gallery or lightbox to collect them here.";
+  } else if (hasCharacterFilter) {
+    description =
+      "No images match this character filter. Try a different character or clear the filter.";
+  }
+
   return (
     <div className="flex h-full flex-col items-center justify-center text-center">
       <div className="bg-surface-raised mb-4 flex h-16 w-16 items-center justify-center rounded-full">
-        {showFavoritesOnly ? (
-          <Star className="text-text-muted h-8 w-8" />
-        ) : (
-          <ImageOff className="text-text-muted h-8 w-8" />
-        )}
+        {icon}
       </div>
-      <h3 className="text-text-secondary mb-2 text-lg font-medium">
-        {showFavoritesOnly ? "No favorites" : "No results"}
-      </h3>
-      <p className="text-text-muted max-w-xs text-sm">
-        {showFavoritesOnly
-          ? "Star images in the gallery or lightbox to collect them here."
-          : "No images match your search. Try a different prompt or model name."}
-      </p>
+      <h3 className="text-text-secondary mb-2 text-lg font-medium">{heading}</h3>
+      <p className="text-text-muted max-w-xs text-sm">{description}</p>
     </div>
   );
 }

@@ -25,6 +25,8 @@ export interface GenerationTask {
   quality: string | null;
   numberOfImages: number;
   referenceImages: Array<{ id: string; blob: Blob; sourceGalleryItemId?: string }>;
+  /** IDs of characters used in this generation. */
+  characterIds?: string[];
 }
 
 interface RunTaskOptions {
@@ -146,6 +148,7 @@ export function useGenerationTask() {
             createdAt,
             generationTimeMs,
             referenceImageIds: task.referenceImages.map((r) => r.id),
+            characterIds: task.characterIds?.length ? task.characterIds : undefined,
             isFavorite: false,
             parentGalleryItemIds:
               parentGalleryItemIds.length > 0 ? parentGalleryItemIds : undefined,
@@ -167,6 +170,7 @@ export function useGenerationTask() {
             createdAt,
             generationTimeMs,
             referenceImageIds: task.referenceImages.map((r) => r.id),
+            characterIds: task.characterIds?.length ? task.characterIds : undefined,
             isFavorite: false,
             metadata: result.metadata,
             parentGalleryItemIds:

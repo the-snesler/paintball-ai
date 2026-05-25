@@ -16,6 +16,7 @@ import {
   deleteReferenceImage,
   toDisplayImage,
   updateImageFavorite,
+  updateImageCharacters as dbUpdateImageCharacters,
   updateImageScorecard,
 } from "~/lib/db";
 import { useLightboxStore } from "./lightboxStore";
@@ -65,6 +66,7 @@ interface GalleryState {
   totalCount: number;
   searchQuery: string;
   showFavoritesOnly: boolean;
+  characterFilter: string | null;
 
   loadImages: () => Promise<void>;
   loadMoreImages: () => Promise<void>;
@@ -94,6 +96,8 @@ interface GalleryState {
   setSelectedItemsFavorite: (isFavorite: boolean) => Promise<number>;
   setSearchQuery: (query: string) => void;
   toggleFavoritesFilter: () => void;
+  setCharacterFilter: (id: string | null) => void;
+  updateImageCharacters: (id: string, characterIds: string[]) => Promise<void>;
   setItemEmbedding: (id: string, embedding: number[], embeddingModelId: string) => void;
   updateScorecard: (id: string, scorecard: ImageScorecard | undefined) => Promise<void>;
 }
@@ -110,6 +114,7 @@ export const useGalleryStore = create<GalleryState>()((set, get) => ({
   totalCount: 0,
   searchQuery: "",
   showFavoritesOnly: false,
+  characterFilter: null,
 
   loadImages: async () => {
     set({ isLoading: true });
@@ -334,6 +339,18 @@ export const useGalleryStore = create<GalleryState>()((set, get) => ({
   setSearchQuery: (query) => set({ searchQuery: query }),
 
   toggleFavoritesFilter: () => set((state) => ({ showFavoritesOnly: !state.showFavoritesOnly })),
+
+  setCharacterFilter: (id) => set({ characterFilter: id }),
+
+  updateImageCharacters: async (id, characterIds) => {
+    await dbUpdateImageCharacters(id, characterIds);
+    const nextIds = characterIds.length > 0 ? characterIds : undefined;
+    set((state) => ({
+      items: state.items.map((item) =>
+        item.id === id ? { ...item, characterIds: nextIds } : item
+      ),
+    }));
+  },
 
   setItemEmbedding: (id, embedding, embeddingModelId) =>
     set((state) => ({
