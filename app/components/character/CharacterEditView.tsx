@@ -483,7 +483,7 @@ export function CharacterEditView() {
       return;
     }
     if (!hasImageModelSelected) {
-      setError("Select an image model in the sidebar first");
+      setError("No image model selected. Add an API key and enable a model in Settings.");
       return;
     }
 
@@ -518,7 +518,7 @@ export function CharacterEditView() {
       return;
     }
     if (!hasImageModelSelected) {
-      setError("Select an image model in the sidebar first");
+      setError("No image model selected. Add an API key and enable a model in Settings.");
       return;
     }
 
