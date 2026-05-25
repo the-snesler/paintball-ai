@@ -66,24 +66,27 @@ function CharacterSidebarContent() {
   };
 
   return (
-    <div className="flex-1 space-y-2 overflow-y-auto px-3 py-4">
-      <p className="text-text-tertiary mb-3 px-1 text-xs font-medium tracking-wide uppercase">
-        Image model
-      </p>
-      {visibleModels.length === 0 ? (
-        <p className="text-text-muted py-4 text-center text-xs">
-          No models available. Add API keys and enable models in Settings.
+    <div className="flex-1 space-y-6 overflow-y-auto px-3 py-4">
+      <div className="space-y-2">
+        <p className="text-text-tertiary mb-3 px-1 text-xs font-medium tracking-wide uppercase">
+          Image model
         </p>
-      ) : (
-        visibleModels.map((model) => (
-          <CharacterModelItem
-            key={model.id}
-            model={model}
-            isSelected={model.id === selectedId}
-            onSelect={() => handleSelect(model.id)}
-          />
-        ))
-      )}
+        {visibleModels.length === 0 ? (
+          <p className="text-text-muted py-4 text-center text-xs">
+            No models available. Add API keys and enable models in Settings.
+          </p>
+        ) : (
+          visibleModels.map((model) => (
+            <CharacterModelItem
+              key={model.id}
+              model={model}
+              isSelected={model.id === selectedId}
+              onSelect={() => handleSelect(model.id)}
+            />
+          ))
+        )}
+      </div>
+      <ResolutionSection />
     </div>
   );
 }
