@@ -224,8 +224,8 @@ function ModelWarningBanner() {
     <div className="flex items-start gap-2 rounded-lg border border-yellow-500/30 bg-yellow-500/10 px-3 py-2 text-xs text-yellow-200">
       <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-yellow-300" />
       <p>
-        Select an image model in the sidebar to generate a reference. Open the sidebar on the left
-        and toggle a model under <span className="font-medium">Models</span>.
+        No image model is available. Add an API key and enable at least one model in{" "}
+        <span className="font-medium">Settings</span>.
       </p>
     </div>
   );
@@ -483,7 +483,7 @@ export function CharacterEditView() {
       return;
     }
     if (!hasImageModelSelected) {
-      setError("Select an image model in the sidebar first");
+      setError("No image model selected. Add an API key and enable a model in Settings.");
       return;
     }
 
@@ -518,7 +518,7 @@ export function CharacterEditView() {
       return;
     }
     if (!hasImageModelSelected) {
-      setError("Select an image model in the sidebar first");
+      setError("No image model selected. Add an API key and enable a model in Settings.");
       return;
     }
 
