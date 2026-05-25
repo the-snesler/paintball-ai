@@ -21,9 +21,13 @@ import { NumberOfImagesSection } from "./NumberOfImagesSection";
 import { GenerateButton } from "./GenerateButton";
 import { PromptVariationsToggle } from "./PromptVariationsToggle";
 import { AvoidPastVariationsToggle } from "./AvoidPastVariationsToggle";
+import { CharacterModelItem } from "./CharacterModelItem";
 import SVG from "react-inlinesvg";
 import drop from "~/drop.svg";
 import { useEditorStore } from "~/stores/editorStore";
+import { useGenerationStore } from "~/stores/generationStore";
+import { useSettingsStore } from "~/stores/settingsStore";
+import { hasProviderAccess } from "~/lib/providers";
 import { Accordion } from "@base-ui/react/accordion";
 import { RecentSessions } from "./RecentSessions";
 
@@ -40,6 +44,50 @@ const SETTINGS_TOC = [
   { id: "data", label: "Data", Icon: Archive },
 ] as const;
 
+function CharacterSidebarContent() {
+  const models = useSettingsStore((s) => s.models);
+  const apiKeys = useSettingsStore((s) => s.apiKeys);
+  const modelSelections = useGenerationStore((s) => s.currentModelSelections);
+  const setModelCount = useGenerationStore((s) => s.setModelCount);
+
+  const visibleModels = models.filter((m) => m.enabled && hasProviderAccess(apiKeys, m.provider));
+
+  useEffect(() => {
+    if (visibleModels.length === 0) return;
+    const alreadySelected = visibleModels.find((m) => (modelSelections[m.id] ?? 0) > 0);
+    const toSelect = alreadySelected ?? visibleModels[0];
+    visibleModels.forEach((m) => setModelCount(m.id, m.id === toSelect.id ? 1 : 0));
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const selectedId = visibleModels.find((m) => (modelSelections[m.id] ?? 0) > 0)?.id ?? null;
+
+  const handleSelect = (modelId: string) => {
+    visibleModels.forEach((m) => setModelCount(m.id, m.id === modelId ? 1 : 0));
+  };
+
+  return (
+    <div className="flex-1 space-y-2 overflow-y-auto px-3 py-4">
+      <p className="text-text-tertiary mb-3 px-1 text-xs font-medium tracking-wide uppercase">
+        Image model
+      </p>
+      {visibleModels.length === 0 ? (
+        <p className="text-text-muted py-4 text-center text-xs">
+          No models available. Add API keys and enable models in Settings.
+        </p>
+      ) : (
+        visibleModels.map((model) => (
+          <CharacterModelItem
+            key={model.id}
+            model={model}
+            isSelected={model.id === selectedId}
+            onSelect={() => handleSelect(model.id)}
+          />
+        ))
+      )}
+    </div>
+  );
+}
+
 function SidebarContent() {
   const location = useLocation();
 
@@ -47,6 +95,8 @@ function SidebarContent() {
     return <SettingsSidebarContent />;
   } else if (location.pathname.startsWith("/app/editor")) {
     return <EditorSidebarContent />;
+  } else if (location.pathname.startsWith("/app/characters")) {
+    return <CharacterSidebarContent />;
   } else {
     return <GallerySidebarContent />;
   }
