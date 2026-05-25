@@ -501,9 +501,13 @@ function DataSection() {
       if (result.referencesImported > 0)
         parts.push(`${result.referencesImported} references imported`);
       if (result.charactersImported > 0)
-        parts.push(`${result.charactersImported} character${result.charactersImported !== 1 ? "s" : ""} imported`);
+        parts.push(
+          `${result.charactersImported} character${result.charactersImported !== 1 ? "s" : ""} imported`
+        );
       if (result.stylesImported > 0)
-        parts.push(`${result.stylesImported} custom style${result.stylesImported !== 1 ? "s" : ""} imported`);
+        parts.push(
+          `${result.stylesImported} custom style${result.stylesImported !== 1 ? "s" : ""} imported`
+        );
       if (result.skipped > 0) parts.push(`${result.skipped} skipped (already exist)`);
       if (result.failed > 0) parts.push(`${result.failed} failed`);
       setStatus(parts.join(", "));

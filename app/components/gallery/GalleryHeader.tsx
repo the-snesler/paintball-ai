@@ -9,6 +9,7 @@ import {
 import NumberFlow from "@number-flow/react";
 import { useLocation, useNavigate } from "react-router";
 import { SearchBar } from "./SearchBar";
+import { CharacterFilterDropdown } from "./CharacterFilterDropdown";
 import { Tooltip } from "../ui/Tooltip";
 
 interface GalleryHeaderProps {
@@ -18,6 +19,8 @@ interface GalleryHeaderProps {
   onSearchChange?: (query: string) => void;
   showFavoritesOnly?: boolean;
   onToggleFavorites?: () => void;
+  characterFilter?: string | null;
+  onCharacterFilterChange?: (id: string | null) => void;
   showBackButton?: boolean;
 }
 
@@ -28,6 +31,8 @@ export function GalleryHeader({
   onSearchChange,
   showFavoritesOnly = false,
   onToggleFavorites,
+  characterFilter,
+  onCharacterFilterChange,
   showBackButton = false,
 }: GalleryHeaderProps) {
   const location = useLocation();
@@ -70,14 +75,22 @@ export function GalleryHeader({
       </h2>
 
       {onSearchChange ? (
-        <div className="flex-1 px-4">
-          <div className="mx-auto max-w-sm">
-            <SearchBar
-              value={searchQuery ?? ""}
-              onChange={onSearchChange}
-              showFavoritesOnly={showFavoritesOnly}
-              onToggleFavorites={onToggleFavorites}
-            />
+        <div className="flex flex-1 items-center gap-2 px-4">
+          <div className="mx-auto flex w-full max-w-sm items-center gap-2">
+            <div className="flex-1">
+              <SearchBar
+                value={searchQuery ?? ""}
+                onChange={onSearchChange}
+                showFavoritesOnly={showFavoritesOnly}
+                onToggleFavorites={onToggleFavorites}
+              />
+            </div>
+            {onCharacterFilterChange && (
+              <CharacterFilterDropdown
+                value={characterFilter ?? null}
+                onChange={onCharacterFilterChange}
+              />
+            )}
           </div>
         </div>
       ) : (

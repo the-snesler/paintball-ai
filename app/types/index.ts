@@ -99,6 +99,8 @@ export interface BaseGalleryItem {
   resolution: Resolution | null;
   quality?: string | null;
   referenceImageIds: string[];
+  /** IDs of characters (StoredCharacter.id) used in this generation. */
+  characterIds?: string[];
   isFavorite?: boolean;
   loadingPreview?: LoadingPreview;
 }
@@ -163,6 +165,8 @@ export interface StoredImageRecord {
   createdAt: number;
   generationTimeMs?: number;
   referenceImageIds: string[];
+  /** IDs of characters (StoredCharacter.id) used in this generation. */
+  characterIds?: string[];
   isFavorite?: boolean;
   parentGalleryItemIds?: string[];
   metadata: Record<string, unknown>;

@@ -13,7 +13,10 @@ import {
   CopyPlus,
   ImageUpscale,
   Star,
+  User,
+  Pencil,
 } from "lucide-react";
+import { Select } from "@base-ui/react/select";
 import { useLocation, useNavigate } from "react-router";
 import { useGalleryStore } from "~/stores/galleryStore";
 import { useLightboxStore } from "~/stores/lightboxStore";
@@ -30,7 +33,12 @@ import { IconButton } from "./IconButton";
 import { ScorecardPanel } from "./ScorecardPanel";
 import { WideIconButton } from "./WideIconButton";
 import { findSessionForImage, getReferenceImagesByIds, saveReferenceImage } from "~/lib/db";
-import type { ReferenceImage, StoredEditorSession } from "~/types";
+import type {
+  CompletedGalleryItem,
+  ReferenceImage,
+  StoredCharacter,
+  StoredEditorSession,
+} from "~/types";
 import { Accordion } from "@base-ui/react/accordion";
 import { logger } from "~/lib/logging";
 
@@ -56,6 +64,13 @@ export function Lightbox() {
   const [copySuccess, setCopySuccess] = useState(false);
   const [copyRawSuccess, setCopyRawSuccess] = useState(false);
   const replicateKey = useSettingsStore((s) => s.apiKeys.replicate);
+  const allCharacters = useSettingsStore((s) => s.characters);
+  const updateImageCharacters = useGalleryStore((s) => s.updateImageCharacters);
+  const [editingCharacters, setEditingCharacters] = useState(false);
+
+  useEffect(() => {
+    setEditingCharacters(false);
+  }, [galleryImage?.id]);
 
   useEffect(() => {
     if (!galleryImage || galleryImage.referenceImageIds.length === 0) {
@@ -357,6 +372,18 @@ export function Lightbox() {
 
               {galleryImage && <ScorecardPanel image={galleryImage} />}
 
+              {/* Characters */}
+              <CharacterSection
+                galleryImage={galleryImage}
+                allCharacters={allCharacters}
+                editing={editingCharacters}
+                onEditToggle={() => setEditingCharacters((v) => !v)}
+                onCharactersChange={(ids) => {
+                  void updateImageCharacters(galleryImage.id, ids);
+                  setEditingCharacters(false);
+                }}
+              />
+
               {/* Prompt */}
               <div className="space-y-2">
                 <div className="bg-surface-overlay/50 space-y-2 rounded-lg p-3">
@@ -483,6 +510,88 @@ export function Lightbox() {
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+function CharacterSection({
+  galleryImage,
+  allCharacters,
+  editing,
+  onEditToggle,
+  onCharactersChange,
+}: {
+  galleryImage: CompletedGalleryItem;
+  allCharacters: StoredCharacter[];
+  editing: boolean;
+  onEditToggle: () => void;
+  onCharactersChange: (ids: string[]) => void;
+}) {
+  const assignedIds = galleryImage.characterIds ?? [];
+  const assignedCharacters = assignedIds
+    .map((id) => allCharacters.find((c) => c.id === id))
+    .filter((c): c is StoredCharacter => c !== undefined);
+
+  if (allCharacters.length === 0) return null;
+
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      {assignedCharacters.length > 0 &&
+        !editing &&
+        assignedCharacters.map((c) => (
+          <span
+            key={c.id}
+            className="flex items-center gap-1 rounded-lg bg-purple-500/10 px-2 py-1 text-xs text-purple-300"
+          >
+            <User className="h-3 w-3 shrink-0" />
+            {c.name}
+          </span>
+        ))}
+      {assignedCharacters.length === 0 && !editing && (
+        <span className="text-text-muted text-xs">No character assigned</span>
+      )}
+      {editing ? (
+        <Select.Root<string, true>
+          multiple
+          value={assignedIds}
+          onValueChange={(ids) => onCharactersChange(ids)}
+        >
+          <Select.Trigger className="border-c-border bg-surface-raised text-text-secondary flex cursor-pointer items-center gap-1 rounded-lg border px-2 py-1 text-xs">
+            <User className="h-3 w-3 shrink-0" />
+            <Select.Value>
+              {assignedIds.length === 0 ? "Select characters" : `${assignedIds.length} selected`}
+            </Select.Value>
+            <ChevronDown className="h-3 w-3 shrink-0" />
+          </Select.Trigger>
+          <Select.Portal>
+            <Select.Positioner sideOffset={6} className="z-[60]">
+              <Select.Popup className="bg-surface-overlay border-c-border animate-in fade-in zoom-in-95 max-h-60 min-w-44 overflow-y-auto rounded-lg border p-1 text-sm shadow-lg">
+                {allCharacters.map((character) => (
+                  <Select.Item
+                    key={character.id}
+                    value={character.id}
+                    className="text-text-secondary data-highlighted:bg-surface-raised flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 outline-none"
+                  >
+                    <span className="flex h-3 w-3 items-center justify-center">
+                      <Select.ItemIndicator>
+                        <Check className="h-3 w-3" />
+                      </Select.ItemIndicator>
+                    </span>
+                    <Select.ItemText>{character.name}</Select.ItemText>
+                  </Select.Item>
+                ))}
+              </Select.Popup>
+            </Select.Positioner>
+          </Select.Portal>
+        </Select.Root>
+      ) : null}
+      <button
+        onClick={onEditToggle}
+        title={editing ? "Cancel" : "Edit characters"}
+        className="text-text-muted hover:text-text-secondary flex h-5 w-5 items-center justify-center rounded transition-colors"
+      >
+        {editing ? <X className="h-3.5 w-3.5" /> : <Pencil className="h-3.5 w-3.5" />}
+      </button>
     </div>
   );
 }

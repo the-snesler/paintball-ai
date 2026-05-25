@@ -130,6 +130,7 @@ export function useImageGeneration() {
             resolution: taskResolution,
             quality: taskQuality,
             referenceImageIds: referenceImages.map((r) => r.id),
+            characterIds: currentCharacterIds.length ? currentCharacterIds : undefined,
             isFavorite: false,
             loadingPreview,
             retryCount: 0,
@@ -199,6 +200,7 @@ export function useImageGeneration() {
           quality: slot.quality,
           numberOfImages: slot.numberOfImages,
           referenceImages: preparedPrompts.referenceImages,
+          characterIds: currentCharacterIds.length ? currentCharacterIds : undefined,
         };
       });
 
