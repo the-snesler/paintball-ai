@@ -187,19 +187,24 @@ function captureVideoFrame(
     video.muted = true;
     video.playsInline = true;
 
-    video.onloadedmetadata = () => {
-      // Seek slightly in to avoid blank first frames on some codecs.
-      video.currentTime = Math.min(0.1, video.duration / 2);
+    const resolveWithCurrentFrame = () => {
+      resolve({ element: video, url, width: video.videoWidth, height: video.videoHeight });
     };
 
-    video.onseeked = () => {
-      resolve({
-        element: video,
-        url,
-        width: video.videoWidth,
-        height: video.videoHeight,
-      });
+    video.onloadedmetadata = () => {
+      const dur = video.duration;
+      // duration may be 0, NaN, or Infinity for some formats/streams. When we
+      // can't seek to a meaningful offset, resolve immediately with frame 0 —
+      // setting currentTime=0 (already the position) won't fire onseeked.
+      if (!Number.isFinite(dur) || dur <= 0) {
+        resolveWithCurrentFrame();
+        return;
+      }
+      // Seek slightly in to avoid blank first frames on some codecs.
+      video.currentTime = Math.min(0.1, dur / 2);
     };
+
+    video.onseeked = resolveWithCurrentFrame;
 
     video.onerror = () => {
       URL.revokeObjectURL(url);
