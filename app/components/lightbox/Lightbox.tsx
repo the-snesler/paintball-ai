@@ -1,4 +1,4 @@
-import { useEffect, useCallback, useState } from "react";
+import { useEffect, useCallback, useState, type ReactNode } from "react";
 import {
   X,
   ChevronDown,
@@ -22,7 +22,6 @@ import { useGalleryStore } from "~/stores/galleryStore";
 import { useLightboxStore } from "~/stores/lightboxStore";
 import { useSettingsStore } from "~/stores/settingsStore";
 import { useEditorStore } from "~/stores/editorStore";
-import { GalleryImageCard } from "~/components/gallery/GalleryImageCard";
 import { RelatedThumbnail } from "./RelatedThumbnail";
 import { useLightboxNavigation } from "~/hooks/useLightboxNavigation";
 import { useGalleryDerivedIndexes } from "~/hooks/useGalleryDerivedIndexes";
@@ -54,7 +53,6 @@ export function Lightbox() {
   const { lightboxTarget, galleryImage, referenceImage, showNavigation, navigateLightbox } =
     useLightboxNavigation();
 
-  const openLightbox = useLightboxStore((s) => s.openLightbox);
   const { getPromptGroupForItem, getChildItems, getItemById } = useGalleryDerivedIndexes();
   const setEditorSource = useEditorStore((s) => s.setSource);
   const clearForSessionRestore = useEditorStore((s) => s.clearForSessionRestore);
@@ -244,6 +242,7 @@ export function Lightbox() {
   if (!galleryImage && !referenceImage) return null;
 
   const imageSrc = galleryImage?.originalUrl ?? referenceImage?.url ?? "";
+  const thumbnailSrc = galleryImage?.thumbnailUrl ?? imageSrc;
   const imageAlt = galleryImage?.prompt ?? referenceImage?.name ?? "Image preview";
 
   const topMetadataRow = [
@@ -259,269 +258,303 @@ export function Lightbox() {
   logger.debug("embedding", galleryImage?.embedding);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/90 backdrop-blur-sm" onClick={closeLightbox} />
+    <div className="bg-surface fixed inset-0 z-50 h-dvh overflow-hidden text-white">
+      <img
+        src={thumbnailSrc}
+        alt=""
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 h-full w-full scale-110 object-cover opacity-75 blur-3xl saturate-125"
+      />
+      {/* <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_35%_20%,rgba(255,255,255,0.12),transparent_35%),linear-gradient(to_bottom,rgba(9,9,11,0.12),rgba(9,9,11,0.82))]" /> */}
 
-      {/* Close button */}
       <button
+        type="button"
+        aria-label="Close lightbox"
+        className="absolute inset-0 cursor-default"
         onClick={closeLightbox}
-        className="bg-surface-raised/80 hover:bg-surface-overlay absolute top-4 right-4 z-20 rounded-lg p-2 transition-colors"
-      >
-        <X className="text-text-secondary h-6 w-6" />
-      </button>
+      />
 
-      {/* Navigation arrows */}
-      {showNavigation && (
-        <>
-          <button
-            onClick={() => navigateLightbox("prev")}
-            className="bg-surface-raised/80 hover:bg-surface-overlay absolute left-4 z-20 rounded-full p-3 transition-colors"
-          >
-            <ChevronLeft className="text-text-secondary h-6 w-6" />
-          </button>
-          <button
-            onClick={() => navigateLightbox("next")}
-            className="bg-surface-raised/80 hover:bg-surface-overlay absolute right-4 z-20 rounded-full p-3 transition-colors"
-          >
-            <ChevronRight className="text-text-secondary h-6 w-6" />
-          </button>
-        </>
-      )}
-
-      {/* Modal */}
-      <div className="animate-fade-in bg-surface-raised relative z-10 flex max-h-[90vh] max-w-[90vw] flex-col overflow-hidden overflow-y-auto rounded-xl shadow-2xl inset-shadow-sm inset-shadow-white/5 lg:flex-row lg:items-stretch">
-        {/* Image */}
-        <img
-          src={imageSrc}
-          alt={imageAlt}
-          className="block min-h-[50vh] min-w-0 self-center object-contain lg:max-h-[90vh] lg:min-h-0 lg:max-w-[calc(90vw-24rem)] xl:max-w-[calc(90vw-28rem)]"
-        />
-
-        {/* Info panel */}
-        {galleryImage && (
-          <div className="border-border-subtle flex shrink-0 flex-col border-t lg:w-96 lg:border-t-0 lg:border-l xl:w-md">
-            {/* Header */}
-            <div className="border-border-subtle flex items-center justify-between gap-2 border-b p-4">
-              <h2 className="text-text-primary truncate text-lg font-semibold">
-                {galleryImage.modelName}
-              </h2>
-              <div className="flex items-center gap-1">
-                {location.pathname !== "/app/editor" && (
-                  <WideIconButton
-                    icon={
-                      <span className="relative">
-                        <FilePenLine className="h-4 w-4" />
-                        {linkedSession && (
-                          <span className="absolute -top-1 -right-1 h-1.5 w-1.5 rounded-full bg-purple-400" />
-                        )}
-                      </span>
-                    }
-                    title="Editor"
-                    tooltip={linkedSession ? "Resume editing session" : undefined}
-                    onClick={handleSendToEditor}
-                  />
-                )}
-                {location.pathname !== "/app/editor" && (
-                  <WideIconButton
-                    icon={<ImageUpscale className="h-4 w-4" />}
-                    title="Upscale"
-                    tooltip={
-                      !replicateKey
-                        ? "Upscaling requires a Replicate API key"
-                        : "Open in editor with upscalers"
-                    }
-                    onClick={handleUpscale}
-                    disabled={!replicateKey || galleryImage.status !== "completed"}
-                  />
-                )}
-                <IconButton
-                  icon={
-                    <Star
-                      className={`h-4 w-4 ${galleryImage.isFavorite ? "fill-current text-yellow-300" : ""}`}
-                    />
-                  }
-                  title={galleryImage.isFavorite ? "Unfavorite" : "Favorite"}
-                  onClick={handleToggleFavorite}
-                />
-                <IconButton
-                  icon={<Download className="h-4 w-4" />}
-                  title="Download"
-                  onClick={handleDownload}
-                />
-                <IconButton
-                  icon={<Trash2 className="h-4 w-4" />}
-                  title="Delete"
-                  onClick={handleDelete}
-                  variant="danger"
-                />
-              </div>
-            </div>
-
-            {/* Body */}
-            <div className="flex-1 space-y-2 overflow-y-auto p-4">
-              {/* Metadata */}
-              {topMetadataRow && (
-                <div className="text-text-muted flex flex-wrap items-center gap-2 text-xs">
-                  {topMetadataRow.map((meta, i) => (
-                    <span key={i} className="bg-surface-overlay/50 rounded-lg px-2 py-1">
-                      {meta}
-                    </span>
-                  ))}
-                </div>
-              )}
-
-              {galleryImage && <ScorecardPanel image={galleryImage} />}
-
-              {/* Characters */}
-              <CharacterSection
-                galleryImage={galleryImage}
-                allCharacters={allCharacters}
-                editing={editingCharacters}
-                onEditToggle={() => setEditingCharacters((v) => !v)}
-                onCharactersChange={(ids) => {
-                  void updateImageCharacters(galleryImage.id, ids);
-                  setEditingCharacters(false);
-                }}
+      <div className="animate-fade-in relative z-10 flex h-full min-h-0 flex-col gap-3 lg:p-4">
+        <header className="border-c-border/60 bg-surface-raised/85 m-2 flex min-h-14 shrink-0 items-center gap-2 rounded-xl border px-2.5 py-2 shadow-2xl backdrop-blur-xl sm:px-3 lg:m-0">
+          {showNavigation && (
+            <div className="flex items-center gap-1">
+              <IconButton
+                icon={<ChevronLeft className="h-4 w-4" />}
+                title="Previous image"
+                onClick={() => navigateLightbox("prev")}
               />
+              <IconButton
+                icon={<ChevronRight className="h-4 w-4" />}
+                title="Next image"
+                onClick={() => navigateLightbox("next")}
+              />
+            </div>
+          )}
 
-              {/* Prompt */}
-              <div className="space-y-2">
-                <div className="bg-surface-overlay/50 space-y-2 rounded-lg p-3">
-                  <p className="text-text-secondary text-sm whitespace-pre-wrap">
-                    {galleryImage.basePrompt ?? galleryImage.prompt}
-                  </p>
-                  {hasBasePrompt && (
-                    <Accordion.Root className="border-c-border/60 border-t pt-2">
-                      <Accordion.Item>
-                        <Accordion.Header>
-                          <Accordion.Trigger className="group text-text-muted hover:text-text-tertiary inline-flex cursor-pointer list-none items-center gap-1 text-xs [&::-webkit-details-marker]:hidden">
-                            <span>Show sent prompt</span>
-                            <ChevronDown className="text-text-muted group-hover:text-text-tertiary h-4 w-4 -rotate-90 transition-transform duration-200 group-data-panel-open:rotate-0" />
-                          </Accordion.Trigger>
-                        </Accordion.Header>
-                        <Accordion.Panel className="h-(--accordion-panel-height) overflow-hidden transition-[height] data-ending-style:h-0 data-starting-style:h-0">
-                          <p className="text-text-tertiary mt-2 text-xs leading-snug whitespace-pre-wrap">
-                            {galleryImage.prompt}
-                          </p>
-                        </Accordion.Panel>
-                      </Accordion.Item>
-                    </Accordion.Root>
+          <div className="min-w-0 flex-1 px-1">
+            <p className="text-text-primary truncate text-sm font-medium">
+              {galleryImage?.modelName ?? referenceImage?.name ?? "Image preview"}
+            </p>
+          </div>
+
+          {galleryImage && (
+            <div className="flex shrink-0 items-center gap-1 overflow-x-auto">
+              {location.pathname !== "/app/editor" && (
+                <WideIconButton
+                  icon={
+                    <span className="relative">
+                      <FilePenLine className="h-4 w-4" />
+                      {linkedSession && (
+                        <span className="absolute -top-1 -right-1 h-1.5 w-1.5 rounded-full bg-purple-400" />
+                      )}
+                    </span>
+                  }
+                  title="Editor"
+                  tooltip={linkedSession ? "Resume editing session" : undefined}
+                  onClick={handleSendToEditor}
+                  textBreakpoint="lg"
+                />
+              )}
+              {location.pathname !== "/app/editor" && (
+                <WideIconButton
+                  icon={<ImageUpscale className="h-4 w-4" />}
+                  title="Upscale"
+                  tooltip={
+                    !replicateKey
+                      ? "Upscaling requires a Replicate API key"
+                      : "Open in editor with upscalers"
+                  }
+                  onClick={handleUpscale}
+                  disabled={!replicateKey || galleryImage.status !== "completed"}
+                  textBreakpoint="lg"
+                />
+              )}
+              <IconButton
+                icon={
+                  <Star
+                    className={`h-4 w-4 ${galleryImage.isFavorite ? "fill-current text-yellow-300" : ""}`}
+                  />
+                }
+                title={galleryImage.isFavorite ? "Unfavorite" : "Favorite"}
+                onClick={handleToggleFavorite}
+              />
+              <IconButton
+                icon={<Download className="h-4 w-4" />}
+                title="Download"
+                onClick={handleDownload}
+              />
+              <IconButton
+                icon={<Trash2 className="h-4 w-4" />}
+                title="Delete"
+                onClick={handleDelete}
+                variant="danger"
+              />
+            </div>
+          )}
+
+          <IconButton icon={<X className="h-4 w-4" />} title="Close" onClick={closeLightbox} />
+        </header>
+
+        <main
+          className={`min-h-0 flex-1 gap-3 overflow-y-auto lg:grid lg:overflow-hidden ${
+            galleryImage
+              ? "lg:grid-cols-[minmax(0,1fr)_24rem] xl:grid-cols-[minmax(0,1fr)_28rem]"
+              : "lg:grid-cols-1"
+          }`}
+        >
+          <section className="flex min-h-[52dvh] items-center justify-center overflow-hidden lg:min-h-0">
+            <img
+              src={imageSrc}
+              alt={imageAlt}
+              className="block max-h-[calc(70dvh)] max-w-full object-contain lg:h-full lg:max-h-full lg:w-full"
+            />
+          </section>
+
+          {galleryImage && (
+            <aside className="border-c-border/60 bg-surface-raised/85 mt-3 flex min-h-0 flex-col overflow-hidden rounded-xl border shadow-2xl backdrop-blur-xl lg:mt-0">
+              <div className="border-border-subtle flex shrink-0 items-start justify-between gap-3 border-b p-4">
+                <div className="min-w-0">
+                  <h2 className="text-text-primary truncate text-base font-semibold">
+                    {galleryImage.modelName}
+                  </h2>
+                  {galleryImage.createdAt && (
+                    <p className="text-text-muted mt-1 text-xs">
+                      {new Date(galleryImage.createdAt).toLocaleString()}
+                    </p>
                   )}
                 </div>
-                <div className="flex items-center gap-1">
-                  <IconButton
-                    icon={
-                      copySuccess ? (
-                        <Check className="h-4 w-4 text-green-400" />
-                      ) : (
-                        <Copy className="h-4 w-4" />
-                      )
-                    }
-                    title="Copy Prompt"
-                    onClick={handleCopyPrompt}
-                  />
-                  {hasBasePrompt && (
-                    <IconButton
-                      icon={
-                        copyRawSuccess ? (
-                          <Check className="h-4 w-4 text-green-400" />
-                        ) : (
-                          <CopyPlus className="h-4 w-4" />
-                        )
-                      }
-                      title="Copy sent prompt (actual prompt that was sent to the model)"
-                      onClick={handleCopyRawPrompt}
-                    />
-                  )}
-                  <IconButton
-                    icon={<RotateCcw className="h-4 w-4" />}
-                    title="Re-use Prompt"
-                    onClick={handleReusePrompt}
-                  />
-                </div>
+                {galleryImage.isFavorite && (
+                  <Star className="h-4 w-4 shrink-0 fill-current text-yellow-300" />
+                )}
               </div>
 
-              {/* Date */}
-              {galleryImage.createdAt && (
-                <p className="text-text-muted text-xs">
-                  {new Date(galleryImage.createdAt).toLocaleString()}
-                </p>
-              )}
-
-              {/* Other generations */}
-              {promptGroup.length > 1 && (
-                <div className="space-y-2">
-                  <h3 className="text-text-tertiary text-xs font-medium">
-                    All outputs ({promptGroup.length})
-                  </h3>
-                  <div className="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-2">
-                    {promptGroup.map((item) => (
-                      <RelatedThumbnail
-                        key={item.id}
-                        kind="gallery-item"
-                        current={galleryImage}
-                        item={item}
-                      />
+              <div className="flex-1 space-y-3 overflow-y-auto p-4">
+                {topMetadataRow.length > 0 && (
+                  <div className="text-text-muted flex flex-wrap items-center gap-2 text-xs">
+                    {topMetadataRow.map((meta, i) => (
+                      <span
+                        key={i}
+                        className="bg-surface-overlay/60 border-c-border/50 rounded-lg border px-2 py-1"
+                      >
+                        {meta}
+                      </span>
                     ))}
                   </div>
-                </div>
-              )}
+                )}
 
-              {/* Reference images */}
-              {referenceImages.length > 0 && (
-                <div className="space-y-2">
-                  <h3 className="text-text-tertiary text-xs font-medium">
-                    Reference images ({referenceImages.length})
-                  </h3>
-                  <div className="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-2">
-                    {referenceImages.map((img) => {
-                      const sourceItem = img.sourceGalleryItemId
-                        ? getItemById(img.sourceGalleryItemId)
-                        : null;
-                      return sourceItem ? (
+                <ScorecardPanel image={galleryImage} />
+
+                <PanelSection title="Characters">
+                  <CharacterSection
+                    galleryImage={galleryImage}
+                    allCharacters={allCharacters}
+                    editing={editingCharacters}
+                    onEditToggle={() => setEditingCharacters((v) => !v)}
+                    onCharactersChange={(ids) => {
+                      void updateImageCharacters(galleryImage.id, ids);
+                      setEditingCharacters(false);
+                    }}
+                  />
+                </PanelSection>
+
+                <PanelSection title="Prompt">
+                  <div className="space-y-2">
+                    <div className="bg-surface-overlay/50 border-c-border/50 space-y-2 rounded-lg border p-3">
+                      <p className="text-text-secondary text-sm whitespace-pre-wrap">
+                        {galleryImage.basePrompt ?? galleryImage.prompt}
+                      </p>
+                      {hasBasePrompt && (
+                        <Accordion.Root className="border-c-border/60 border-t pt-2">
+                          <Accordion.Item>
+                            <Accordion.Header>
+                              <Accordion.Trigger className="group text-text-muted hover:text-text-tertiary inline-flex list-none items-center gap-1 text-xs [&::-webkit-details-marker]:hidden">
+                                <span>Show sent prompt</span>
+                                <ChevronDown className="text-text-muted group-hover:text-text-tertiary h-4 w-4 -rotate-90 transition-transform duration-200 group-data-panel-open:rotate-0" />
+                              </Accordion.Trigger>
+                            </Accordion.Header>
+                            <Accordion.Panel className="h-(--accordion-panel-height) overflow-hidden transition-[height] data-ending-style:h-0 data-starting-style:h-0">
+                              <p className="text-text-tertiary mt-2 text-xs leading-snug whitespace-pre-wrap">
+                                {galleryImage.prompt}
+                              </p>
+                            </Accordion.Panel>
+                          </Accordion.Item>
+                        </Accordion.Root>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <IconButton
+                        icon={
+                          copySuccess ? (
+                            <Check className="h-4 w-4 text-green-400" />
+                          ) : (
+                            <Copy className="h-4 w-4" />
+                          )
+                        }
+                        title="Copy Prompt"
+                        onClick={handleCopyPrompt}
+                      />
+                      {hasBasePrompt && (
+                        <IconButton
+                          icon={
+                            copyRawSuccess ? (
+                              <Check className="h-4 w-4 text-green-400" />
+                            ) : (
+                              <CopyPlus className="h-4 w-4" />
+                            )
+                          }
+                          title="Copy sent prompt (actual prompt that was sent to the model)"
+                          onClick={handleCopyRawPrompt}
+                        />
+                      )}
+                      <IconButton
+                        icon={<RotateCcw className="h-4 w-4" />}
+                        title="Re-use Prompt"
+                        onClick={handleReusePrompt}
+                      />
+                      {hasBasePrompt && (
+                        <button
+                          type="button"
+                          onClick={handleReuseBasePrompt}
+                          className="text-text-tertiary hover:bg-surface-overlay hover:text-text-secondary rounded-lg px-2 py-2 text-xs transition-colors"
+                        >
+                          Re-use base
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </PanelSection>
+
+                {promptGroup.length > 1 && (
+                  <PanelSection title={`All outputs (${promptGroup.length})`}>
+                    <div className="grid grid-cols-[repeat(auto-fill,minmax(8.5rem,1fr))] gap-2">
+                      {promptGroup.map((item) => (
                         <RelatedThumbnail
-                          key={img.id}
+                          key={item.id}
                           kind="gallery-item"
                           current={galleryImage}
-                          item={sourceItem}
+                          item={item}
                         />
-                      ) : (
-                        <RelatedThumbnail
-                          key={img.id}
-                          kind="external-ref"
-                          current={galleryImage}
-                          image={img}
-                        />
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
+                      ))}
+                    </div>
+                  </PanelSection>
+                )}
 
-              {/* Children — generations that used this image as a reference */}
-              {childItems.length > 0 && (
-                <div className="space-y-2">
-                  <h3 className="text-text-tertiary text-xs font-medium">
-                    Children ({childItems.length})
-                  </h3>
-                  <div className="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-2">
-                    {childItems.map((item) => (
-                      <RelatedThumbnail
-                        key={item.id}
-                        kind="gallery-item"
-                        current={galleryImage}
-                        item={item}
-                      />
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
+                {referenceImages.length > 0 && (
+                  <PanelSection title={`Reference images (${referenceImages.length})`}>
+                    <div className="grid grid-cols-[repeat(auto-fill,minmax(8.5rem,1fr))] gap-2">
+                      {referenceImages.map((img) => {
+                        const sourceItem = img.sourceGalleryItemId
+                          ? getItemById(img.sourceGalleryItemId)
+                          : null;
+                        return sourceItem ? (
+                          <RelatedThumbnail
+                            key={img.id}
+                            kind="gallery-item"
+                            current={galleryImage}
+                            item={sourceItem}
+                          />
+                        ) : (
+                          <RelatedThumbnail
+                            key={img.id}
+                            kind="external-ref"
+                            current={galleryImage}
+                            image={img}
+                          />
+                        );
+                      })}
+                    </div>
+                  </PanelSection>
+                )}
+
+                {childItems.length > 0 && (
+                  <PanelSection title={`Children (${childItems.length})`}>
+                    <div className="grid grid-cols-[repeat(auto-fill,minmax(8.5rem,1fr))] gap-2">
+                      {childItems.map((item) => (
+                        <RelatedThumbnail
+                          key={item.id}
+                          kind="gallery-item"
+                          current={galleryImage}
+                          item={item}
+                        />
+                      ))}
+                    </div>
+                  </PanelSection>
+                )}
+              </div>
+            </aside>
+          )}
+        </main>
       </div>
     </div>
+  );
+}
+
+function PanelSection({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <section className="space-y-2">
+      <h3 className="text-text-tertiary text-xs font-medium">{title}</h3>
+      {children}
+    </section>
   );
 }
 
@@ -567,7 +600,7 @@ function CharacterSection({
           value={assignedIds}
           onValueChange={(ids) => onCharactersChange(ids)}
         >
-          <Select.Trigger className="border-c-border bg-surface-raised text-text-secondary flex cursor-pointer items-center gap-1 rounded-lg border px-2 py-1 text-xs">
+          <Select.Trigger className="border-c-border bg-surface-raised text-text-secondary flex items-center gap-1 rounded-lg border px-2 py-1 text-xs">
             <User className="h-3 w-3 shrink-0" />
             <Select.Value>
               {assignedIds.length === 0 ? "Select characters" : `${assignedIds.length} selected`}
@@ -581,7 +614,7 @@ function CharacterSection({
                   <Select.Item
                     key={character.id}
                     value={character.id}
-                    className="text-text-secondary data-highlighted:bg-surface-raised flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 outline-none"
+                    className="text-text-secondary data-highlighted:bg-surface-raised flex items-center gap-2 rounded px-2 py-1.5 outline-none"
                   >
                     <span className="flex h-3 w-3 items-center justify-center">
                       <Select.ItemIndicator>
