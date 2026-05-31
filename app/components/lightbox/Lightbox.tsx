@@ -32,6 +32,7 @@ import {
 import { IconButton } from "./IconButton";
 import { ScorecardPanel } from "./ScorecardPanel";
 import { WideIconButton } from "./WideIconButton";
+import { formatCostUsd } from "~/lib/cost";
 import { findSessionForImage, getReferenceImagesByIds, saveReferenceImage } from "~/lib/db";
 import type {
   CompletedGalleryItem,
@@ -252,6 +253,7 @@ export function Lightbox() {
     galleryImage?.generationTimeMs != null
       ? `${(galleryImage.generationTimeMs / 1000).toFixed(1)}s`
       : undefined,
+    typeof galleryImage?.costUsd === "number" ? formatCostUsd(galleryImage.costUsd) : undefined,
     galleryImage?.embedding ? "Has embedding" : undefined,
   ].filter(Boolean);
 

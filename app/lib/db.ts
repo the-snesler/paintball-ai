@@ -8,7 +8,7 @@ import type {
 import { createThumbnailBlob } from "./imageProcessing";
 
 const DB_NAME = "studio-image-gallery";
-const DB_VERSION = 4;
+const DB_VERSION = 5;
 
 const STORES = {
   images: "images",
@@ -69,6 +69,7 @@ export async function initDB(): Promise<IDBDatabase> {
       // v4: no schema change required; `embedding` and `embeddingModelId` are
       // optional fields on existing records. Bumping the version allows future
       // additions to hook the upgrade path.
+      // v5: adds optional `costUsd` field — populated lazily via backfill.
     };
   });
 }
@@ -270,6 +271,62 @@ export async function updateImageEmbedding(
       record.embeddingModelId = embeddingModelId;
       store.put(record);
     };
+
+    transaction.oncomplete = () => resolve();
+    transaction.onerror = () => reject(transaction.error);
+    transaction.onabort = () => reject(transaction.error);
+  });
+}
+
+export async function updateImageCost(id: string, costUsd: number | undefined): Promise<void> {
+  const db = await initDB();
+
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(STORES.images, "readwrite");
+    const store = transaction.objectStore(STORES.images);
+    const getReq = store.get(id);
+
+    getReq.onerror = () => reject(getReq.error);
+    getReq.onsuccess = () => {
+      const record = getReq.result as StoredImageRecord | undefined;
+      if (!record) {
+        resolve();
+        return;
+      }
+      if (typeof costUsd === "number" && Number.isFinite(costUsd)) {
+        record.costUsd = costUsd;
+      } else {
+        delete record.costUsd;
+      }
+      store.put(record);
+    };
+
+    transaction.oncomplete = () => resolve();
+    transaction.onerror = () => reject(transaction.error);
+    transaction.onabort = () => reject(transaction.error);
+  });
+}
+
+/** Batches `updateImageCost` calls across many records in a single transaction. */
+export async function updateImageCostsBatch(
+  updates: Array<{ id: string; costUsd: number }>
+): Promise<void> {
+  if (updates.length === 0) return;
+  const db = await initDB();
+
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(STORES.images, "readwrite");
+    const store = transaction.objectStore(STORES.images);
+
+    for (const { id, costUsd } of updates) {
+      const getReq = store.get(id);
+      getReq.onsuccess = () => {
+        const record = getReq.result as StoredImageRecord | undefined;
+        if (!record) return;
+        record.costUsd = costUsd;
+        store.put(record);
+      };
+    }
 
     transaction.oncomplete = () => resolve();
     transaction.onerror = () => reject(transaction.error);

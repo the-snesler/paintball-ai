@@ -15,14 +15,57 @@ import {
   deleteImage as dbDeleteImage,
   deleteReferenceImage,
   toDisplayImage,
+  updateImageCostsBatch,
   updateImageFavorite,
   updateImageCharacters as dbUpdateImageCharacters,
   updateImageScorecard,
 } from "~/lib/db";
+import { estimateCostForModel } from "~/lib/cost";
+import { getModel } from "~/lib/models";
 import { useLightboxStore } from "./lightboxStore";
 import { useEmbeddingStatusStore } from "./embeddingStatusStore";
 import { enqueueMissingEmbeddings, refreshEmbeddingCounts } from "~/lib/embeddingQueue";
 import { useSettingsStore } from "./settingsStore";
+
+// Computes USD cost for any completed items lacking it, using stored fields.
+// Persists the result to IndexedDB and updates the in-memory items in one set().
+async function backfillCostsForItems(items: GalleryItem[]) {
+  const models = useSettingsStore.getState().models;
+  const updates: Array<{ id: string; costUsd: number }> = [];
+
+  for (const item of items) {
+    if (item.status !== "completed") continue;
+    if (typeof item.costUsd === "number") continue;
+    const model = getModel(models, item.modelId);
+    if (!model) continue;
+    const estimate = estimateCostForModel(model, {
+      aspectRatio: item.aspectRatio,
+      resolution: item.resolution,
+      quality: item.quality ?? null,
+      numberOfImages: 1,
+      width: item.width,
+      height: item.height,
+    });
+    if (!estimate) continue;
+    updates.push({ id: item.id, costUsd: estimate.perImageUsd });
+  }
+
+  if (updates.length === 0) return;
+
+  try {
+    await updateImageCostsBatch(updates);
+  } catch (error) {
+    console.error("Failed to backfill image costs:", error);
+    return;
+  }
+
+  const byId = new Map(updates.map((u) => [u.id, u.costUsd]));
+  useGalleryStore.setState((state) => ({
+    items: state.items.map((item) =>
+      byId.has(item.id) ? { ...item, costUsd: byId.get(item.id) } : item
+    ),
+  }));
+}
 
 function maybeKickEmbeddingQueue() {
   if (typeof window === "undefined") return;
@@ -132,6 +175,7 @@ export const useGalleryStore = create<GalleryState>()((set, get) => ({
         totalCount: total,
       });
       maybeKickEmbeddingQueue();
+      void backfillCostsForItems(items);
     } catch (error) {
       console.error("Failed to load images:", error);
     } finally {
@@ -157,6 +201,7 @@ export const useGalleryStore = create<GalleryState>()((set, get) => ({
         hasMore: records.length >= PAGE_SIZE,
       }));
       maybeKickEmbeddingQueue();
+      void backfillCostsForItems(fresh);
     } catch (error) {
       console.error("Failed to load more images:", error);
     } finally {

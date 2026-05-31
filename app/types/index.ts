@@ -34,6 +34,16 @@ export interface ModelDefinition {
   icon?: string;
 }
 
+// Per-resolution prices in USD/image. `default` is used when no resolution is set
+// or when the model doesn't expose resolution. Used by Replicate (no public
+// pricing introspection) and as user-overridable values for built-ins.
+export interface PricePerImageUsd {
+  default?: number;
+  "1K"?: number;
+  "2K"?: number;
+  "4K"?: number;
+}
+
 // Model stored in settings (user-configurable)
 export interface StoredModel {
   id: string;
@@ -45,6 +55,7 @@ export interface StoredModel {
   schemaMapping?: SchemaMapping; // parameter translation for non-standard Replicate models
   capabilities: ModelCapabilities;
   icon?: string; // Path to custom icon SVG (e.g., "/icons/google.svg")
+  pricePerImageUsd?: PricePerImageUsd;
 }
 
 // Generation types
@@ -103,6 +114,8 @@ export interface BaseGalleryItem {
   characterIds?: string[];
   isFavorite?: boolean;
   loadingPreview?: LoadingPreview;
+  /** Estimated or actual generation cost in USD. Populated on completion or via backfill. */
+  costUsd?: number;
 }
 
 export interface PendingGalleryItemFields {
@@ -173,6 +186,7 @@ export interface StoredImageRecord {
   embedding?: number[];
   embeddingModelId?: string;
   scorecard?: ImageScorecard;
+  costUsd?: number;
 }
 
 export type ScorecardCriterion =

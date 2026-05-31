@@ -3,6 +3,7 @@ import { useNavigate } from "react-router";
 import { useGenerationStore } from "~/stores/generationStore";
 import { useSettingsStore } from "~/stores/settingsStore";
 import { useImageGeneration } from "~/hooks/useImageGeneration";
+import { estimateCostForModel, formatCostUsd } from "~/lib/cost";
 import { buildGenerationSignature } from "~/lib/generationSignature";
 import { getModel, getStrictReferenceImageLimit } from "~/lib/models";
 import { hasProviderAccess } from "~/lib/providers";
@@ -33,6 +34,35 @@ export function GenerateButton() {
 
   const activeModels = Object.entries(modelSelections).filter(([, count]) => count > 0);
   const totalImages = activeModels.reduce((sum, [, count]) => sum + count, 0);
+
+  let costEstimateUsd = 0;
+  const missingPriceModels: string[] = [];
+  for (const [modelId, count] of activeModels) {
+    const model = getModel(models, modelId);
+    if (!model) continue;
+    const maxBatch = model.capabilities.maxImagesPerRequest ?? 1;
+    const perCallImages = model.capabilities.supportsNumberOfImages
+      ? Math.max(1, Math.min(numberOfImages, maxBatch))
+      : 1;
+    const estimate = estimateCostForModel(model, {
+      aspectRatio,
+      resolution,
+      quality,
+      numberOfImages: count * perCallImages,
+    });
+    if (estimate) {
+      costEstimateUsd += estimate.totalUsd;
+    } else {
+      missingPriceModels.push(model.name);
+    }
+  }
+  const hasAnyEstimate = costEstimateUsd > 0;
+  const hasUnknownPricing = missingPriceModels.length > 0;
+  const costTooltip = hasUnknownPricing
+    ? `No pricing set for: ${missingPriceModels.join(", ")}. ${
+        hasAnyEstimate ? "Total is a lower bound." : "Add prices in Settings."
+      }`
+    : "Estimated using published per-image pricing. Actual cost may vary slightly.";
 
   const missingKeys = activeModels.some(([modelId]) => {
     const model = getModel(models, modelId);
@@ -179,6 +209,18 @@ export function GenerateButton() {
             willChange
           />
           {" pending"}
+          {(hasAnyEstimate || hasUnknownPricing) && totalImages > 0 && (
+            <>
+              {" • "}
+              <Tooltip content={costTooltip} placement="top" maxWidth="max-w-72">
+                <span className="cursor-help">
+                  {hasAnyEstimate
+                    ? `${hasUnknownPricing ? "~" : ""}${formatCostUsd(costEstimateUsd)}`
+                    : "~$?"}
+                </span>
+              </Tooltip>
+            </>
+          )}
           {" • "}
           <button
             onClick={handleClear}

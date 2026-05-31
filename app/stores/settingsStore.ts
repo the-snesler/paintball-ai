@@ -15,6 +15,7 @@ import type {
   ApiKeyProvider,
   ApiKeys,
   ModelCapabilities,
+  PricePerImageUsd,
   SchemaMapping,
   StoredCharacter,
   StoredModel,
@@ -59,6 +60,7 @@ interface SettingsState {
     schemaFetched?: boolean
   ) => void;
   updateModelSchemaMapping: (id: string, schemaMapping: SchemaMapping) => void;
+  updateModelPricing: (id: string, pricePerImageUsd: PricePerImageUsd | undefined) => void;
 
   // Upscaler actions
   setUpscalerEnabled: (id: string, enabled: boolean) => void;
@@ -196,6 +198,20 @@ export const useSettingsStore = create<SettingsState>()(
       updateModelSchemaMapping: (id, schemaMapping) =>
         set((state) => ({
           models: state.models.map((m) => (m.id === id ? { ...m, schemaMapping } : m)),
+        })),
+
+      updateModelPricing: (id, pricePerImageUsd) =>
+        set((state) => ({
+          models: state.models.map((m) => {
+            if (m.id !== id) return m;
+            const next: StoredModel = { ...m };
+            if (pricePerImageUsd && Object.keys(pricePerImageUsd).length > 0) {
+              next.pricePerImageUsd = pricePerImageUsd;
+            } else {
+              delete next.pricePerImageUsd;
+            }
+            return next;
+          }),
         })),
 
       selectTextModel: (id) =>
@@ -411,7 +427,7 @@ export const useSettingsStore = create<SettingsState>()(
     }),
     {
       name: "studio-settings",
-      version: 21,
+      version: 22,
       partialize: (state) => ({
         apiKeys: state.apiKeys,
         models: state.models,

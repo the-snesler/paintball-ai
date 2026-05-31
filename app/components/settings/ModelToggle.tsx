@@ -7,11 +7,12 @@ import {
   RefreshCw,
   GalleryHorizontalEnd,
   Sparkles,
+  DollarSign,
 } from "lucide-react";
 import { useSettingsStore } from "~/stores/settingsStore";
 import SVG from "react-inlinesvg";
 import { useState, type ReactNode } from "react";
-import type { StoredModel } from "~/types";
+import type { PricePerImageUsd, Resolution, StoredModel } from "~/types";
 import { Tooltip } from "~/components/ui/Tooltip";
 import { Switch } from "~/components/ui/Switch";
 import { AspectRatioPreview } from "~/components/ui/AspectRatioPreview";
@@ -90,6 +91,7 @@ export default function ModelToggleItem({
   const [isRefetching, setIsRefetching] = useState(false);
   const [refetchingStatus, setRefetchingStatus] = useState("");
   const [refetchError, setRefetchError] = useState<string | null>(null);
+  const [pricingExpanded, setPricingExpanded] = useState(false);
 
   const { capabilities } = model;
   const needsRefetch =
@@ -127,13 +129,15 @@ export default function ModelToggleItem({
       : "Click to refresh schema info.";
 
   const provider = PROVIDERS[model.provider];
+  const supportsPricingUI = model.provider === "replicate" || model.provider === "google";
 
   return (
     <div
-      className={`border-c-border/50 bg-surface-overlay/50 flex items-center gap-1 rounded-lg border p-2 py-2.5 ${
+      className={`border-c-border/50 bg-surface-overlay/50 flex flex-col rounded-lg border p-2 py-2.5 ${
         !hasApiKey ? "opacity-50" : ""
       }`}
     >
+      <div className="flex items-center gap-1">
       {dragHandleProps ? (
         <button
           {...dragHandleProps}
@@ -204,6 +208,20 @@ export default function ModelToggleItem({
         </Tooltip>
       )}
 
+      {supportsPricingUI && (
+        <Tooltip content="Set per-image pricing (USD)" placement="top" delay={200}>
+          <button
+            type="button"
+            onClick={() => setPricingExpanded((v) => !v)}
+            className={`text-text-muted hover:text-accent-muted shrink-0 p-1 transition-colors ${
+              model.pricePerImageUsd ? "text-accent-muted" : ""
+            }`}
+          >
+            <DollarSign className="h-4 w-4" />
+          </button>
+        </Tooltip>
+      )}
+
       {model.isCustom && (
         <button
           onClick={() => removeCustomModel(model.id)}
@@ -219,6 +237,58 @@ export default function ModelToggleItem({
         disabled={!hasApiKey}
         aria-label={`Toggle ${model.name}`}
       />
+      </div>
+      {supportsPricingUI && pricingExpanded && <PricingEditor model={model} />}
+    </div>
+  );
+}
+
+function PricingEditor({ model }: { model: StoredModel }) {
+  const updateModelPricing = useSettingsStore((s) => s.updateModelPricing);
+  const supportsResolution = model.capabilities.supportsResolution;
+  const keys: Array<{ key: keyof PricePerImageUsd; label: string }> = supportsResolution
+    ? [
+        { key: "1K", label: "1K" },
+        { key: "2K", label: "2K" },
+        { key: "4K", label: "4K" },
+      ]
+    : [{ key: "default", label: "Per image" }];
+
+  const handleChange = (key: keyof PricePerImageUsd, raw: string) => {
+    const trimmed = raw.trim();
+    const next: PricePerImageUsd = { ...(model.pricePerImageUsd ?? {}) };
+    if (trimmed === "") {
+      delete next[key];
+    } else {
+      const num = Number(trimmed);
+      if (!Number.isFinite(num) || num < 0) return;
+      next[key] = num;
+    }
+    updateModelPricing(model.id, Object.keys(next).length > 0 ? next : undefined);
+  };
+
+  return (
+    <div className="border-c-border/40 mt-2 flex flex-wrap items-center gap-2 border-t pt-2">
+      <span className="text-text-muted text-[10px] uppercase tracking-wide">USD / image</span>
+      {keys.map(({ key, label }) => {
+        const value = model.pricePerImageUsd?.[key as Resolution];
+        return (
+          <label key={key} className="flex items-center gap-1 text-xs">
+            <span className="text-text-tertiary">{label}</span>
+            <span className="text-text-muted">$</span>
+            <input
+              type="number"
+              step="0.001"
+              min="0"
+              inputMode="decimal"
+              value={typeof value === "number" ? value : ""}
+              onChange={(e) => handleChange(key, e.target.value)}
+              placeholder="—"
+              className="border-c-border/60 bg-surface-overlay text-text-primary w-20 rounded border px-1.5 py-0.5 text-xs focus:border-purple-500 focus:outline-none"
+            />
+          </label>
+        );
+      })}
     </div>
   );
 }

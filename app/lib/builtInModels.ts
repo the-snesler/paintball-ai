@@ -152,6 +152,8 @@ export function mergeWithBuiltInModels(models?: StoredModel[]): StoredModel[] {
       schemaFetched: existing.schemaFetched,
       ...builtInModel,
       enabled: existing.enabled,
+      // User-supplied pricing always wins over built-in defaults.
+      ...(existing.pricePerImageUsd ? { pricePerImageUsd: existing.pricePerImageUsd } : {}),
     };
   });
 

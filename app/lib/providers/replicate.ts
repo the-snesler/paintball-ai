@@ -5,12 +5,20 @@ import { getImageDimensions } from "~/lib/imageProcessing";
 import { inferIcon, inferName } from "~/lib/modelNames";
 import { dereferenceProperties, type OpenApiSchemaProperty } from "~/lib/openapi";
 import { SCHEMA_MAPPING_SYSTEM } from "~/lib/prompts";
+import { resolveStoredPrice } from "~/lib/cost";
 import { toRateLimitError } from "~/lib/retry";
 import { callTextModel } from "~/lib/textModel";
 import { useSettingsStore } from "~/stores/settingsStore";
 import { blobToBase64 } from "~/lib/util";
 import type { ModelCapabilities, SchemaMapping, StoredUpscaler } from "~/types";
-import type { Provider, ResolvedImageModel, SearchResult, TextGenerationArgs } from "./types";
+import type {
+  CostEstimate,
+  CostEstimateArgs,
+  Provider,
+  ResolvedImageModel,
+  SearchResult,
+  TextGenerationArgs,
+} from "./types";
 import { normalizeModelId } from ".";
 
 function replicateBaseUrl(): string {
@@ -516,6 +524,14 @@ async function resolveImageModel(
   return { name: inferName(modelId), capabilities, schemaMapping, icon: inferIcon(modelId) };
 }
 
+function estimateCost(args: CostEstimateArgs): CostEstimate | null {
+  const { model, resolution, numberOfImages } = args;
+  const perImageUsd = resolveStoredPrice(model, resolution);
+  if (perImageUsd === null) return null;
+  const n = Math.max(1, numberOfImages);
+  return { perImageUsd, totalUsd: perImageUsd * n };
+}
+
 export const replicateProvider: Provider = {
   id: "replicate",
   label: "Replicate",
@@ -537,4 +553,5 @@ export const replicateProvider: Provider = {
   searchImageModels: searchModels,
   searchUpscalers: searchModels,
   resolveImageModel,
+  estimateCost,
 };

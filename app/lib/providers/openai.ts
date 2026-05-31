@@ -5,7 +5,14 @@ import { getImageDimensions } from "~/lib/imageProcessing";
 import { toRateLimitError } from "~/lib/retry";
 import { blobToBase64 } from "~/lib/util";
 import type { AspectRatio, Resolution } from "~/types";
-import type { Provider, ResolvedImageModel, SearchResult, TextGenerationArgs } from "./types";
+import type {
+  CostEstimate,
+  CostEstimateArgs,
+  Provider,
+  ResolvedImageModel,
+  SearchResult,
+  TextGenerationArgs,
+} from "./types";
 import { inferName } from "../modelNames";
 import { normalizeModelId } from ".";
 
@@ -106,6 +113,108 @@ function resolveSize(
     return resolveGptImage2Size(aspectRatio, resolution) ?? "auto";
   }
   return ASPECT_RATIO_TO_SIZE[aspectRatio] ?? "auto";
+}
+
+// Published per-image USD prices from OpenAI's image-generation pricing page,
+// keyed by normalized model id, quality, and one of three "popular" size buckets.
+// For arbitrary gpt-image-2 sizes we pick the closest bucket by aspect ratio
+// and scale by the actual pixel-count ratio (output cost is token-proportional ≈
+// pixel-proportional).
+type SizeBucket = "square" | "portrait" | "landscape";
+
+const POPULAR_PIXELS: Record<SizeBucket, number> = {
+  square: 1024 * 1024,
+  portrait: 1024 * 1536,
+  landscape: 1536 * 1024,
+};
+
+const OPENAI_IMAGE_PRICING: Record<
+  string,
+  Record<"low" | "medium" | "high", Record<SizeBucket, number>>
+> = {
+  "gpt-image-2": {
+    low: { square: 0.006, portrait: 0.005, landscape: 0.005 },
+    medium: { square: 0.053, portrait: 0.041, landscape: 0.041 },
+    high: { square: 0.211, portrait: 0.165, landscape: 0.165 },
+  },
+  "gpt-image-1.5": {
+    low: { square: 0.009, portrait: 0.013, landscape: 0.013 },
+    medium: { square: 0.034, portrait: 0.05, landscape: 0.05 },
+    high: { square: 0.133, portrait: 0.2, landscape: 0.2 },
+  },
+  "gpt-image-1": {
+    low: { square: 0.011, portrait: 0.016, landscape: 0.016 },
+    medium: { square: 0.042, portrait: 0.063, landscape: 0.063 },
+    high: { square: 0.167, portrait: 0.25, landscape: 0.25 },
+  },
+  "gpt-image-1-mini": {
+    low: { square: 0.005, portrait: 0.006, landscape: 0.006 },
+    medium: { square: 0.011, portrait: 0.015, landscape: 0.015 },
+    high: { square: 0.036, portrait: 0.052, landscape: 0.052 },
+  },
+};
+
+function pickPricingKey(modelId: string): keyof typeof OPENAI_IMAGE_PRICING | null {
+  const id = normalizeModelId(modelId, "openai").toLowerCase();
+  if (id.includes("gpt-image-2")) return "gpt-image-2";
+  if (id.includes("gpt-image-1.5")) return "gpt-image-1.5";
+  if (id.includes("gpt-image-1-mini")) return "gpt-image-1-mini";
+  if (id.includes("gpt-image-1")) return "gpt-image-1";
+  return null;
+}
+
+function pickSizeBucket(aspectRatio: AspectRatio | null): SizeBucket {
+  if (!aspectRatio) return "square";
+  const [wStr, hStr] = aspectRatio.split(":");
+  const w = Number(wStr);
+  const h = Number(hStr);
+  if (!Number.isFinite(w) || !Number.isFinite(h) || w <= 0 || h <= 0) return "square";
+  if (Math.abs(w - h) / Math.max(w, h) < 0.05) return "square";
+  return w > h ? "landscape" : "portrait";
+}
+
+function pickSizeBucketFromDims(width: number, height: number): SizeBucket {
+  if (Math.abs(width - height) / Math.max(width, height) < 0.05) return "square";
+  return width > height ? "landscape" : "portrait";
+}
+
+function estimatePixelsForGptImage2(
+  aspectRatio: AspectRatio | null,
+  resolution: Resolution | null
+): number {
+  if (!aspectRatio) return POPULAR_PIXELS.square;
+  const sizeStr = resolveGptImage2Size(aspectRatio, resolution);
+  if (!sizeStr) return GPT_IMAGE_2_RESOLUTION_PIXELS[resolution ?? "1K"];
+  const [w, h] = sizeStr.split("x").map(Number);
+  return w * h;
+}
+
+function estimateCost(args: CostEstimateArgs): CostEstimate | null {
+  const { model, aspectRatio, resolution, quality, numberOfImages, width, height } = args;
+  const key = pickPricingKey(model.id);
+  if (!key) return null;
+
+  const q: "low" | "medium" | "high" =
+    quality === "low" || quality === "medium" || quality === "high" ? quality : "medium";
+
+  const bucket =
+    width && height ? pickSizeBucketFromDims(width, height) : pickSizeBucket(aspectRatio);
+  const basePrice = OPENAI_IMAGE_PRICING[key][q][bucket];
+
+  let perImageUsd = basePrice;
+  if (key === "gpt-image-2") {
+    const actualPixels = width && height ? width * height : estimatePixelsForGptImage2(
+      aspectRatio,
+      resolution
+    );
+    const referencePixels = POPULAR_PIXELS[bucket];
+    if (referencePixels > 0 && actualPixels > 0) {
+      perImageUsd = basePrice * (actualPixels / referencePixels);
+    }
+  }
+
+  const n = Math.max(1, numberOfImages);
+  return { perImageUsd, totalUsd: perImageUsd * n };
 }
 
 function decodeBase64ToBlob(base64: string, mimeType: string): Blob {
@@ -482,4 +591,5 @@ export const openaiProvider: Provider = {
   searchImageModels,
   searchTextModels,
   resolveImageModel,
+  estimateCost,
 };

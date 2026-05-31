@@ -5,7 +5,15 @@ import { getImageDimensions } from "~/lib/imageProcessing";
 import { inferName } from "~/lib/modelNames";
 import { toRateLimitError } from "~/lib/retry";
 import { blobToBase64 } from "~/lib/util";
-import type { Provider, ResolvedImageModel, SearchResult, TextGenerationArgs } from "./types";
+import { resolveStoredPrice } from "~/lib/cost";
+import type {
+  CostEstimate,
+  CostEstimateArgs,
+  Provider,
+  ResolvedImageModel,
+  SearchResult,
+  TextGenerationArgs,
+} from "./types";
 import { normalizeModelId } from ".";
 
 async function generateImage(
@@ -266,6 +274,14 @@ async function searchTextModels(query: string, apiKey: string): Promise<SearchRe
   return rankAndLimit(textModels, query);
 }
 
+function estimateCost(args: CostEstimateArgs): CostEstimate | null {
+  const { model, resolution, numberOfImages } = args;
+  const perImageUsd = resolveStoredPrice(model, resolution);
+  if (perImageUsd === null) return null;
+  const n = Math.max(1, numberOfImages);
+  return { perImageUsd, totalUsd: perImageUsd * n };
+}
+
 export const googleProvider: Provider = {
   id: "google",
   label: "Google",
@@ -286,4 +302,5 @@ export const googleProvider: Provider = {
   searchImageModels,
   searchTextModels,
   resolveImageModel,
+  estimateCost,
 };

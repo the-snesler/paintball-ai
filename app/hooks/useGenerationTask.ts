@@ -1,4 +1,5 @@
 import { useCallback } from "react";
+import { estimateCostForModel } from "~/lib/cost";
 import { deleteImage as dbDeleteImage, getReferenceImagesByIds, saveImage } from "~/lib/db";
 import { enqueueImageEmbedding } from "~/lib/embeddingQueue";
 import { executeGeneration, type GenerationResult } from "~/lib/generation";
@@ -131,6 +132,19 @@ export function useGenerationTask() {
           const thumbnailBlob = await createThumbnailBlob(result.blob, 400);
           if (isItemCanceled(itemId)) return;
 
+          const model = getModel(models, task.modelId);
+          const estimate = model
+            ? estimateCostForModel(model, {
+                aspectRatio: task.aspectRatio,
+                resolution: task.resolution,
+                quality: task.quality,
+                numberOfImages: 1,
+                width: result.width,
+                height: result.height,
+              })
+            : null;
+          const costUsd = estimate?.perImageUsd;
+
           await saveImage({
             id: itemId,
             originalBlob: result.blob,
@@ -153,6 +167,7 @@ export function useGenerationTask() {
             parentGalleryItemIds:
               parentGalleryItemIds.length > 0 ? parentGalleryItemIds : undefined,
             metadata: result.metadata,
+            ...(costUsd !== undefined ? { costUsd } : {}),
           });
           if (isItemCanceled(itemId)) {
             await dbDeleteImage(itemId);
@@ -175,6 +190,7 @@ export function useGenerationTask() {
             metadata: result.metadata,
             parentGalleryItemIds:
               parentGalleryItemIds.length > 0 ? parentGalleryItemIds : undefined,
+            ...(costUsd !== undefined ? { costUsd } : {}),
           });
 
           if (isItemCanceled(itemId)) return;
@@ -184,7 +200,7 @@ export function useGenerationTask() {
 
       return results;
     },
-    [isItemCanceled, updateItem]
+    [isItemCanceled, models, updateItem]
   );
 
   const runTask = useCallback(

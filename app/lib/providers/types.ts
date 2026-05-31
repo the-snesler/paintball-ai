@@ -1,11 +1,32 @@
 import type { GenerationParams, GenerationResult } from "~/lib/generation";
 import type {
   ApiKeyProvider,
+  AspectRatio,
   ModelCapabilities,
   Provider as ProviderId,
+  Resolution,
   SchemaMapping,
+  StoredModel,
   StoredUpscaler,
 } from "~/types";
+
+export interface CostEstimateArgs {
+  model: StoredModel;
+  aspectRatio: AspectRatio | null;
+  resolution: Resolution | null;
+  quality: string | null;
+  numberOfImages: number;
+  /** Known output dimensions when available (e.g., backfilling a completed image). */
+  width?: number;
+  height?: number;
+}
+
+export interface CostEstimate {
+  /** Total cost in USD for all `numberOfImages` images. */
+  totalUsd: number;
+  /** Per-image cost in USD. */
+  perImageUsd: number;
+}
 
 export interface ProviderCapabilities {
   image: boolean;
@@ -61,6 +82,9 @@ export interface Provider {
     apiKey: string,
     onProgress?: (status: string) => void
   ): Promise<ResolvedImageModel>;
+
+  /** Returns USD cost estimate for the request, or null when pricing is unknown. */
+  estimateCost?(args: CostEstimateArgs): CostEstimate | null;
 }
 
 export type TextCapableProvider = Provider & {
