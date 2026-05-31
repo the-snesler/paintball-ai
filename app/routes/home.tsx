@@ -12,6 +12,7 @@ import { useGalleryDerivedIndexes } from "~/hooks/useGalleryDerivedIndexes";
 import { useLightboxUrlSync } from "~/hooks/useLightboxUrlSync";
 import { garbageCollectReferences } from "~/lib/db";
 import { logger } from "~/lib/logging";
+import { DiffViewer } from "~/components/editor/DiffViewer";
 
 export function meta({}: Route.MetaArgs) {
   return [
@@ -93,6 +94,7 @@ export default function Home() {
       <Sidebar />
       <Outlet />
       {isLightboxOpen && <Lightbox />}
+      <DiffViewer />
       <NotificationPermissionPrompt />
     </div>
   );

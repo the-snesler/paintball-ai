@@ -4,7 +4,6 @@ import { GalleryHeader } from "~/components/gallery/GalleryHeader";
 import { TurnList } from "./TurnList";
 import { EditorInputBar } from "./EditorInputBar";
 import { DropZone } from "./DropZone";
-import { DiffViewer } from "./DiffViewer";
 import { getSessionByGalleryItemId, getSessionById, saveReferenceImage } from "~/lib/db";
 import { hydrateStoredSession } from "~/lib/editorSession";
 
@@ -84,8 +83,6 @@ export function EditorView() {
         {hasSource ? <TurnList /> : <DropZone onFile={(file) => void handleSourceFile(file)} />}
         <EditorInputBar onSourceFile={(file) => void handleSourceFile(file)} />
       </div>
-
-      <DiffViewer />
     </main>
   );
 }

@@ -51,12 +51,6 @@
   }
 }
 
-@layer utilities {
-  button {
-    cursor: pointer;
-  }
-}
-
 html {
   color-scheme: light dark;
 }
