@@ -23,6 +23,7 @@ import { useLightboxStore } from "~/stores/lightboxStore";
 import { useSettingsStore } from "~/stores/settingsStore";
 import { useEditorStore } from "~/stores/editorStore";
 import { GalleryImageCard } from "~/components/gallery/GalleryImageCard";
+import { RelatedThumbnail } from "./RelatedThumbnail";
 import { useLightboxNavigation } from "~/hooks/useLightboxNavigation";
 import { useGalleryDerivedIndexes } from "~/hooks/useGalleryDerivedIndexes";
 import {
@@ -456,7 +457,12 @@ export function Lightbox() {
                   </h3>
                   <div className="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-2">
                     {promptGroup.map((item) => (
-                      <GalleryImageCard key={item.id} item={item} selectionDisabled />
+                      <RelatedThumbnail
+                        key={item.id}
+                        kind="gallery-item"
+                        current={galleryImage}
+                        item={item}
+                      />
                     ))}
                   </div>
                 </div>
@@ -474,19 +480,19 @@ export function Lightbox() {
                         ? getItemById(img.sourceGalleryItemId)
                         : null;
                       return sourceItem ? (
-                        <GalleryImageCard key={img.id} item={sourceItem} selectionDisabled />
-                      ) : (
-                        <button
+                        <RelatedThumbnail
                           key={img.id}
-                          onClick={() => openLightbox({ kind: "reference", image: img })}
-                          className="bg-surface-overlay hover:ring-c-border overflow-hidden rounded-lg transition-all hover:ring-2"
-                        >
-                          <img
-                            src={img.url}
-                            alt={img.name}
-                            className="aspect-square w-full object-cover"
-                          />
-                        </button>
+                          kind="gallery-item"
+                          current={galleryImage}
+                          item={sourceItem}
+                        />
+                      ) : (
+                        <RelatedThumbnail
+                          key={img.id}
+                          kind="external-ref"
+                          current={galleryImage}
+                          image={img}
+                        />
                       );
                     })}
                   </div>
@@ -501,7 +507,12 @@ export function Lightbox() {
                   </h3>
                   <div className="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-2">
                     {childItems.map((item) => (
-                      <GalleryImageCard key={item.id} item={item} selectionDisabled />
+                      <RelatedThumbnail
+                        key={item.id}
+                        kind="gallery-item"
+                        current={galleryImage}
+                        item={item}
+                      />
                     ))}
                   </div>
                 </div>

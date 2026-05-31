@@ -8,6 +8,7 @@ import { useDiffStore } from "~/stores/diffStore";
 import type { EditorTurn } from "~/types";
 import { SineWaveGrid } from "~/components/gallery/SineWaveGrid";
 import { useGalleryDerivedIndexes } from "~/hooks/useGalleryDerivedIndexes";
+import { aspectRatiosCompatibleForDiff } from "~/lib/models";
 
 interface TurnProps {
   turn: EditorTurn;
@@ -48,16 +49,48 @@ export function Turn({ turn, turnIndex, isFirst = false }: TurnProps) {
 
   // Parent blob (for diff viewer): either the source gallery item's full-res blob,
   // or the original source blob if this turn edits the original.
-  const { parentBlob, parentLabel } = useMemo(() => {
+  const { parentBlob, parentLabel, parentItemAspect } = useMemo(() => {
     if (turn.sourceItemId) {
       const item = getItemById(turn.sourceItemId);
       if (item && item.status === "completed") {
-        return { parentBlob: item.originalBlob, parentLabel: item.modelName };
+        const aspect =
+          item.width > 0 && item.height > 0 ? item.width / item.height : null;
+        return {
+          parentBlob: item.originalBlob,
+          parentLabel: item.modelName,
+          parentItemAspect: aspect,
+        };
       }
-      return { parentBlob: null, parentLabel: undefined };
+      return { parentBlob: null, parentLabel: undefined, parentItemAspect: null };
     }
-    return { parentBlob: turn.sourceBlob ?? null, parentLabel: "Source" };
+    return { parentBlob: turn.sourceBlob ?? null, parentLabel: "Source", parentItemAspect: null };
   }, [getItemById, turn.sourceItemId, turn.sourceBlob]);
+
+  // When the parent is an uploaded blob (no gallery item), read its natural dimensions
+  // once so we can compare aspect ratios against child outputs.
+  const [parentBlobAspect, setParentBlobAspect] = useState<number | null>(null);
+  useEffect(() => {
+    if (parentItemAspect != null || !parentBlob) {
+      setParentBlobAspect(null);
+      return;
+    }
+    let cancelled = false;
+    const url = URL.createObjectURL(parentBlob);
+    const img = new Image();
+    img.onload = () => {
+      if (cancelled) return;
+      if (img.naturalWidth > 0 && img.naturalHeight > 0) {
+        setParentBlobAspect(img.naturalWidth / img.naturalHeight);
+      }
+    };
+    img.src = url;
+    return () => {
+      cancelled = true;
+      URL.revokeObjectURL(url);
+    };
+  }, [parentBlob, parentItemAspect]);
+
+  const parentAspect = parentItemAspect ?? parentBlobAspect;
 
   // Auto-select the first completed item in the most recent turn (once only)
   const isLastTurn = turnIndex === turns.length - 1;
@@ -132,8 +165,12 @@ export function Turn({ turn, turnIndex, isFirst = false }: TurnProps) {
                   isSelected={isSelected}
                   onClick={() => selectItem(item.id)}
                   childBlob={item.originalBlob}
+                  childAspect={
+                    item.width > 0 && item.height > 0 ? item.width / item.height : null
+                  }
                   parentBlob={parentBlob}
                   parentLabel={parentLabel}
+                  parentAspect={parentAspect}
                 />
               );
             }
@@ -167,8 +204,10 @@ function EditorImageCard({
   onClick,
   itemId,
   childBlob,
+  childAspect,
   parentBlob,
   parentLabel,
+  parentAspect,
 }: {
   thumbnailUrl: string;
   modelName: string;
@@ -176,9 +215,16 @@ function EditorImageCard({
   onClick: () => void;
   itemId: string;
   childBlob: Blob;
+  childAspect: number | null;
   parentBlob: Blob | null;
   parentLabel?: string;
+  parentAspect: number | null;
 }) {
+  const canDiff =
+    parentBlob != null &&
+    parentAspect != null &&
+    childAspect != null &&
+    aspectRatiosCompatibleForDiff(parentAspect, childAspect);
   const [isLoaded, setIsLoaded] = useState(false);
   const openLightbox = useLightboxStore((s) => s.openLightbox);
   const openDiff = useDiffStore((s) => s.openDiff);
@@ -240,7 +286,7 @@ function EditorImageCard({
         </div>
 
         {/* Diff button (hover only) */}
-        {parentBlob && (
+        {canDiff && parentBlob && (
           <div
             className="opacity-0 transition-opacity duration-150 group-hover:opacity-100"
             onClick={(e) => {
