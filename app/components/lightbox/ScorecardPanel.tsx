@@ -40,7 +40,7 @@ export function ScorecardPanel({ image }: ScorecardPanelProps) {
     <Accordion.Root className="bg-surface-overlay/50 rounded-lg">
       <Accordion.Item>
         <Accordion.Header>
-          <Accordion.Trigger className="group flex w-full cursor-pointer list-none items-center justify-between gap-3 p-3 text-left [&::-webkit-details-marker]:hidden">
+          <Accordion.Trigger className="group flex w-full list-none items-center justify-between gap-3 p-3 text-left [&::-webkit-details-marker]:hidden">
             <span className="text-text-tertiary text-xs font-medium">Scorecard</span>
             <span className="inline-flex items-center gap-1">
               <span className="text-text-muted text-xs">{summary}</span>

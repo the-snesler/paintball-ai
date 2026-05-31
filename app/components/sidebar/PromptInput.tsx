@@ -340,7 +340,7 @@ export function PromptInput() {
           <label
             className={`inline-flex shrink-0 items-center gap-1 text-xs transition-colors ${
               referenceEnabled
-                ? "text-text-tertiary hover:text-text-secondary cursor-pointer"
+                ? "text-text-tertiary hover:text-text-secondary"
                 : "text-text-muted cursor-not-allowed"
             }`}
           >

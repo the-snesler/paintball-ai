@@ -53,8 +53,7 @@ export function Turn({ turn, turnIndex, isFirst = false }: TurnProps) {
     if (turn.sourceItemId) {
       const item = getItemById(turn.sourceItemId);
       if (item && item.status === "completed") {
-        const aspect =
-          item.width > 0 && item.height > 0 ? item.width / item.height : null;
+        const aspect = item.width > 0 && item.height > 0 ? item.width / item.height : null;
         return {
           parentBlob: item.originalBlob,
           parentLabel: item.modelName,
@@ -125,7 +124,7 @@ export function Turn({ turn, turnIndex, isFirst = false }: TurnProps) {
           <p className="text-text-secondary text-sm leading-snug font-medium">{turn.instruction}</p>
           {showSentInstruction && (
             <details className="group/sent">
-              <summary className="text-text-muted hover:text-text-tertiary cursor-pointer list-none text-xs [&::-webkit-details-marker]:hidden">
+              <summary className="text-text-muted hover:text-text-tertiary list-none text-xs [&::-webkit-details-marker]:hidden">
                 Show sent prompt
               </summary>
               <p className="bg-surface-overlay/50 text-text-tertiary mt-1 rounded p-2 text-xs leading-snug whitespace-pre-wrap">
@@ -165,9 +164,7 @@ export function Turn({ turn, turnIndex, isFirst = false }: TurnProps) {
                   isSelected={isSelected}
                   onClick={() => selectItem(item.id)}
                   childBlob={item.originalBlob}
-                  childAspect={
-                    item.width > 0 && item.height > 0 ? item.width / item.height : null
-                  }
+                  childAspect={item.width > 0 && item.height > 0 ? item.width / item.height : null}
                   parentBlob={parentBlob}
                   parentLabel={parentLabel}
                   parentAspect={parentAspect}
@@ -233,7 +230,7 @@ function EditorImageCard({
     <button
       type="button"
       onClick={onClick}
-      className={`group bg-surface-overlay relative cursor-pointer overflow-hidden rounded-lg transition-all duration-150 ${
+      className={`group bg-surface-overlay relative overflow-hidden rounded-lg transition-all duration-150 ${
         isSelected
           ? "ring-offset-surface ring-2 ring-purple-500 ring-offset-2"
           : "ring-c-border/50 hover:ring-c-border ring-1"

@@ -503,7 +503,7 @@ export function EditorInputBar({ onSourceFile }: EditorInputBarProps) {
                 <button
                   type="button"
                   onClick={() => setContextBriefDismissed(true)}
-                  className="text-text-muted hover:text-text-tertiary shrink-0 cursor-pointer rounded p-0.5 transition-colors"
+                  className="text-text-muted hover:text-text-tertiary shrink-0 rounded p-0.5 transition-colors"
                   title="Dismiss context brief for this edit"
                 >
                   <X className="h-3 w-3" />
@@ -640,7 +640,7 @@ export function EditorInputBar({ onSourceFile }: EditorInputBarProps) {
                     <label
                       className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs transition-colors ${
                         canAttachMore
-                          ? "text-text-muted hover:bg-surface-interactive/60 hover:text-text-secondary cursor-pointer"
+                          ? "text-text-muted hover:bg-surface-interactive/60 hover:text-text-secondary"
                           : "text-text-muted cursor-not-allowed"
                       }`}
                     >

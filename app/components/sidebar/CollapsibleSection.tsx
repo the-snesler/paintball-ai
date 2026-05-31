@@ -24,7 +24,7 @@ export function CollapsibleSection({
   return (
     <Accordion.Item value={value}>
       <Accordion.Header>
-        <Accordion.Trigger className="group mb-2 flex w-full cursor-pointer items-center">
+        <Accordion.Trigger className="group mb-2 flex w-full items-center">
           <div className="flex items-center gap-2">
             <span className="text-text-muted">{icon}</span>
             <h2 className="text-text-tertiary text-xs font-medium tracking-wide uppercase">

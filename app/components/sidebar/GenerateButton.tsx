@@ -131,7 +131,7 @@ export function GenerateButton() {
           disabled={!canGenerate}
           className={`flex w-full items-center justify-center gap-2 rounded-lg border-2 px-4 py-3 font-medium transition-all ${
             canGenerate
-              ? "-translate-y-1 cursor-pointer border-purple-500 bg-purple-600 text-white shadow-lg hover:-translate-y-2 hover:border-purple-400 hover:bg-purple-500 active:translate-y-0"
+              ? "-translate-y-1 border-purple-500 bg-purple-600 text-white shadow-lg hover:-translate-y-2 hover:border-purple-400 hover:bg-purple-500 active:translate-y-0"
               : "border-c-border bg-surface-overlay text-text-muted translate-y-0 cursor-not-allowed"
           }`}
         >
@@ -183,7 +183,7 @@ export function GenerateButton() {
           <button
             onClick={handleClear}
             disabled={!canClear}
-            className="disabled:text-text-tertiary text-center text-red-400 hover:cursor-pointer hover:underline disabled:hover:cursor-not-allowed disabled:hover:no-underline"
+            className="disabled:text-text-tertiary hover: text-center text-red-400 hover:underline disabled:hover:cursor-not-allowed disabled:hover:no-underline"
           >
             Clear
           </button>

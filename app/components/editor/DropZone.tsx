@@ -53,7 +53,7 @@ export function DropZone({ onFile }: DropZoneProps) {
       onDragLeave={handleDragLeave}
     >
       <label
-        className={`relative flex h-full w-full cursor-pointer flex-col items-center justify-center rounded-2xl border-3 border-dashed transition-all duration-200 ${
+        className={`relative flex h-full w-full flex-col items-center justify-center rounded-2xl border-3 border-dashed transition-all duration-200 ${
           isDragOver
             ? "border-accent bg-accent/5 scale-[1.02]"
             : "border-c-border hover:border-c-border hover:bg-surface-raised"

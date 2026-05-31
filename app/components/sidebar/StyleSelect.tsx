@@ -16,7 +16,7 @@ export function StyleSelect() {
       value={styleId}
       onValueChange={(value) => setStyleId(value ?? null)}
     >
-      <Select.Trigger className="text-text-tertiary hover:text-text-secondary inline-flex max-w-full cursor-pointer items-center gap-1 truncate text-xs transition-colors">
+      <Select.Trigger className="text-text-tertiary hover:text-text-secondary inline-flex max-w-full items-center gap-1 truncate text-xs transition-colors">
         <Palette className="h-3.5 w-3.5 shrink-0" />
         <Select.Value className="truncate">{selected?.name ?? "Style"}</Select.Value>
         <ChevronDown className="h-3 w-3 shrink-0" />
@@ -26,7 +26,7 @@ export function StyleSelect() {
           <Select.Popup className="bg-surface-overlay border-c-border animate-in fade-in zoom-in-95 max-h-72 min-w-48 overflow-y-auto rounded-lg border p-1 text-sm shadow-lg">
             <Select.Item
               value={null}
-              className="text-text-secondary data-highlighted:bg-surface-raised flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 outline-none"
+              className="text-text-secondary data-highlighted:bg-surface-raised flex items-center gap-2 rounded px-2 py-1.5 outline-none"
             >
               <span className="flex h-3 w-3 items-center justify-center">
                 <Select.ItemIndicator>
@@ -39,7 +39,7 @@ export function StyleSelect() {
               <Select.Item
                 key={style.id}
                 value={style.id}
-                className="text-text-secondary data-highlighted:bg-surface-raised flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 outline-none"
+                className="text-text-secondary data-highlighted:bg-surface-raised flex items-center gap-2 rounded px-2 py-1.5 outline-none"
               >
                 <span className="flex h-3 w-3 items-center justify-center">
                   <Select.ItemIndicator>

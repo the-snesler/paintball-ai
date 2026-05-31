@@ -62,7 +62,7 @@ export function OptionCombobox({
                   <Combobox.Item
                     key={option}
                     value={option}
-                    className="text-text-secondary data-highlighted:bg-surface-raised flex cursor-pointer items-center px-3 py-1.5 text-sm outline-none"
+                    className="text-text-secondary data-highlighted:bg-surface-raised flex items-center px-3 py-1.5 text-sm outline-none"
                   >
                     {option}
                   </Combobox.Item>

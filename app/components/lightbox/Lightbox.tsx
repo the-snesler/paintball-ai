@@ -265,7 +265,6 @@ export function Lightbox() {
         aria-hidden="true"
         className="pointer-events-none absolute inset-0 h-full w-full scale-110 object-cover opacity-75 blur-3xl saturate-125"
       />
-      {/* <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_35%_20%,rgba(255,255,255,0.12),transparent_35%),linear-gradient(to_bottom,rgba(9,9,11,0.12),rgba(9,9,11,0.82))]" /> */}
 
       <button
         type="button"
@@ -356,11 +355,10 @@ export function Lightbox() {
         </header>
 
         <main
-          className={`min-h-0 flex-1 gap-3 overflow-y-auto lg:grid lg:overflow-hidden ${
-            galleryImage
-              ? "lg:grid-cols-[minmax(0,1fr)_24rem] xl:grid-cols-[minmax(0,1fr)_28rem]"
-              : "lg:grid-cols-1"
-          }`}
+          className={`min-h-0 flex-1 gap-3 overflow-y-auto lg:grid lg:overflow-hidden ${galleryImage
+            ? "lg:grid-cols-[minmax(0,1fr)_24rem] xl:grid-cols-[minmax(0,1fr)_28rem]"
+            : "lg:grid-cols-1"
+            }`}
         >
           <section className="flex min-h-[52dvh] items-center justify-center overflow-hidden lg:min-h-0">
             <img

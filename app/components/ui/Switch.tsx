@@ -8,7 +8,7 @@ export function Switch({ wrapperClassName = "", ...inputProps }: SwitchProps) {
   return (
     <label
       className={`relative inline-flex shrink-0 items-center ${
-        inputProps.disabled ? "cursor-not-allowed" : "cursor-pointer"
+        inputProps.disabled ? "cursor-not-allowed" : ""
       } ${wrapperClassName}`}
     >
       <input type="checkbox" className="peer sr-only" {...inputProps} />

@@ -102,7 +102,7 @@ function SourceTurn({
       <button
         type="button"
         onClick={onSelect}
-        className={`group relative cursor-pointer overflow-hidden rounded-lg transition-all duration-150 ${
+        className={`group relative overflow-hidden rounded-lg transition-all duration-150 ${
           isSelected
             ? "ring-offset-surface ring-2 ring-purple-500 ring-offset-2"
             : "ring-c-border/50 hover:ring-c-border ring-1"

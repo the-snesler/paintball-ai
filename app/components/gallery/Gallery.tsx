@@ -84,7 +84,14 @@ export function Gallery({ viewMode }: { viewMode: "grid" | "timeline" }) {
     });
 
     return semanticMatches;
-  }, [items, searchQuery, showFavoritesOnly, characterFilter, semanticSearchEnabled, queryEmbedding]);
+  }, [
+    items,
+    searchQuery,
+    showFavoritesOnly,
+    characterFilter,
+    semanticSearchEnabled,
+    queryEmbedding,
+  ]);
 
   const isFiltered = Boolean(searchQuery.trim() || showFavoritesOnly || characterFilter);
   const filteredItemsByPrompt = useMemo(

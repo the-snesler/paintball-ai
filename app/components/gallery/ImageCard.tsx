@@ -68,7 +68,7 @@ export function ImageCard({ image, selectionDisabled = false }: ImageCardProps) 
 
   return (
     <div
-      className={`group animate-fade-in bg-surface-raised relative h-fit cursor-pointer overflow-hidden rounded-lg outline-[1.5px] ${
+      className={`group animate-fade-in bg-surface-raised relative h-fit overflow-hidden rounded-lg outline-[1.5px] ${
         isSelected ? "outline-purple-500" : "outline-c-border/50"
       }`}
       onClick={handleClick}

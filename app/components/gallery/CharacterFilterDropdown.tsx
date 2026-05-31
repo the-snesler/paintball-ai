@@ -21,7 +21,7 @@ export function CharacterFilterDropdown({ value, onChange }: CharacterFilterDrop
         title={
           isActive ? `Filtering by character: ${selected?.name ?? value}` : "Filter by character"
         }
-        className={`flex h-8 cursor-pointer items-center gap-1 rounded-lg border px-2 text-xs transition-colors focus:outline-none ${
+        className={`flex h-8 items-center gap-1 rounded-lg border px-2 text-xs transition-colors focus:outline-none ${
           isActive
             ? "border-purple-500/50 bg-purple-500/10 text-purple-300 hover:bg-purple-500/15"
             : "border-c-border bg-surface-raised text-text-tertiary hover:text-text-secondary"
@@ -36,7 +36,7 @@ export function CharacterFilterDropdown({ value, onChange }: CharacterFilterDrop
           <Select.Popup className="bg-surface-overlay border-c-border animate-in fade-in zoom-in-95 max-h-72 min-w-40 overflow-y-auto rounded-lg border p-1 text-sm shadow-lg">
             <Select.Item
               value={null}
-              className="text-text-secondary data-highlighted:bg-surface-raised flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 outline-none"
+              className="text-text-secondary data-highlighted:bg-surface-raised flex items-center gap-2 rounded px-2 py-1.5 outline-none"
             >
               <span className="flex h-3 w-3 items-center justify-center">
                 <Select.ItemIndicator>
@@ -49,7 +49,7 @@ export function CharacterFilterDropdown({ value, onChange }: CharacterFilterDrop
               <Select.Item
                 key={character.id}
                 value={character.id}
-                className="text-text-secondary data-highlighted:bg-surface-raised flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 outline-none"
+                className="text-text-secondary data-highlighted:bg-surface-raised flex items-center gap-2 rounded px-2 py-1.5 outline-none"
               >
                 <span className="flex h-3 w-3 items-center justify-center">
                   <Select.ItemIndicator>

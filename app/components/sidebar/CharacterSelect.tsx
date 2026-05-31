@@ -57,7 +57,7 @@ export function CharacterSelect() {
       value={characterIds}
       onValueChange={(value) => setCharacterIds(value)}
     >
-      <Select.Trigger className="text-text-tertiary hover:text-text-secondary inline-flex max-w-full cursor-pointer items-center gap-1 truncate text-xs transition-colors">
+      <Select.Trigger className="text-text-tertiary hover:text-text-secondary inline-flex max-w-full items-center gap-1 truncate text-xs transition-colors">
         {first?.referenceImageIds?.[0] ? (
           <CharacterThumbnail referenceImageId={first.referenceImageIds[0]} />
         ) : (
@@ -75,7 +75,7 @@ export function CharacterSelect() {
               <Select.Item
                 key={character.id}
                 value={character.id}
-                className="text-text-secondary data-highlighted:bg-surface-raised flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 outline-none"
+                className="text-text-secondary data-highlighted:bg-surface-raised flex items-center gap-2 rounded px-2 py-1.5 outline-none"
               >
                 <span className="flex h-3 w-3 items-center justify-center">
                   <Select.ItemIndicator>
@@ -99,7 +99,7 @@ export function CharacterSelect() {
                   e.preventDefault();
                   navigate("/app/settings#characters");
                 }}
-                className="text-text-tertiary hover:bg-surface-raised flex w-full cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-left transition-colors outline-none"
+                className="text-text-tertiary hover:bg-surface-raised flex w-full items-center gap-2 rounded px-2 py-1.5 text-left transition-colors outline-none"
               >
                 <span className="flex h-3 w-3 items-center justify-center" />
                 <Plus className="h-4 w-4 shrink-0" />

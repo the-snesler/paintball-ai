@@ -102,7 +102,7 @@ export function AspectRatioSection() {
             </h2>
             {hasAdditionalRatios && (
               <Accordion.Header className="ml-auto">
-                <Accordion.Trigger className="group text-text-muted hover:text-text-secondary flex cursor-pointer items-center gap-1 rounded text-xs transition-colors">
+                <Accordion.Trigger className="group text-text-muted hover:text-text-secondary flex items-center gap-1 rounded text-xs transition-colors">
                   <span className="group-data-panel-open:hidden">Show more</span>
                   <span className="hidden group-data-panel-open:inline">Show less</span>
                   <ChevronRight className="h-4 w-4 transition-transform duration-200 group-data-panel-open:rotate-90" />

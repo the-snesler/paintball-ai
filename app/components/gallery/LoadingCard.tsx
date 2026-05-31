@@ -156,7 +156,7 @@ export function LoadingCard({ item, variant = "gallery" }: LoadingCardProps) {
             onChange={handleFileInput}
           />
           <div
-            className={`absolute inset-0 m-2 flex cursor-pointer flex-col items-center justify-center gap-2 rounded-md border-2 border-dashed transition-colors ${
+            className={`absolute inset-0 m-2 flex flex-col items-center justify-center gap-2 rounded-md border-2 border-dashed transition-colors ${
               isDragOver
                 ? "border-purple-400 bg-purple-500/10"
                 : "border-zinc-600 hover:border-zinc-400"

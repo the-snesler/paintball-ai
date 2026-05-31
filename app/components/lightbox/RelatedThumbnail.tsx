@@ -57,9 +57,7 @@ export function RelatedThumbnail(props: RelatedThumbnailProps) {
     if (props.item.status === "completed") {
       childBlob = props.item.originalBlob;
       childAspect =
-        props.item.width > 0 && props.item.height > 0
-          ? props.item.width / props.item.height
-          : null;
+        props.item.width > 0 && props.item.height > 0 ? props.item.width / props.item.height : null;
       childLabel = props.item.modelName;
     }
     isSelf = props.item.id === current.id;
@@ -110,7 +108,7 @@ export function RelatedThumbnail(props: RelatedThumbnailProps) {
           type="button"
           onClick={handleDiffClick}
           title="Compare with current image"
-          className="absolute top-2 left-2 z-10 flex h-7 w-7 cursor-pointer items-center justify-center rounded-md bg-black/60 opacity-0 backdrop-blur-sm transition-opacity duration-150 group-hover/related:opacity-100"
+          className="absolute top-2 left-2 z-10 flex h-7 w-7 items-center justify-center rounded-md bg-black/60 opacity-0 backdrop-blur-sm transition-opacity duration-150 group-hover/related:opacity-100"
         >
           <Layers2 className="h-4 w-4 text-white/80" />
         </button>

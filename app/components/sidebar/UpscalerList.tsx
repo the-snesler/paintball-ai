@@ -120,7 +120,7 @@ export function UpscalerList({ highlight = false }: UpscalerListProps) {
               type="button"
               disabled={buttonsDisabled}
               onClick={() => void handleClick(u)}
-              className="bg-surface-overlay/50 text-text-secondary hover:bg-surface-overlay disabled:bg-surface-overlay/30 disabled:text-text-muted cursor-pointer truncate rounded-lg border border-transparent px-3 py-2 text-xs transition-colors disabled:cursor-not-allowed"
+              className="bg-surface-overlay/50 text-text-secondary hover:bg-surface-overlay disabled:bg-surface-overlay/30 disabled:text-text-muted truncate rounded-lg border border-transparent px-3 py-2 text-xs transition-colors disabled:cursor-not-allowed"
               title={u.name}
             >
               {u.name}

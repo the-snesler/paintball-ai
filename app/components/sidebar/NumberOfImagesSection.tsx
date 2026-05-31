@@ -43,7 +43,7 @@ export function NumberOfImagesSection() {
         step={1}
         value={Math.min(numberOfImages, Math.max(1, max))}
         onChange={(e) => setNumberOfImages(Number(e.target.value))}
-        className="h-1.5 w-full cursor-pointer appearance-none rounded-full"
+        className="h-1.5 w-full appearance-none rounded-full"
         style={{
           background: `linear-gradient(to right, var(--color-purple-500) 0%, var(--color-purple-500) ${((numberOfImages - 1) / (max - 1)) * 100}%, var(--color-surface-overlay) ${((numberOfImages - 1) / (max - 1)) * 100}%, var(--color-surface-overlay) 100%)
           `,
