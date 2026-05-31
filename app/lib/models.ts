@@ -21,6 +21,19 @@ export const RESOLUTIONS_LABELS: [string, Resolution][] = [
 export const QUALITIES = ["low", "medium", "high"] as const;
 export type Quality = (typeof QUALITIES)[number];
 
+export const AR_DIFF_THRESHOLD = 0.1;
+
+/** Symmetric distance between two aspect ratios (w/h). |ln(a/b)| — invariant under inversion,
+ *  so 16:9 vs 4:3 and 9:16 vs 3:4 yield the same magnitude. */
+export function aspectRatioDistance(arA: number, arB: number): number {
+  if (!(arA > 0) || !(arB > 0)) return Infinity;
+  return Math.abs(Math.log(arA / arB));
+}
+
+export function aspectRatiosCompatibleForDiff(arA: number, arB: number): boolean {
+  return aspectRatioDistance(arA, arB) < AR_DIFF_THRESHOLD;
+}
+
 // Helper to get a model by ID from a models array
 export function getModel(models: StoredModel[], modelId: string): StoredModel | undefined {
   return models.find((m) => m.id === modelId);
