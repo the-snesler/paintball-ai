@@ -2,7 +2,7 @@ import { useCallback } from "react";
 import { deleteImage as dbDeleteImage, getReferenceImagesByIds, saveImage } from "~/lib/db";
 import { enqueueImageEmbedding } from "~/lib/embeddingQueue";
 import { executeGeneration, type GenerationResult } from "~/lib/generation";
-import { createThumbnailBlob } from "~/lib/imageProcessing";
+import { createMediaThumbnailBlob } from "~/lib/imageProcessing";
 import { getModel } from "~/lib/models";
 import { providerRequiresApiKey } from "~/lib/providers";
 import { retryWithBackoff } from "~/lib/retry";
@@ -128,7 +128,7 @@ export function useGenerationTask() {
             return;
           }
 
-          const thumbnailBlob = await createThumbnailBlob(result.blob, 400);
+          const thumbnailBlob = await createMediaThumbnailBlob(result.blob, 400);
           if (isItemCanceled(itemId)) return;
 
           await saveImage({

@@ -112,3 +112,106 @@ function loadImageFromBlob(blob: Blob): Promise<HTMLImageElement> {
     img.src = url;
   });
 }
+
+// --- Media-aware helpers (handles both images and videos) ---
+
+export async function getMediaDimensions(blob: Blob): Promise<{ width: number; height: number }> {
+  if (blob.type.startsWith("video/")) {
+    return getVideoDimensions(blob);
+  }
+  return getImageDimensions(blob);
+}
+
+export async function createMediaThumbnailBlob(
+  originalBlob: Blob,
+  maxWidth: number = 400
+): Promise<Blob> {
+  if (originalBlob.type.startsWith("video/")) {
+    return createVideoThumbnailBlob(originalBlob, maxWidth);
+  }
+  return createThumbnailBlob(originalBlob, maxWidth);
+}
+
+function getVideoDimensions(blob: Blob): Promise<{ width: number; height: number }> {
+  return new Promise((resolve) => {
+    const video = document.createElement("video");
+    const url = URL.createObjectURL(blob);
+
+    video.onloadedmetadata = () => {
+      const width = video.videoWidth || 1920;
+      const height = video.videoHeight || 1080;
+      URL.revokeObjectURL(url);
+      resolve({ width, height });
+    };
+
+    video.onerror = () => {
+      URL.revokeObjectURL(url);
+      resolve({ width: 1920, height: 1080 });
+    };
+
+    video.src = url;
+    video.load();
+  });
+}
+
+async function createVideoThumbnailBlob(blob: Blob, maxWidth: number): Promise<Blob> {
+  try {
+    const frame = await captureVideoFrame(blob);
+    const targetWidth = Math.min(frame.width, maxWidth);
+    const scale = targetWidth / frame.width;
+    const targetHeight = Math.max(1, Math.round(frame.height * scale));
+
+    const canvas = document.createElement("canvas");
+    canvas.width = targetWidth;
+    canvas.height = targetHeight;
+
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return blob;
+
+    ctx.drawImage(frame.element, 0, 0, targetWidth, targetHeight);
+    URL.revokeObjectURL(frame.url);
+
+    const thumbnail = await canvasToBlob(canvas, "image/webp", 0.88);
+    return thumbnail ?? blob;
+  } catch {
+    return blob;
+  }
+}
+
+function captureVideoFrame(
+  blob: Blob
+): Promise<{ element: HTMLVideoElement; url: string; width: number; height: number }> {
+  return new Promise((resolve, reject) => {
+    const video = document.createElement("video");
+    const url = URL.createObjectURL(blob);
+    video.muted = true;
+    video.playsInline = true;
+
+    const resolveWithCurrentFrame = () => {
+      resolve({ element: video, url, width: video.videoWidth, height: video.videoHeight });
+    };
+
+    video.onloadedmetadata = () => {
+      const dur = video.duration;
+      // duration may be 0, NaN, or Infinity for some formats/streams. When we
+      // can't seek to a meaningful offset, resolve immediately with frame 0 —
+      // setting currentTime=0 (already the position) won't fire onseeked.
+      if (!Number.isFinite(dur) || dur <= 0) {
+        resolveWithCurrentFrame();
+        return;
+      }
+      // Seek slightly in to avoid blank first frames on some codecs.
+      video.currentTime = Math.min(0.1, dur / 2);
+    };
+
+    video.onseeked = resolveWithCurrentFrame;
+
+    video.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error("Failed to load video for thumbnail"));
+    };
+
+    video.src = url;
+    video.load();
+  });
+}

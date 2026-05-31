@@ -1,4 +1,4 @@
-import { Check, Star } from "lucide-react";
+import { Check, Play, Star } from "lucide-react";
 import { useState, useCallback, type ChangeEvent, type MouseEvent } from "react";
 import { getScorecardAverage } from "~/lib/scorecard";
 import { useGalleryStore } from "~/stores/galleryStore";
@@ -12,6 +12,7 @@ interface ImageCardProps {
 
 export function ImageCard({ image, selectionDisabled = false }: ImageCardProps) {
   const [isLoaded, setIsLoaded] = useState(false);
+  const isVideo = image.originalBlob.type.startsWith("video/");
   const openLightbox = useLightboxStore((s) => s.openLightbox);
   const selectedItemIds = useGalleryStore((s) => s.selectedItemIds);
   const toggleItemSelection = useGalleryStore((s) => s.toggleItemSelection);
@@ -122,6 +123,15 @@ export function ImageCard({ image, selectionDisabled = false }: ImageCardProps) 
             aspectRatio: image.width && image.height ? `${image.width}/${image.height}` : "1/1",
           }}
         />
+      )}
+
+      {/* Video play indicator */}
+      {isVideo && (
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-black/60 backdrop-blur-sm">
+            <Play className="h-5 w-5 fill-white text-white" />
+          </div>
+        </div>
       )}
 
       {/* Persistent model badge */}

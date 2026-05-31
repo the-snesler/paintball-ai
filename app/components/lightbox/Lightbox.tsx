@@ -243,8 +243,10 @@ export function Lightbox() {
 
   if (!galleryImage && !referenceImage) return null;
 
-  const imageSrc = galleryImage?.originalUrl ?? referenceImage?.url ?? "";
-  const imageAlt = galleryImage?.prompt ?? referenceImage?.name ?? "Image preview";
+  const mediaSrc = galleryImage?.originalUrl ?? referenceImage?.url ?? "";
+  const mediaAlt = galleryImage?.prompt ?? referenceImage?.name ?? "Image preview";
+  const isVideo =
+    galleryImage?.status === "completed" && galleryImage.originalBlob.type.startsWith("video/");
 
   const topMetadataRow = [
     galleryImage?.aspectRatio,
@@ -291,12 +293,24 @@ export function Lightbox() {
 
       {/* Modal */}
       <div className="animate-fade-in bg-surface-raised relative z-10 flex max-h-[90vh] max-w-[90vw] flex-col overflow-hidden overflow-y-auto rounded-xl shadow-2xl inset-shadow-sm inset-shadow-white/5 lg:flex-row lg:items-stretch">
-        {/* Image */}
-        <img
-          src={imageSrc}
-          alt={imageAlt}
-          className="block min-h-[50vh] min-w-0 self-center object-contain lg:max-h-[90vh] lg:min-h-0 lg:max-w-[calc(90vw-24rem)] xl:max-w-[calc(90vw-28rem)]"
-        />
+        {/* Media (image or video) */}
+        {isVideo ? (
+          <video
+            src={mediaSrc}
+            controls
+            autoPlay
+            loop
+            muted
+            playsInline
+            className="block min-h-[50vh] min-w-0 self-center object-contain lg:max-h-[90vh] lg:min-h-0 lg:max-w-[calc(90vw-24rem)] xl:max-w-[calc(90vw-28rem)]"
+          />
+        ) : (
+          <img
+            src={mediaSrc}
+            alt={mediaAlt}
+            className="block min-h-[50vh] min-w-0 self-center object-contain lg:max-h-[90vh] lg:min-h-0 lg:max-w-[calc(90vw-24rem)] xl:max-w-[calc(90vw-28rem)]"
+          />
+        )}
 
         {/* Info panel */}
         {galleryImage && (
@@ -307,7 +321,7 @@ export function Lightbox() {
                 {galleryImage.modelName}
               </h2>
               <div className="flex items-center gap-1">
-                {location.pathname !== "/app/editor" && (
+                {location.pathname !== "/app/editor" && !isVideo && (
                   <WideIconButton
                     icon={
                       <span className="relative">
@@ -322,7 +336,7 @@ export function Lightbox() {
                     onClick={handleSendToEditor}
                   />
                 )}
-                {location.pathname !== "/app/editor" && (
+                {location.pathname !== "/app/editor" && !isVideo && (
                   <WideIconButton
                     icon={<ImageUpscale className="h-4 w-4" />}
                     title="Upscale"
@@ -609,6 +623,8 @@ function CharacterSection({
 
 function getBlobExtension(blob: Blob): string {
   const type = blob.type.toLowerCase();
+  if (type.includes("mp4")) return "mp4";
+  if (type.includes("webm")) return "webm";
   if (type.includes("png")) return "png";
   if (type.includes("webp")) return "webp";
   if (type.includes("jpeg") || type.includes("jpg")) return "jpg";

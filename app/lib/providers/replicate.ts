@@ -1,7 +1,7 @@
 import { distance } from "fastest-levenshtein";
 import Replicate from "replicate";
 import type { GenerationParams, GenerationResult } from "~/lib/generation";
-import { getImageDimensions } from "~/lib/imageProcessing";
+import { getMediaDimensions } from "~/lib/imageProcessing";
 import { inferIcon, inferName } from "~/lib/modelNames";
 import { dereferenceProperties, type OpenApiSchemaProperty } from "~/lib/openapi";
 import { SCHEMA_MAPPING_SYSTEM } from "~/lib/prompts";
@@ -70,19 +70,19 @@ async function generateImage(
     throw toRateLimitError(error, "replicate");
   }
 
-  // Normalize output to a list of image URLs. Replicate returns either a single
+  // Normalize output to a list of URLs. Replicate returns either a single
   // string/FileOutput, or an array of them for batch-capable models.
   const urls = extractReplicateUrls(output);
-  if (urls.length === 0) throw new Error("No image in Replicate response");
+  if (urls.length === 0) throw new Error("No output in Replicate response");
 
   const results = await Promise.all(
     urls.map(async (url) => {
       const response = await fetch(url);
       if (!response.ok) {
-        throw new Error(`Failed to fetch generated image: ${response.status}`);
+        throw new Error(`Failed to fetch generated output: ${response.status}`);
       }
       const blob = await response.blob();
-      const dimensions = await getImageDimensions(blob);
+      const dimensions = await getMediaDimensions(blob);
       return { blob, width: dimensions.width, height: dimensions.height, metadata: {} };
     })
   );
@@ -255,6 +255,7 @@ interface SchemaAnalysis {
   supportedAspectRatios?: string[];
   supportedQualities?: string[];
   maxImagesPerRequest?: number;
+  outputType?: "image" | "video";
 }
 
 async function fetchReplicateModelSchema(
@@ -286,13 +287,19 @@ async function fetchReplicateModelSchema(
 function inferCapabilitiesFromProperties(
   properties: Record<string, OpenApiSchemaProperty>
 ): HeuristicResult {
+  // Detect video models by the presence of temporal parameters.
+  const videoKeys = ["duration", "num_frames", "fps", "frame_rate"];
+  const isVideo = videoKeys.some((key) => properties[key]);
+
   const aspectRatioKeys = ["aspect_ratio", "aspectRatio", "output_aspect_ratio"];
   const detectedAspectRatioKey = aspectRatioKeys.find((key) => properties[key]);
   const supportsAspectRatios = !!detectedAspectRatioKey;
 
   const resolutionKeys = ["resolution", "output_resolution", "megapixels", "size"];
   const detectedResolutionKey = resolutionKeys.find((key) => properties[key]);
-  const supportsResolution = !!detectedResolutionKey;
+  // Don't expose the resolution picker for video models — their resolution
+  // semantics (480p / 720p / 1080p) don't align with the image 1K/2K/4K enum.
+  const supportsResolution = !isVideo && !!detectedResolutionKey;
 
   const imageProps = [
     "image",
@@ -302,6 +309,11 @@ function inferCapabilitiesFromProperties(
     "reference_image",
     "init_image",
     "control_image",
+    // video-model first-frame inputs
+    "start_image",
+    "first_frame_image",
+    "last_frame",
+    "image_url",
   ];
   const imageProperty = imageProps.find((prop) => properties[prop]);
   const supportsReferenceImages = !!imageProperty;
@@ -324,15 +336,18 @@ function inferCapabilitiesFromProperties(
     const prop = properties[key];
     return prop && (prop.type === "integer" || prop.type === "number");
   });
-  const supportsNumberOfImages = !!detectedNumberOfImagesKey;
-  const maxImagesPerRequest = detectedNumberOfImagesKey
-    ? typeof properties[detectedNumberOfImagesKey].maximum === "number"
-      ? properties[detectedNumberOfImagesKey].maximum
-      : 10
-    : undefined;
+  // Video models don't support batching.
+  const supportsNumberOfImages = !isVideo && !!detectedNumberOfImagesKey;
+  const maxImagesPerRequest =
+    !isVideo && detectedNumberOfImagesKey
+      ? typeof properties[detectedNumberOfImagesKey].maximum === "number"
+        ? properties[detectedNumberOfImagesKey].maximum
+        : 10
+      : undefined;
 
   return {
     capabilities: {
+      ...(isVideo ? { outputType: "video" as const } : {}),
       supportsAspectRatios,
       supportsResolution,
       supportsReferenceImages,
@@ -407,12 +422,23 @@ async function analyzeSchemaWithTextModel(
       maxImagesPerRequest = Math.floor(parsed.maxImagesPerRequest);
     }
 
+    let outputType: "image" | "video" | undefined;
+    if (parsed.outputType === "video") {
+      outputType = "video";
+    }
+
     const hasMapping = Object.keys(mapping).length > 0;
-    if (!hasMapping && !supportedAspectRatios && !supportedQualities && !maxImagesPerRequest) {
+    if (
+      !hasMapping &&
+      !supportedAspectRatios &&
+      !supportedQualities &&
+      !maxImagesPerRequest &&
+      !outputType
+    ) {
       return null;
     }
 
-    return { mapping, supportedAspectRatios, supportedQualities, maxImagesPerRequest };
+    return { mapping, supportedAspectRatios, supportedQualities, maxImagesPerRequest, outputType };
   } catch {
     return null;
   }
@@ -494,6 +520,14 @@ function mergeAnalysis(
   }
   if (typeof analysis?.maxImagesPerRequest === "number") {
     capabilities.maxImagesPerRequest = analysis.maxImagesPerRequest;
+  }
+
+  // The text model analyzer can upgrade the outputType to "video" if heuristics
+  // missed it (e.g. model has no duration key but produces video output).
+  if (analysis?.outputType === "video") {
+    capabilities.outputType = "video";
+    capabilities.supportsResolution = false;
+    capabilities.supportsNumberOfImages = false;
   }
 
   const schemaMapping = Object.keys(mapping).length > 0 ? mapping : undefined;

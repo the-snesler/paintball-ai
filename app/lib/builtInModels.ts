@@ -131,6 +131,58 @@ export const BUILT_IN_MODELS: StoredModel[] = [
       resolutionKey: "size",
     },
   },
+  // --- Video models (disabled by default; enable in Settings) ---
+  {
+    id: "replicate/google/veo-3-fast",
+    name: "Veo 3 Fast",
+    provider: "replicate",
+    enabled: false,
+    icon: "/icons/google.svg",
+    capabilities: {
+      outputType: "video",
+      supportsAspectRatios: true,
+      supportedAspectRatios: ["16:9", "9:16"],
+      supportsResolution: false,
+      supportsReferenceImages: false,
+      maxReferenceImages: 0,
+    },
+  },
+  {
+    id: "replicate/minimax/video-01",
+    name: "Hailuo Video",
+    provider: "replicate",
+    enabled: false,
+    icon: "/icons/replicate.svg",
+    capabilities: {
+      outputType: "video",
+      supportsAspectRatios: false,
+      supportedAspectRatios: [],
+      supportsResolution: false,
+      supportsReferenceImages: true,
+      maxReferenceImages: 1,
+    },
+    schemaMapping: {
+      imageInputKey: "first_frame_image",
+    },
+  },
+  {
+    id: "replicate/kwaivgi/kling-v2.1-pro",
+    name: "Kling v2.1 Pro",
+    provider: "replicate",
+    enabled: false,
+    icon: "/icons/replicate.svg",
+    capabilities: {
+      outputType: "video",
+      supportsAspectRatios: true,
+      supportedAspectRatios: ["16:9", "9:16", "1:1"],
+      supportsResolution: false,
+      supportsReferenceImages: true,
+      maxReferenceImages: 1,
+    },
+    schemaMapping: {
+      imageInputKey: "start_image",
+    },
+  },
 ];
 
 export function mergeWithBuiltInModels(models?: StoredModel[]): StoredModel[] {

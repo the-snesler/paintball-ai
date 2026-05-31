@@ -7,6 +7,7 @@ import {
   RefreshCw,
   GalleryHorizontalEnd,
   Sparkles,
+  Video,
 } from "lucide-react";
 import { useSettingsStore } from "~/stores/settingsStore";
 import SVG from "react-inlinesvg";
@@ -161,6 +162,11 @@ export default function ModelToggleItem({
               <SVG src={provider.iconPath} className="h-2.5 w-2.5 overflow-visible" />
             </span>
           </Tooltip>
+          <CapabilityBadge
+            icon={Video}
+            label="Video output"
+            enabled={capabilities.outputType === "video"}
+          />
           <CapabilityBadge
             icon={RectangleHorizontal}
             label={<AspectRatioTooltipContent model={model} />}

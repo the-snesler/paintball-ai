@@ -39,6 +39,20 @@ export function getModel(models: StoredModel[], modelId: string): StoredModel | 
   return models.find((m) => m.id === modelId);
 }
 
+export function isVideoModel(model: StoredModel): boolean {
+  return model.capabilities.outputType === "video";
+}
+
+export function anySelectedModelIsVideo(
+  models: StoredModel[],
+  selectedModelIds: string[]
+): boolean {
+  return selectedModelIds.some((id) => {
+    const model = getModel(models, id);
+    return model ? isVideoModel(model) : false;
+  });
+}
+
 // Helper to check if any selected model supports aspect ratios
 export function anyModelSupportsAspectRatio(
   models: StoredModel[],
@@ -244,8 +258,10 @@ export function anyModelSupportsNumberOfImages(
 }
 
 // Strictest batch cap across selected batch-aware models. Falls back to 1
-// when no selected model advertises the capability.
+// when no selected model advertises the capability. Always 1 for video models.
 export function getMaxImagesPerRequest(models: StoredModel[], selectedModelIds: string[]): number {
+  if (anySelectedModelIsVideo(models, selectedModelIds)) return 1;
+
   let limit = Infinity;
   let sawBatchModel = false;
 
