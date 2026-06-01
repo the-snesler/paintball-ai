@@ -263,7 +263,7 @@ export function Lightbox() {
         src={thumbnailSrc}
         alt=""
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 h-full w-full scale-110 object-cover opacity-75 blur-3xl saturate-125"
+        className="pointer-events-none absolute inset-0 h-full w-full scale-110 object-cover opacity-40 blur-3xl saturate-125"
       />
 
       <button
@@ -273,8 +273,8 @@ export function Lightbox() {
         onClick={closeLightbox}
       />
 
-      <div className="animate-fade-in relative z-10 flex h-full min-h-0 flex-col gap-3 lg:p-4">
-        <header className="border-c-border/60 bg-surface-raised/85 m-2 flex min-h-14 shrink-0 items-center gap-2 rounded-xl border px-2.5 py-2 shadow-2xl backdrop-blur-xl sm:px-3 lg:m-0">
+      <div className="animate-fade-in relative z-10 flex h-full min-h-0 flex-col gap-3">
+        <header className="border-text-secondary/10 text-text-secondary/80 flex min-h-14 shrink-0 items-center gap-2 border-b px-2.5 py-2 sm:px-3">
           {showNavigation && (
             <div className="flex items-center gap-1">
               <IconButton
@@ -291,7 +291,7 @@ export function Lightbox() {
           )}
 
           <div className="min-w-0 flex-1 px-1">
-            <p className="text-text-primary truncate text-sm font-medium">
+            <p className="truncate text-sm font-medium">
               {galleryImage?.modelName ?? referenceImage?.name ?? "Image preview"}
             </p>
           </div>
@@ -355,7 +355,7 @@ export function Lightbox() {
         </header>
 
         <main
-          className={`min-h-0 flex-1 gap-3 overflow-y-auto lg:grid lg:overflow-hidden ${galleryImage
+          className={`min-h-0 flex-1 gap-3 overflow-y-auto lg:grid lg:overflow-visible mx-2 lg:mb-4 lg:mx-4 ${galleryImage
             ? "lg:grid-cols-[minmax(0,1fr)_24rem] xl:grid-cols-[minmax(0,1fr)_28rem]"
             : "lg:grid-cols-1"
             }`}
