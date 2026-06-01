@@ -88,7 +88,7 @@ export default function Home() {
   }, [inFlightCount, desktopNotificationsEnabled]);
 
   return (
-    <div className="flex h-screen flex-col md:flex-row">
+    <div className="flex h-screen flex-col">
       <MobileHeader />
       <MobileSidebar />
       <Sidebar />

@@ -134,7 +134,9 @@ export function Gallery({ viewMode }: { viewMode: "grid" | "timeline" }) {
         onCharacterFilterChange={setCharacterFilter}
       />
 
-      <div className={`flex-1 overflow-y-auto p-2 md:p-6 ${selectedCount > 0 ? "pb-28" : ""}`}>
+      <div
+        className={`flex-1 overflow-y-auto p-2 md:py-4 md:pr-6 md:pl-88 ${selectedCount > 0 ? "pb-28" : ""}`}
+      >
         {filteredItems.length === 0 ? (
           isFiltered ? (
             <NoSearchResults

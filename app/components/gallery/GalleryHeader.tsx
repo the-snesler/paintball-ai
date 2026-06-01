@@ -7,10 +7,12 @@ import {
   BarChart3,
 } from "lucide-react";
 import NumberFlow from "@number-flow/react";
+import SVG from "react-inlinesvg";
 import { useLocation, useNavigate } from "react-router";
 import { SearchBar } from "./SearchBar";
 import { CharacterFilterDropdown } from "./CharacterFilterDropdown";
 import { Tooltip } from "../ui/Tooltip";
+import drop from "~/drop.svg";
 
 interface GalleryHeaderProps {
   count?: number;
@@ -47,6 +49,16 @@ export function GalleryHeader({
 
   return (
     <header className="border-border-subtle flex h-18 items-center gap-2 border-b px-6 py-4">
+      <div className="hidden w-80 shrink-0 items-center gap-3 md:flex">
+        <div className="border-accent bg-accent-muted/50 flex h-8 w-8 items-center justify-center rounded-lg border">
+          <SVG src={drop} className="h-4 w-4 text-white" />
+        </div>
+        <div className="text-left">
+          <h1 className="text-sm font-semibold">Paintball</h1>
+          <p className="text-text-tertiary text-xs">AI Image Generator</p>
+        </div>
+      </div>
+
       <h2 className="text-text-tertiary flex items-center gap-2 truncate text-sm font-medium tracking-wide uppercase">
         {showBackButton && (
           <button

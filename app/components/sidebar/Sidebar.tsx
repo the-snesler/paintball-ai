@@ -33,6 +33,8 @@ import { RecentSessions } from "./RecentSessions";
 
 export const SIDEBAR_POPOVER_ID = "sidebar-popover";
 
+type SidebarKind = "gallery" | "editor" | "characters" | "settings";
+
 const SETTINGS_TOC = [
   { id: "api-keys", label: "API Keys", Icon: KeyRound },
   { id: "image-models", label: "Image models", Icon: Layers },
@@ -43,6 +45,14 @@ const SETTINGS_TOC = [
   { id: "editor", label: "Editor", Icon: Expand },
   { id: "data", label: "Data", Icon: Archive },
 ] as const;
+
+function getSidebarKind(pathname: string): SidebarKind | null {
+  if (pathname.startsWith("/app/settings")) return "settings";
+  if (pathname.startsWith("/app/editor")) return "editor";
+  if (pathname.startsWith("/app/characters")) return "characters";
+  if (pathname.startsWith("/app/stats")) return null;
+  return "gallery";
+}
 
 function CharacterSidebarContent() {
   const models = useSettingsStore((s) => s.models);
@@ -91,14 +101,12 @@ function CharacterSidebarContent() {
   );
 }
 
-function SidebarContent() {
-  const location = useLocation();
-
-  if (location.pathname.startsWith("/app/settings")) {
+function SidebarContent({ kind }: { kind: SidebarKind }) {
+  if (kind === "settings") {
     return <SettingsSidebarContent />;
-  } else if (location.pathname.startsWith("/app/editor")) {
+  } else if (kind === "editor") {
     return <EditorSidebarContent />;
-  } else if (location.pathname.startsWith("/app/characters")) {
+  } else if (kind === "characters") {
     return <CharacterSidebarContent />;
   } else {
     return <GallerySidebarContent />;
@@ -199,7 +207,7 @@ function SettingsSidebarContent() {
   };
 
   return (
-    <nav className="bg-surface flex flex-1 flex-col justify-center gap-0.5 px-3 py-4">
+    <nav className="flex flex-1 flex-col justify-start gap-0.5 px-3 py-4">
       {SETTINGS_TOC.map(({ id, label, Icon }) => (
         <button
           key={id}
@@ -248,15 +256,24 @@ function SidebarHeader({ onClose }: { onClose?: () => void }) {
 }
 
 export function Sidebar() {
+  const location = useLocation();
+  const kind = getSidebarKind(location.pathname);
+
+  if (!kind) return null;
+
   return (
-    <aside className="border-border-subtle bg-surface-raised hidden h-full w-80 shrink-0 flex-col border-r md:flex">
-      <SidebarHeader />
-      <SidebarContent />
+    <aside className="border-c-border/60 bg-surface-raised/85 fixed top-[calc(4.5rem+1rem)] bottom-4 left-4 z-30 hidden w-80 flex-col overflow-hidden rounded-xl border shadow-2xl backdrop-blur-xl md:flex">
+      <SidebarContent kind={kind} />
     </aside>
   );
 }
 
 export function MobileSidebar() {
+  const location = useLocation();
+  const kind = getSidebarKind(location.pathname);
+
+  if (!kind) return null;
+
   const handleClose = () => {
     const popover = document.getElementById(SIDEBAR_POPOVER_ID);
     popover?.hidePopover();
@@ -269,7 +286,7 @@ export function MobileSidebar() {
       className="sidebar-popover border-border-subtle bg-surface-raised m-0 flex h-full max-h-full w-80 max-w-[85vw] flex-col border-0 border-r p-0"
     >
       <SidebarHeader onClose={handleClose} />
-      <SidebarContent />
+      <SidebarContent kind={kind} />
     </aside>
   );
 }

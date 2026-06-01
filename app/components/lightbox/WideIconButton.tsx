@@ -24,12 +24,13 @@ export function WideIconButton({
       onClick={onClick}
       disabled={disabled}
       aria-label={title}
-      className={`flex items-center gap-1 rounded-lg p-2 transition-colors ${disabled
+      className={`flex items-center gap-1 rounded-lg p-2 transition-colors ${
+        disabled
           ? "text-text-muted cursor-not-allowed"
           : variant === "danger"
             ? "text-red-400 hover:bg-red-500/10"
             : "hover:bg-surface-overlay"
-        }`}
+      }`}
     >
       {icon}
       <span

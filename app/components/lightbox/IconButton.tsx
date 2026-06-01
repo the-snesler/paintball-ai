@@ -19,12 +19,13 @@ export function IconButton({
         onClick={onClick}
         disabled={disabled}
         aria-label={title}
-        className={`rounded-lg p-2 transition-colors ${disabled
-          ? "text-text-muted cursor-not-allowed"
-          : variant === "danger"
-            ? "text-red-400 hover:bg-red-500/10"
-            : "hover:bg-surface-overlay"
-          }`}
+        className={`rounded-lg p-2 transition-colors ${
+          disabled
+            ? "text-text-muted cursor-not-allowed"
+            : variant === "danger"
+              ? "text-red-400 hover:bg-red-500/10"
+              : "hover:bg-surface-overlay"
+        }`}
       >
         {icon}
       </button>

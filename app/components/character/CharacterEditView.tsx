@@ -912,7 +912,7 @@ export function CharacterEditView() {
         showBackButton={!isNew}
       />
       {isNew && (
-        <div className="flex items-center gap-3 px-6 py-2">
+        <div className="flex items-center gap-3 px-6 py-2 md:pl-[22rem]">
           <Link
             to="/app/settings"
             className="text-text-muted hover:text-text-secondary transition-colors"
@@ -950,7 +950,10 @@ export function CharacterEditView() {
         </div>
       )}
 
-      <div className="flex flex-1 flex-col gap-6 overflow-y-auto p-6" onPaste={handlePaste}>
+      <div
+        className="flex flex-1 flex-col gap-6 overflow-y-auto p-6 md:pl-[22rem]"
+        onPaste={handlePaste}
+      >
         {isNew && mode === "references" && referencesContent}
         {isNew && mode === "form" && formContent}
         {(!isNew || mode === "manual") && manualContent}

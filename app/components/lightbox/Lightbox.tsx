@@ -355,10 +355,11 @@ export function Lightbox() {
         </header>
 
         <main
-          className={`min-h-0 flex-1 gap-3 overflow-y-auto lg:grid lg:overflow-visible mx-2 lg:mb-4 lg:mx-4 ${galleryImage
-            ? "lg:grid-cols-[minmax(0,1fr)_24rem] xl:grid-cols-[minmax(0,1fr)_28rem]"
-            : "lg:grid-cols-1"
-            }`}
+          className={`mx-2 min-h-0 flex-1 gap-3 overflow-y-auto lg:mx-4 lg:mb-4 lg:grid lg:overflow-visible ${
+            galleryImage
+              ? "lg:grid-cols-[minmax(0,1fr)_24rem] xl:grid-cols-[minmax(0,1fr)_28rem]"
+              : "lg:grid-cols-1"
+          }`}
         >
           <section className="flex min-h-[52dvh] items-center justify-center overflow-hidden lg:min-h-0">
             <img

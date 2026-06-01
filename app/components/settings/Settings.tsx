@@ -186,7 +186,10 @@ export function SettingsModal() {
     <main className="bg-surface flex h-full flex-1 flex-col overflow-hidden">
       <GalleryHeader title="Settings" />
 
-      <div id="settings-scroll" className="flex-1 space-y-6 overflow-y-auto p-4">
+      <div
+        id="settings-scroll"
+        className="flex-1 space-y-6 overflow-y-auto p-4 md:py-4 md:pr-4 md:pl-[22rem]"
+      >
         {/* API Keys */}
         <section id="api-keys" className="group space-y-3">
           <div className="flex items-center gap-2">
