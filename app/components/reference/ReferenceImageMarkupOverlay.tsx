@@ -1,5 +1,6 @@
 import { X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { ASPECT_RATIOS, parseAspectRatio } from "~/lib/models";
 import type { ReferenceImage } from "~/types";
 import { CropBoxOverlay } from "./CropBoxOverlay";
@@ -448,7 +449,9 @@ export function ReferenceImageMarkupOverlay({
     onClose();
   };
 
-  return (
+  if (typeof document === "undefined") return null;
+
+  return createPortal(
     <div className="fixed inset-0 z-[60] flex flex-col bg-black/90 backdrop-blur-sm">
       <div className="border-border-subtle flex h-14 shrink-0 items-center justify-between border-b px-4">
         <div className="flex min-w-0 items-center gap-2">
@@ -528,7 +531,8 @@ export function ReferenceImageMarkupOverlay({
           onUse={() => void handleUse()}
         />
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
