@@ -239,6 +239,35 @@ export function Lightbox() {
     void toggleItemFavorite(galleryImage.id);
   }, [galleryImage, toggleItemFavorite]);
 
+  // Clicking the empty letterbox area around the image closes the lightbox, but
+  // clicking the visible image pixels does not. Because the <img> uses
+  // object-contain, its element box can be larger than the rendered image, so we
+  // only swallow the click when it lands inside the actual rendered rectangle.
+  const handleImageClick = useCallback((e: React.MouseEvent<HTMLImageElement>) => {
+    const img = e.currentTarget;
+    const { naturalWidth, naturalHeight } = img;
+    const rect = img.getBoundingClientRect();
+    if (!naturalWidth || !naturalHeight || !rect.width || !rect.height) return;
+
+    const scale = Math.min(rect.width / naturalWidth, rect.height / naturalHeight);
+    const renderedWidth = naturalWidth * scale;
+    const renderedHeight = naturalHeight * scale;
+    const offsetX = (rect.width - renderedWidth) / 2;
+    const offsetY = (rect.height - renderedHeight) / 2;
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    const onImage =
+      x >= offsetX &&
+      x <= offsetX + renderedWidth &&
+      y >= offsetY &&
+      y <= offsetY + renderedHeight;
+
+    // Only block the close when the click is on the actual image pixels;
+    // letterbox clicks fall through to the section handler below.
+    if (onImage) e.stopPropagation();
+  }, []);
+
   if (!galleryImage && !referenceImage) return null;
 
   const imageSrc = galleryImage?.originalUrl ?? referenceImage?.url ?? "";
@@ -361,11 +390,15 @@ export function Lightbox() {
               : "lg:grid-cols-1"
           }`}
         >
-          <section className="flex min-h-[52dvh] items-center justify-center overflow-hidden lg:min-h-0">
+          <section
+            className="flex min-h-[52dvh] cursor-default items-center justify-center overflow-hidden lg:min-h-0"
+            onClick={closeLightbox}
+          >
             <img
               src={imageSrc}
               alt={imageAlt}
-              className="block max-h-[calc(70dvh)] max-w-full object-contain lg:h-full lg:max-h-full lg:w-full"
+              onClick={handleImageClick}
+              className="block max-h-[calc(70dvh)] max-w-full cursor-auto object-contain lg:h-full lg:max-h-full lg:w-full"
             />
           </section>
 
