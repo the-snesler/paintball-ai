@@ -18,7 +18,7 @@ export const RESOLUTIONS_LABELS: [string, Resolution][] = [
   ["Ultra", "4K"],
 ];
 
-export const QUALITIES = ["low", "medium", "high"] as const;
+export const QUALITIES = ["low", "medium", "high", "xhigh", "max"] as const;
 export type Quality = (typeof QUALITIES)[number];
 
 export const AR_DIFF_THRESHOLD = 0.1;
@@ -218,7 +218,7 @@ export function getQualityIntersection(
     const model = getModel(models, modelId);
     if (!model?.capabilities.supportsQuality) continue;
 
-    const qualities = model.capabilities.supportedQualities ?? [...QUALITIES];
+    const qualities = model.capabilities.supportedQualities ?? ["low", "medium", "high"];
     const qualitySet = new Set(qualities);
 
     if (!intersection) {

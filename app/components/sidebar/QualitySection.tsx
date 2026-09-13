@@ -8,6 +8,8 @@ const QUALITY_LABELS: Record<string, string> = {
   low: "Low",
   medium: "Medium",
   high: "High",
+  xhigh: "XHigh",
+  max: "Max",
 };
 
 export function QualitySection() {
@@ -35,7 +37,7 @@ export function QualitySection() {
         </span>
         <h2 className="text-text-tertiary text-xs font-medium tracking-wide uppercase">Quality</h2>
       </div>
-      <div className="flex gap-2">
+      <div className="grid grid-cols-3 gap-2">
         {QUALITIES.map((q) => {
           const isSelected = quality === q;
           const isEnabled = pickerEnabled && (selectable.size === 0 || selectable.has(q));

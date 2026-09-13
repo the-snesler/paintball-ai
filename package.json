@@ -31,7 +31,7 @@
     "lucide-react": "^0.562.0",
     "masonry-pf": "1.0.0",
     "mime": "^4.1.0",
-    "openai": "^6.34.0",
+    "openai": "^7.15.0",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
     "react-inlinesvg": "^4.2.0",

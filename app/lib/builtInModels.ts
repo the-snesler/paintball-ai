@@ -1,5 +1,9 @@
 import type { ModelCapabilities, StoredModel, StoredTextModel, StoredUpscaler } from "~/types";
 
+const PREVIOUS_BUILT_IN_IDS: Record<string, string> = {
+  "openai/gpt-image-2.5-flare": "openai/gpt-image-2",
+};
+
 export const BUILT_IN_MODELS: StoredModel[] = [
   {
     id: "google/gemini-3-pro-image-preview",
@@ -81,8 +85,8 @@ export const BUILT_IN_MODELS: StoredModel[] = [
     },
   },
   {
-    id: "openai/gpt-image-2",
-    name: "GPT Image 2",
+    id: "openai/gpt-image-2.5-flare",
+    name: "GPT Image 2.5 Flare",
     provider: "openai",
     enabled: true,
     icon: "/icons/openai.svg",
@@ -95,7 +99,7 @@ export const BUILT_IN_MODELS: StoredModel[] = [
       supportsReferenceImages: true,
       maxReferenceImages: 16,
       supportsQuality: true,
-      supportedQualities: ["low", "medium", "high"],
+      supportedQualities: ["low", "medium", "high", "xhigh", "max"],
       supportsNumberOfImages: true,
       maxImagesPerRequest: 10,
     },
@@ -141,7 +145,9 @@ export function mergeWithBuiltInModels(models?: StoredModel[]): StoredModel[] {
   const existingById = new Map(models.map((model) => [model.id, model]));
 
   const mergedBuiltIns = BUILT_IN_MODELS.map((builtInModel) => {
-    const existing = existingById.get(builtInModel.id);
+    const previous = existingById.get(PREVIOUS_BUILT_IN_IDS[builtInModel.id]);
+    const existing =
+      existingById.get(builtInModel.id) ?? (previous?.isCustom ? undefined : previous);
 
     if (!existing) {
       return { ...builtInModel };
@@ -155,7 +161,10 @@ export function mergeWithBuiltInModels(models?: StoredModel[]): StoredModel[] {
     };
   });
 
-  const customModels = models.filter((model) => model.isCustom); // excludes deleted built-ins
+  // A previously custom model may now be built in.
+  const customModels = models.filter(
+    (model) => model.isCustom && !BUILT_IN_MODELS.some((builtIn) => builtIn.id === model.id)
+  );
 
   return [...mergedBuiltIns, ...customModels];
 }
