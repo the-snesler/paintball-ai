@@ -1,6 +1,5 @@
-import { Sparkles } from "lucide-react";
-import { useMemo } from "react";
-import { QUALITIES, anyModelSupportsQuality, getQualityIntersection } from "~/lib/models";
+import { RotateCcw, Sparkles } from "lucide-react";
+import { QUALITIES, getQualityIntersection } from "~/lib/models";
 import { useGenerationStore } from "~/stores/generationStore";
 import { useSettingsStore } from "~/stores/settingsStore";
 
@@ -22,13 +21,16 @@ export function QualitySection() {
     .filter(([, count]) => count > 0)
     .map(([modelId]) => modelId);
 
-  const pickerEnabled = anyModelSupportsQuality(models, selectedModels);
-  const selectable = useMemo(
-    () => new Set(getQualityIntersection(models, selectedModels)),
-    [models, selectedModels]
-  );
+  const supported = new Set(getQualityIntersection(models, selectedModels));
+  const qualities = QUALITIES.filter((value) => supported.has(value));
+  const selectedQualityIndex = quality
+    ? qualities.indexOf(quality as (typeof qualities)[number])
+    : -1;
+  const selectedIndex = selectedQualityIndex + 1;
+  const selectedProgress = selectedIndex / qualities.length;
+  const selectedPosition = `calc(${selectedProgress * 100}% + ${1 - selectedProgress * 2}rem)`;
 
-  if (!pickerEnabled) return null;
+  if (qualities.length === 0) return null;
   return (
     <section>
       <div className="mb-2 flex items-center gap-2">
@@ -36,29 +38,57 @@ export function QualitySection() {
           <Sparkles className="h-4 w-4" />
         </span>
         <h2 className="text-text-tertiary text-xs font-medium tracking-wide uppercase">Quality</h2>
+        <span className="text-text-secondary ml-auto text-xs font-medium">
+          {selectedIndex === 0 ? "Default" : QUALITY_LABELS[qualities[selectedQualityIndex]]}
+        </span>
       </div>
-      <div className="grid grid-cols-3 gap-2">
-        {QUALITIES.map((q) => {
-          const isSelected = quality === q;
-          const isEnabled = pickerEnabled && (selectable.size === 0 || selectable.has(q));
-          const showSelectedStyle = isSelected && isEnabled;
+      <div className="relative h-10">
+        <input
+          type="range"
+          min={0}
+          max={qualities.length}
+          step={1}
+          value={selectedIndex}
+          aria-label="Quality"
+          aria-valuetext={
+            selectedIndex === 0 ? "Default" : QUALITY_LABELS[qualities[selectedQualityIndex]]
+          }
+          onChange={(event) => {
+            const index = Number(event.target.value);
+            setQuality(index === 0 ? null : qualities[index - 1]);
+          }}
+          className="peer absolute inset-0 z-10 h-full w-full cursor-pointer opacity-0"
+        />
+        <div className="bg-surface-overlay peer-focus-visible:ring-accent absolute inset-x-0 inset-y-1 overflow-hidden rounded-full peer-focus-visible:ring-2 peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-(--surface)">
+          <div
+            className="h-full bg-purple-500 transition-[width] duration-150"
+            style={{ width: selectedPosition }}
+          />
+        </div>
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-between">
+          {[null, ...qualities].map((value) => {
+            const isDefault = value === null;
 
-          return (
-            <button
-              key={q}
-              onClick={() => isEnabled && setQuality(isSelected ? null : q)}
-              className={`flex-1 rounded-lg px-2 py-2 text-xs font-medium transition-colors ${
-                showSelectedStyle
-                  ? "border border-purple-500 bg-purple-500/20 text-purple-300"
-                  : isEnabled
-                    ? "border-c-border bg-surface-overlay text-text-tertiary hover:border-c-border border"
-                    : "border-border-subtle bg-surface-overlay/50 text-text-muted cursor-not-allowed border opacity-40"
-              }`}
-            >
-              {QUALITY_LABELS[q] ?? q}
-            </button>
-          );
-        })}
+            return (
+              <span
+                key={value ?? "default"}
+                className="flex h-10 w-8 items-center justify-center rounded-full"
+              >
+                {isDefault ? (
+                  <RotateCcw className="text-text-primary/25 h-3.5 w-3.5" />
+                ) : (
+                  <span className="bg-text-primary/25 h-1.5 w-1.5 rounded-full" />
+                )}
+              </span>
+            );
+          })}
+        </div>
+        <span
+          className="bg-surface-raised border-c-border pointer-events-none absolute top-1/2 z-1 flex h-8 w-8 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border shadow-md transition-[left] duration-150"
+          style={{ left: selectedPosition }}
+        >
+          {selectedIndex === 0 && <RotateCcw className="text-text-tertiary h-3.5 w-3.5" />}
+        </span>
       </div>
     </section>
   );
