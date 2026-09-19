@@ -2,9 +2,12 @@ import { GoogleGenAI, ThinkingLevel, type Model } from "@google/genai";
 import { distance } from "fastest-levenshtein";
 import type { GenerationParams, GenerationResult } from "~/lib/generation";
 import { getImageDimensions } from "~/lib/imageProcessing";
+import { logger } from "~/lib/logging";
 import { inferName } from "~/lib/modelNames";
 import { toRateLimitError } from "~/lib/retry";
 import { blobToBase64 } from "~/lib/util";
+import { GOOGLE_IMAGE_MODELS } from "./googleModels";
+import { mergeSearchResults, resolveLibraryModel, searchModelLibrary } from "./modelLibrary";
 import type { Provider, ResolvedImageModel, SearchResult, TextGenerationArgs } from "./types";
 import { normalizeModelId } from ".";
 
@@ -42,13 +45,16 @@ async function generateImage(
       : {}),
   };
 
+  const request = {
+    model: modelId,
+    config,
+    contents: [{ role: "user" as const, parts }],
+  };
+  logger.debug("[image-generation] Raw API request", { provider: "google", request });
+
   let response;
   try {
-    response = await ai.models.generateContentStream({
-      model: modelId,
-      config,
-      contents: [{ role: "user", parts }],
-    });
+    response = await ai.models.generateContentStream(request);
   } catch (error) {
     throw toRateLimitError(error, "google");
   }
@@ -57,6 +63,7 @@ async function generateImage(
   let modelVersion: string | undefined;
 
   for await (const chunk of response) {
+    logger.debug("[image-generation] Raw API response", { provider: "google", response: chunk });
     if (!chunk.candidates?.[0]?.content?.parts) continue;
     const inlineData = chunk.candidates[0].content.parts[0]?.inlineData;
     if (inlineData?.data && inlineData?.mimeType) {
@@ -211,18 +218,14 @@ function rankAndLimit(models: Model[], query: string, limit = 6): SearchResult[]
 }
 
 const STD_ASPECT_RATIOS = ["1:1", "2:3", "3:2", "3:4", "4:3", "4:5", "5:4", "9:16", "16:9", "21:9"];
-const WIDE_ASPECT_RATIOS = ["1:4", "1:8", "4:1", "8:1"];
 
 function inferGoogleImageCapabilities(modelId: string): ResolvedImageModel["capabilities"] {
   const lower = normalizeModelId(modelId, "google").toLowerCase();
   const supports14References = lower.includes("3");
-  const supportsWideRatios = lower.includes("3.1-flash-image-preview");
 
   return {
     supportsAspectRatios: true,
-    supportedAspectRatios: supportsWideRatios
-      ? [...STD_ASPECT_RATIOS, ...WIDE_ASPECT_RATIOS]
-      : STD_ASPECT_RATIOS,
+    supportedAspectRatios: STD_ASPECT_RATIOS,
     supportsResolution: true,
     supportsReferenceImages: true,
     maxReferenceImages: supports14References ? 14 : 10,
@@ -234,6 +237,12 @@ async function resolveImageModel(
   apiKey: string,
   onProgress?: (status: string) => void
 ): Promise<ResolvedImageModel> {
+  const libraryModel = resolveLibraryModel(GOOGLE_IMAGE_MODELS, modelId);
+  if (libraryModel) {
+    onProgress?.("Using model library...");
+    return libraryModel;
+  }
+
   onProgress?.("Looking up model...");
   const all = await listGeminiModels(apiKey);
   const normalizedId = normalizeModelId(modelId, "google");
@@ -255,9 +264,10 @@ async function resolveImageModel(
 }
 
 async function searchImageModels(query: string, apiKey: string): Promise<SearchResult[]> {
+  const libraryResults = searchModelLibrary(GOOGLE_IMAGE_MODELS, query);
   const all = await listGeminiModels(apiKey);
   const imageModels = all.filter(isImageGenerationModel);
-  return rankAndLimit(imageModels, query);
+  return mergeSearchResults(libraryResults, rankAndLimit(imageModels, query));
 }
 
 async function searchTextModels(query: string, apiKey: string): Promise<SearchResult[]> {

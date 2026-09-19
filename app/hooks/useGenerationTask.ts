@@ -3,12 +3,13 @@ import { deleteImage as dbDeleteImage, getReferenceImagesByIds, saveImage } from
 import { enqueueImageEmbedding } from "~/lib/embeddingQueue";
 import { executeGeneration, type GenerationResult } from "~/lib/generation";
 import { createThumbnailBlob } from "~/lib/imageProcessing";
+import { logger } from "~/lib/logging";
 import { getModel } from "~/lib/models";
 import { providerRequiresApiKey } from "~/lib/providers";
 import { retryWithBackoff } from "~/lib/retry";
 import { useGalleryStore } from "~/stores/galleryStore";
 import { useSettingsStore } from "~/stores/settingsStore";
-import type { AspectRatio, Provider, Resolution } from "~/types";
+import type { AspectRatio, Provider, Resolution, StoredImageRecord } from "~/types";
 
 export interface GenerationTask {
   /** Gallery item IDs this task produces. Length 1 for single-image models,
@@ -131,7 +132,7 @@ export function useGenerationTask() {
           const thumbnailBlob = await createThumbnailBlob(result.blob, 400);
           if (isItemCanceled(itemId)) return;
 
-          await saveImage({
+          const imageRecord: StoredImageRecord = {
             id: itemId,
             originalBlob: result.blob,
             thumbnailBlob,
@@ -153,11 +154,13 @@ export function useGenerationTask() {
             parentGalleryItemIds:
               parentGalleryItemIds.length > 0 ? parentGalleryItemIds : undefined,
             metadata: result.metadata,
-          });
+          };
+          const storedImage = await saveImage(imageRecord);
           if (isItemCanceled(itemId)) {
             await dbDeleteImage(itemId);
             return;
           }
+          logger.debug("[image-generation] Stored image", storedImage);
 
           updateItem(itemId, {
             status: "completed",

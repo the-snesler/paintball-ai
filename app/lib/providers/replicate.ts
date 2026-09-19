@@ -2,6 +2,7 @@ import { distance } from "fastest-levenshtein";
 import Replicate from "replicate";
 import type { GenerationParams, GenerationResult } from "~/lib/generation";
 import { getImageDimensions } from "~/lib/imageProcessing";
+import { logger } from "~/lib/logging";
 import { inferIcon, inferName } from "~/lib/modelNames";
 import { dereferenceProperties, type OpenApiSchemaProperty } from "~/lib/openapi";
 import { SCHEMA_MAPPING_SYSTEM } from "~/lib/prompts";
@@ -10,6 +11,8 @@ import { callTextModel } from "~/lib/textModel";
 import { useSettingsStore } from "~/stores/settingsStore";
 import { blobToBase64 } from "~/lib/util";
 import type { ModelCapabilities, SchemaMapping, StoredUpscaler } from "~/types";
+import { mergeSearchResults, resolveLibraryModel, searchModelLibrary } from "./modelLibrary";
+import { REPLICATE_IMAGE_MODELS } from "./replicateModels";
 import type { Provider, ResolvedImageModel, SearchResult, TextGenerationArgs } from "./types";
 import { normalizeModelId } from ".";
 
@@ -62,6 +65,8 @@ async function generateImage(
   }
 
   const replicateModel = normalizeModelId(params.modelId, "replicate") as `${string}/${string}`;
+  const request = { model: replicateModel, input };
+  logger.debug("[image-generation] Raw API request", { provider: "replicate", request });
 
   let output;
   try {
@@ -69,6 +74,7 @@ async function generateImage(
   } catch (error) {
     throw toRateLimitError(error, "replicate");
   }
+  logger.debug("[image-generation] Raw API response", { provider: "replicate", response: output });
 
   // Normalize output to a list of image URLs. Replicate returns either a single
   // string/FileOutput, or an array of them for batch-capable models.
@@ -228,6 +234,12 @@ async function searchModels(query: string, apiKey: string): Promise<SearchResult
       icon: inferIcon(id),
     };
   });
+}
+
+async function searchImageModels(query: string, apiKey: string): Promise<SearchResult[]> {
+  const libraryResults = searchModelLibrary(REPLICATE_IMAGE_MODELS, query);
+  const discovered = await searchModels(query, apiKey);
+  return mergeSearchResults(libraryResults, discovered);
 }
 
 interface ReplicateModelResponse {
@@ -505,6 +517,12 @@ async function resolveImageModel(
   apiKey: string,
   onProgress?: (status: string) => void
 ): Promise<ResolvedImageModel> {
+  const libraryModel = resolveLibraryModel(REPLICATE_IMAGE_MODELS, modelId);
+  if (libraryModel) {
+    onProgress?.("Using model library...");
+    return libraryModel;
+  }
+
   onProgress?.("Fetching schema...");
   const { properties } = await fetchReplicateModelSchema(modelId, apiKey);
   const heuristic = inferCapabilitiesFromProperties(properties);
@@ -534,7 +552,7 @@ export const replicateProvider: Provider = {
   generateText,
   testTextModel,
   upscale,
-  searchImageModels: searchModels,
+  searchImageModels,
   searchUpscalers: searchModels,
   resolveImageModel,
 };

@@ -2,9 +2,17 @@ import OpenAI, { toFile } from "openai";
 import { distance } from "fastest-levenshtein";
 import type { GenerationParams, GenerationResult } from "~/lib/generation";
 import { getImageDimensions } from "~/lib/imageProcessing";
+import { logger } from "~/lib/logging";
 import { toRateLimitError } from "~/lib/retry";
 import { blobToBase64 } from "~/lib/util";
 import type { AspectRatio, Resolution } from "~/types";
+import {
+  findLibraryModel,
+  mergeSearchResults,
+  resolveLibraryModel,
+  searchModelLibrary,
+} from "./modelLibrary";
+import { OPENAI_IMAGE_MODELS } from "./openaiModels";
 import type { Provider, ResolvedImageModel, SearchResult, TextGenerationArgs } from "./types";
 import { inferName } from "../modelNames";
 import { normalizeModelId } from ".";
@@ -44,6 +52,11 @@ const GPT_IMAGE_2_RESOLUTION_PIXELS: Record<Resolution, number> = {
 
 function isGptImage2(modelId: string): boolean {
   return /(^|[-_/])gpt-image-2/.test(modelId.toLowerCase());
+}
+
+function usesArbitraryImageSize(modelId: string): boolean {
+  const libraryModel = findLibraryModel(OPENAI_IMAGE_MODELS, modelId);
+  return libraryModel ? libraryModel.config.sizeMode === "arbitrary" : isGptImage2(modelId);
 }
 
 // Snap downward to a multiple of 16 to stay within the model's pixel cap.
@@ -102,7 +115,7 @@ function resolveSize(
   resolution: Resolution | null
 ): string {
   if (!aspectRatio) return "auto";
-  if (isGptImage2(modelId)) {
+  if (usesArbitraryImageSize(modelId)) {
     return resolveGptImage2Size(aspectRatio, resolution) ?? "auto";
   }
   return ASPECT_RATIO_TO_SIZE[aspectRatio] ?? "auto";
@@ -147,7 +160,7 @@ async function generateImage(
         )
       );
 
-      const response = await client.images.edit({
+      const request = {
         model: modelId,
         image: files,
         prompt: params.prompt,
@@ -155,19 +168,25 @@ async function generateImage(
         size: sizeParam,
         ...(quality ? { quality } : {}),
         output_format: outputFormat,
-      });
+      };
+      logger.debug("[image-generation] Raw API request", { provider: "openai", request });
+      const response = await client.images.edit(request);
+      logger.debug("[image-generation] Raw API response", { provider: "openai", response });
 
       return parseResponse(response, outputFormat, modelId);
     }
 
-    const response = await client.images.generate({
+    const request = {
       model: modelId,
       prompt: params.prompt,
       n,
       size: sizeParam,
       ...(quality ? { quality } : {}),
       output_format: outputFormat,
-    });
+    };
+    logger.debug("[image-generation] Raw API request", { provider: "openai", request });
+    const response = await client.images.generate(request);
+    logger.debug("[image-generation] Raw API response", { provider: "openai", response });
 
     return parseResponse(response, outputFormat, modelId);
   } catch (error) {
@@ -215,6 +234,9 @@ interface OpenAIModel {
 }
 
 export function inferOpenAiImageCapabilities(modelId: string): ResolvedImageModel["capabilities"] {
+  const libraryModel = resolveLibraryModel(OPENAI_IMAGE_MODELS, modelId);
+  if (libraryModel) return libraryModel.capabilities;
+
   const lower = normalizeModelId(modelId, "openai").toLowerCase();
   const isGptImage = /(^|[-_])gpt-image/.test(lower);
 
@@ -243,9 +265,7 @@ export function inferOpenAiImageCapabilities(modelId: string): ResolvedImageMode
       supportsReferenceImages: true,
       maxReferenceImages: 16,
       supportsQuality: true,
-      supportedQualities: /^gpt-image-2\.5-(flare|sunburst)(-|$)/.test(lower)
-        ? ["low", "medium", "high", "xhigh", "max"]
-        : ["low", "medium", "high"],
+      supportedQualities: ["low", "medium", "high"],
       supportsNumberOfImages: true,
       maxImagesPerRequest: 10,
     };
@@ -269,6 +289,12 @@ async function resolveImageModel(
   apiKey: string,
   onProgress?: (status: string) => void
 ): Promise<ResolvedImageModel> {
+  const libraryModel = resolveLibraryModel(OPENAI_IMAGE_MODELS, modelId);
+  if (libraryModel) {
+    onProgress?.("Using model library...");
+    return libraryModel;
+  }
+
   const client = createClient(apiKey);
   const normalizedId = normalizeModelId(modelId, "openai");
 
@@ -321,6 +347,7 @@ function toSearchResult(model: OpenAIModel): SearchResult {
 }
 
 async function searchImageModels(query: string, apiKey: string): Promise<SearchResult[]> {
+  const libraryResults = searchModelLibrary(OPENAI_IMAGE_MODELS, query);
   const client = createClient(apiKey);
 
   let models: OpenAIModel[] = [];
@@ -328,14 +355,14 @@ async function searchImageModels(query: string, apiKey: string): Promise<SearchR
     const response = await client.models.list();
     models = response.data as OpenAIModel[];
   } catch {
-    return [];
+    return libraryResults;
   }
 
   const q = query.trim().toLowerCase();
   const imageModels = models.filter(isImageModel);
 
   if (!q) {
-    return imageModels.slice(0, 6).map(toSearchResult);
+    return mergeSearchResults(libraryResults, imageModels.slice(0, 6).map(toSearchResult));
   }
 
   const ranked = imageModels
@@ -349,7 +376,7 @@ async function searchImageModels(query: string, apiKey: string): Promise<SearchR
     .slice(0, 6)
     .map(({ model }) => toSearchResult(model));
 
-  return ranked;
+  return mergeSearchResults(libraryResults, ranked);
 }
 
 type ResponseInputContent =

@@ -5,6 +5,7 @@ import { useSettingsStore } from "~/stores/settingsStore";
 import { saveReferenceImage } from "~/lib/db";
 import { buildGenerationSignature } from "~/lib/generationSignature";
 import { createLoadingPreview } from "~/lib/imageProcessing";
+import { logger } from "~/lib/logging";
 import { doesModelSupportAspectRatio, getModel, getStrictReferenceImageLimit } from "~/lib/models";
 import { preparePromptBatch } from "~/lib/promptPreparation";
 import type { GalleryItem } from "~/types";
@@ -144,6 +145,22 @@ export function useImageGeneration() {
 
     addItems(pendingItems);
     startGeneration(signature);
+    const generationStartedAt = performance.now();
+    logger.info("[image-generation] Started", {
+      signature,
+      itemIds: taskIds,
+      prompt,
+      basePrompt,
+      modelSelections,
+      aspectRatio,
+      resolution,
+      quality,
+      numberOfImages,
+      referenceImages,
+      styleId: currentStyleId,
+      characterIds: currentCharacterIds,
+      totalTasks,
+    });
 
     try {
       await persistReferences(
@@ -216,9 +233,16 @@ export function useImageGeneration() {
       );
       updatePendingPhase(taskIds, undefined);
 
-      return await runTasks(tasks);
+      logger.debug("[image-generation] Prepared tasks", tasks);
+      const results = await runTasks(tasks);
+      logger.info("[image-generation] Settled", { signature, results });
+      return results;
     } finally {
       finishGeneration(signature);
+      logger.info("[image-generation] Finished", {
+        signature,
+        durationMs: Math.round(performance.now() - generationStartedAt),
+      });
     }
   }, [
     prompt,

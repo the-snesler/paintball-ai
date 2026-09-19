@@ -1,141 +1,42 @@
 import type { ModelCapabilities, StoredModel, StoredTextModel, StoredUpscaler } from "~/types";
+import { GOOGLE_IMAGE_MODELS } from "./providers/googleModels";
+import { resolveLibraryModel } from "./providers/modelLibrary";
+import { OPENAI_IMAGE_MODELS } from "./providers/openaiModels";
+import { REPLICATE_IMAGE_MODELS } from "./providers/replicateModels";
 
 const PREVIOUS_BUILT_IN_IDS: Record<string, string> = {
   "openai/gpt-image-2.5-flare": "openai/gpt-image-2",
 };
 
-export const BUILT_IN_MODELS: StoredModel[] = [
-  {
-    id: "google/gemini-3-pro-image-preview",
-    name: "Gemini 3.0 Pro",
-    provider: "google",
-    enabled: true,
-    icon: "/icons/google.svg",
-    capabilities: {
-      supportsAspectRatios: true,
-      supportedAspectRatios: [
-        "1:1",
-        "2:3",
-        "3:2",
-        "3:4",
-        "4:3",
-        "4:5",
-        "5:4",
-        "9:16",
-        "16:9",
-        "21:9",
-      ],
-      supportsResolution: true,
-      supportsReferenceImages: true,
-      maxReferenceImages: 10,
-    },
-  },
-  {
-    id: "google/gemini-3.1-flash-image-preview",
-    name: "Gemini 3.1 Flash",
-    provider: "google",
-    enabled: true,
-    icon: "/icons/google.svg",
-    capabilities: {
-      supportsAspectRatios: true,
-      supportedAspectRatios: [
-        "1:1",
-        "1:4",
-        "1:8",
-        "2:3",
-        "3:2",
-        "3:4",
-        "4:1",
-        "4:3",
-        "4:5",
-        "5:4",
-        "8:1",
-        "9:16",
-        "16:9",
-        "21:9",
-      ],
-      supportsResolution: true,
-      supportsReferenceImages: true,
-      maxReferenceImages: 10,
-    },
-  },
-  {
-    id: "replicate/google/nano-banana-pro",
-    name: "Nano Banana Pro",
-    provider: "replicate",
-    enabled: true,
-    icon: "/icons/google.svg",
-    capabilities: {
-      supportsAspectRatios: true,
-      supportedAspectRatios: [
-        "1:1",
-        "2:3",
-        "3:2",
-        "3:4",
-        "4:3",
-        "4:5",
-        "5:4",
-        "9:16",
-        "16:9",
-        "21:9",
-      ],
-      supportsResolution: true,
-      supportsReferenceImages: true,
-      maxReferenceImages: 14,
-    },
-  },
-  {
-    id: "openai/gpt-image-2.5-flare",
-    name: "GPT Image 2.5 Flare",
-    provider: "openai",
-    enabled: true,
-    icon: "/icons/openai.svg",
-    capabilities: {
-      supportsAspectRatios: true,
-      supportedAspectRatios: [],
-      allowsArbitraryAspectRatio: true,
-      maxLongShortRatio: 3,
-      supportsResolution: true,
-      supportsReferenceImages: true,
-      maxReferenceImages: 16,
-      supportsQuality: true,
-      supportedQualities: ["low", "medium", "high", "xhigh", "max"],
-      supportsNumberOfImages: true,
-      maxImagesPerRequest: 10,
-    },
-  },
-  {
-    id: "replicate/black-forest-labs/flux-2-flex",
-    name: "Flux 2 Flex",
-    provider: "replicate",
-    enabled: true,
-    icon: "/icons/bfl.svg",
-    capabilities: {
-      supportsAspectRatios: true,
-      supportedAspectRatios: ["1:1", "16:9", "3:2", "2:3", "4:5", "5:4", "9:16", "3:4", "4:3"],
-      supportsResolution: true,
-      supportsReferenceImages: true,
-      maxReferenceImages: 10,
-    },
-  },
-  {
-    id: "replicate/bytedance/seedream-4.5",
-    name: "Seedream 4.5",
-    provider: "replicate",
-    enabled: true,
-    icon: "/icons/bytedance.svg",
-    capabilities: {
-      supportsAspectRatios: true,
-      supportedAspectRatios: ["1:1", "4:3", "3:4", "16:9", "9:16", "3:2", "2:3", "21:9"],
-      supportsResolution: true,
-      supportsReferenceImages: true,
-      maxReferenceImages: 14,
-    },
-    schemaMapping: {
-      resolutionKey: "size",
-    },
-  },
+const IMAGE_MODEL_LIBRARY = [
+  ...GOOGLE_IMAGE_MODELS,
+  ...OPENAI_IMAGE_MODELS,
+  ...REPLICATE_IMAGE_MODELS,
 ];
+
+const DEFAULT_IMAGE_MODEL_IDS = [
+  "google/gemini-3-pro-image-preview",
+  "google/gemini-3.1-flash-image-preview",
+  "replicate/google/nano-banana-pro",
+  "openai/gpt-image-2.5-flare",
+  "replicate/black-forest-labs/flux-2-flex",
+  "replicate/bytedance/seedream-4.5",
+];
+
+export const BUILT_IN_MODELS: StoredModel[] = DEFAULT_IMAGE_MODEL_IDS.map((id) => {
+  const definition = IMAGE_MODEL_LIBRARY.find((model) => `${model.provider}/${model.id}` === id);
+  if (!definition) throw new Error(`Missing model library definition: ${id}`);
+
+  const resolved = resolveLibraryModel([definition], definition.id);
+  if (!resolved) throw new Error(`Could not resolve model library definition: ${id}`);
+
+  return {
+    id,
+    provider: definition.provider,
+    enabled: true,
+    ...resolved,
+  };
+});
 
 export function mergeWithBuiltInModels(models?: StoredModel[]): StoredModel[] {
   if (!models || models.length === 0) {
