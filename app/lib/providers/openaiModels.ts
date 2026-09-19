@@ -24,6 +24,19 @@ export const OPENAI_IMAGE_MODELS = [
       maxImagesPerRequest: 10,
     },
     config: { sizeMode: "arbitrary" },
+    pricing: {
+      currency: "USD",
+      source: {
+        kind: "model-library",
+        url: "https://developers.openai.com/api/docs/models/gpt-image-2.5-flare",
+        fetchedAt: Date.UTC(2026, 8, 19),
+      },
+      rules: [
+        { metric: "textInputTokens", units: 1_000_000, usd: 5 },
+        { metric: "imageInputTokens", units: 1_000_000, usd: 8 },
+        { metric: "imageOutputTokens", units: 1_000_000, usd: 30 },
+      ],
+    },
   },
   {
     id: "gpt-image-2.5-sunburst",
@@ -44,5 +57,18 @@ export const OPENAI_IMAGE_MODELS = [
       maxImagesPerRequest: 10,
     },
     config: { sizeMode: "arbitrary" },
+    pricing: {
+      currency: "USD",
+      source: {
+        kind: "model-library",
+        url: "https://developers.openai.com/api/docs/models/gpt-image-2.5-flare",
+        fetchedAt: Date.UTC(2026, 8, 19),
+      },
+      rules: [
+        { metric: "textInputTokens", units: 1_000_000, usd: 5 },
+        { metric: "imageInputTokens", units: 1_000_000, usd: 8 },
+        { metric: "imageOutputTokens", units: 1_000_000, usd: 30 },
+      ],
+    },
   },
 ] satisfies ImageModelDefinition<OpenAIImageModelConfig>[];

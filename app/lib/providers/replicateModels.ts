@@ -24,6 +24,18 @@ export const REPLICATE_IMAGE_MODELS = [
       supportsReferenceImages: true,
       maxReferenceImages: 14,
     },
+    pricing: {
+      currency: "USD",
+      source: {
+        kind: "model-library",
+        url: "https://replicate.com/google/nano-banana-pro",
+        fetchedAt: Date.UTC(2026, 8, 19),
+      },
+      rules: [
+        { metric: "outputImages", units: 1, usd: 0.15, when: { resolutions: ["1K", "2K"] } },
+        { metric: "outputImages", units: 1, usd: 0.3, when: { resolutions: ["4K"] } },
+      ],
+    },
   },
   {
     id: "black-forest-labs/flux-2-flex",
@@ -36,6 +48,18 @@ export const REPLICATE_IMAGE_MODELS = [
       supportsResolution: true,
       supportsReferenceImages: true,
       maxReferenceImages: 10,
+    },
+    pricing: {
+      currency: "USD",
+      source: {
+        kind: "model-library",
+        url: "https://replicate.com/black-forest-labs/flux-2-flex",
+        fetchedAt: Date.UTC(2026, 8, 19),
+      },
+      rules: [
+        { metric: "inputMegapixels", units: 1, usd: 0.06 },
+        { metric: "outputMegapixels", units: 1, usd: 0.06 },
+      ],
     },
   },
   {
@@ -52,6 +76,15 @@ export const REPLICATE_IMAGE_MODELS = [
     },
     schemaMapping: {
       resolutionKey: "size",
+    },
+    pricing: {
+      currency: "USD",
+      source: {
+        kind: "model-library",
+        url: "https://replicate.com/bytedance/seedream-4.5",
+        fetchedAt: Date.UTC(2026, 8, 19),
+      },
+      rules: [{ metric: "outputImages", units: 1, usd: 0.04 }],
     },
   },
 ] satisfies ImageModelDefinition[];

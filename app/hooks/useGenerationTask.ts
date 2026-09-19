@@ -154,6 +154,8 @@ export function useGenerationTask() {
             parentGalleryItemIds:
               parentGalleryItemIds.length > 0 ? parentGalleryItemIds : undefined,
             metadata: result.metadata,
+            usage: result.usage,
+            costEstimate: result.costEstimate,
           };
           const storedImage = await saveImage(imageRecord);
           if (isItemCanceled(itemId)) {
@@ -176,6 +178,8 @@ export function useGenerationTask() {
             characterIds: task.characterIds?.length ? task.characterIds : undefined,
             isFavorite: false,
             metadata: result.metadata,
+            usage: result.usage,
+            costEstimate: result.costEstimate,
             parentGalleryItemIds:
               parentGalleryItemIds.length > 0 ? parentGalleryItemIds : undefined,
           });

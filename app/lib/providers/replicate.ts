@@ -69,8 +69,14 @@ async function generateImage(
   logger.debug("[image-generation] Raw API request", { provider: "replicate", request });
 
   let output;
+  let prediction: any;
   try {
-    output = await replicate.run(replicateModel, { input });
+    output = await (replicate.run as any)(replicateModel, {
+      input,
+      progress: (next: any) => {
+        prediction = next;
+      },
+    });
   } catch (error) {
     throw toRateLimitError(error, "replicate");
   }
@@ -89,7 +95,35 @@ async function generateImage(
       }
       const blob = await response.blob();
       const dimensions = await getImageDimensions(blob);
-      return { blob, width: dimensions.width, height: dimensions.height, metadata: {} };
+      const inputMegapixels = await Promise.all(
+        params.referenceImages.map(async (ref) => {
+          const size = await getImageDimensions(ref.blob);
+          return (size.width * size.height) / 1_000_000;
+        })
+      );
+      return {
+        blob,
+        width: dimensions.width,
+        height: dimensions.height,
+        metadata: {
+          ...(prediction?.id && { predictionId: prediction.id }),
+          ...(prediction?.version && { predictionVersion: prediction.version }),
+          ...(prediction?.metrics?.predict_time != null && {
+            predictTime: prediction.metrics.predict_time,
+          }),
+          ...(prediction?.metrics?.total_time != null && {
+            totalTime: prediction.metrics.total_time,
+          }),
+        },
+        usage: {
+          metrics: {
+            outputImages: 1,
+            inputMegapixels: inputMegapixels.reduce((sum, value) => sum + value, 0) / urls.length,
+            outputMegapixels: (dimensions.width * dimensions.height) / 1_000_000,
+            runtimeSeconds: prediction?.metrics?.predict_time,
+          },
+        },
+      };
     })
   );
 

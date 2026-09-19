@@ -126,6 +126,8 @@ export interface CompletedGalleryItemFields {
   createdAt: number;
   generationTimeMs?: number;
   metadata: Record<string, unknown>; // Will include thinking traces for gemini 3 models
+  usage?: GenerationUsage;
+  costEstimate?: GenerationCostEstimate;
   /** Gallery item IDs of gallery images used as reference sources for this generation */
   parentGalleryItemIds?: string[];
   /** Vision embedding for semantic search. Absence means not yet embedded. */
@@ -170,9 +172,49 @@ export interface StoredImageRecord {
   isFavorite?: boolean;
   parentGalleryItemIds?: string[];
   metadata: Record<string, unknown>;
+  usage?: GenerationUsage;
+  costEstimate?: GenerationCostEstimate;
   embedding?: number[];
   embeddingModelId?: string;
   scorecard?: ImageScorecard;
+}
+
+export type UsageMetric =
+  | "inputTokens"
+  | "outputTokens"
+  | "textInputTokens"
+  | "imageInputTokens"
+  | "textOutputTokens"
+  | "imageOutputTokens"
+  | "outputImages"
+  | "inputMegapixels"
+  | "outputMegapixels"
+  | "runtimeSeconds";
+
+export interface GenerationUsage {
+  metrics: Partial<Record<UsageMetric, number>>;
+  allocationDivisor?: number;
+}
+
+export interface PricingRule {
+  metric: UsageMetric;
+  units: number;
+  usd: number;
+  when?: { resolutions?: Resolution[]; qualities?: string[] };
+}
+
+export interface ModelPricing {
+  currency: "USD";
+  rules: PricingRule[];
+  source: { kind: "model-library" | "models.dev"; url: string; fetchedAt: number };
+}
+
+export interface GenerationCostEstimate {
+  usd: number;
+  currency: "USD";
+  breakdown: Array<{ metric: UsageMetric; amount: number; usd: number }>;
+  pricing: ModelPricing;
+  calculatedAt: number;
 }
 
 export type ScorecardCriterion =

@@ -61,6 +61,7 @@ async function generateImage(
 
   let imageBlob: Blob | null = null;
   let modelVersion: string | undefined;
+  let usageMetadata: any;
 
   for await (const chunk of response) {
     logger.debug("[image-generation] Raw API response", { provider: "google", response: chunk });
@@ -73,6 +74,7 @@ async function generateImage(
       imageBlob = new Blob([bytes], { type: inlineData.mimeType });
     }
     if (chunk.modelVersion) modelVersion = chunk.modelVersion;
+    if ((chunk as any).usageMetadata) usageMetadata = (chunk as any).usageMetadata;
   }
 
   if (!imageBlob) throw new Error("No image in response");
@@ -84,6 +86,26 @@ async function generateImage(
       width: dimensions.width,
       height: dimensions.height,
       metadata: { modelVersion },
+      usage: usageMetadata
+        ? (() => {
+            const details = usageMetadata.candidatesTokensDetails ?? [];
+            const imageTokens = details.find(
+              (detail: any) => detail.modality === "IMAGE"
+            )?.tokenCount;
+            const textTokens = details.find(
+              (detail: any) => detail.modality === "TEXT"
+            )?.tokenCount;
+            return {
+              metrics: {
+                inputTokens: usageMetadata.promptTokenCount,
+                textOutputTokens: (textTokens ?? 0) + (usageMetadata.thoughtsTokenCount ?? 0),
+                imageOutputTokens:
+                  imageTokens ??
+                  (details.length === 0 ? usageMetadata.candidatesTokenCount : undefined),
+              },
+            };
+          })()
+        : undefined,
     },
   ];
 }

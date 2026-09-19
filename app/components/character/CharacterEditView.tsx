@@ -438,6 +438,8 @@ export function CharacterEditView() {
         referenceImageIds,
         isFavorite: false,
         metadata: result.metadata,
+        usage: result.usage,
+        costEstimate: result.costEstimate,
       });
 
       useGalleryStore.getState().addItem({
@@ -460,6 +462,8 @@ export function CharacterEditView() {
         generationTimeMs,
         isFavorite: false,
         metadata: result.metadata,
+        usage: result.usage,
+        costEstimate: result.costEstimate,
       });
 
       enqueueImageEmbedding(galleryItemId);

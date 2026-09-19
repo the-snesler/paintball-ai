@@ -195,7 +195,7 @@ async function generateImage(
 }
 
 async function parseResponse(
-  response: { data?: Array<{ b64_json?: string | null; url?: string | null }> | null },
+  response: { data?: Array<{ b64_json?: string | null; url?: string | null }> | null; usage?: any },
   outputFormat: "png" | "jpeg" | "webp",
   modelId: string
 ): Promise<GenerationResult[]> {
@@ -203,6 +203,7 @@ async function parseResponse(
   if (entries.length === 0) throw new Error("No image in OpenAI response");
 
   const mimeType = mimeTypeForFormat(outputFormat);
+  const usage = response.usage;
 
   return Promise.all(
     entries.map(async (entry) => {
@@ -223,6 +224,18 @@ async function parseResponse(
         width: dimensions.width,
         height: dimensions.height,
         metadata: { modelId },
+        usage: usage
+          ? {
+              allocationDivisor: entries.length,
+              metrics: {
+                inputTokens: usage.input_tokens,
+                outputTokens: usage.output_tokens,
+                textInputTokens: usage.input_tokens_details?.text_tokens,
+                imageInputTokens: usage.input_tokens_details?.image_tokens,
+                imageOutputTokens: usage.output_tokens_details?.image_tokens,
+              },
+            }
+          : undefined,
       };
     })
   );

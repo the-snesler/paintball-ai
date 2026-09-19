@@ -1,5 +1,10 @@
 import { distance } from "fastest-levenshtein";
-import type { ModelCapabilities, Provider as ProviderId, SchemaMapping } from "~/types";
+import type {
+  ModelCapabilities,
+  ModelPricing,
+  Provider as ProviderId,
+  SchemaMapping,
+} from "~/types";
 import type { ResolvedImageModel, SearchResult } from "./types";
 
 export interface ImageModelDefinition<Config = unknown> {
@@ -10,6 +15,7 @@ export interface ImageModelDefinition<Config = unknown> {
   schemaMapping?: SchemaMapping;
   icon?: string;
   config?: Config;
+  pricing?: ModelPricing;
 }
 
 export function findLibraryModel<T extends ImageModelDefinition>(

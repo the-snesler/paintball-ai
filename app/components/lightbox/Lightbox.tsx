@@ -258,10 +258,7 @@ export function Lightbox() {
     const y = e.clientY - rect.top;
 
     const onImage =
-      x >= offsetX &&
-      x <= offsetX + renderedWidth &&
-      y >= offsetY &&
-      y <= offsetY + renderedHeight;
+      x >= offsetX && x <= offsetX + renderedWidth && y >= offsetY && y <= offsetY + renderedHeight;
 
     // Only block the close when the click is on the actual image pixels;
     // letterbox clicks fall through to the section handler below.
@@ -281,6 +278,7 @@ export function Lightbox() {
     galleryImage?.generationTimeMs != null
       ? `${(galleryImage.generationTimeMs / 1000).toFixed(1)}s`
       : undefined,
+    galleryImage?.costEstimate ? `${formatUsd(galleryImage.costEstimate.usd)} est.` : undefined,
     galleryImage?.embedding ? "Has embedding" : undefined,
   ].filter(Boolean);
 
@@ -435,6 +433,42 @@ export function Lightbox() {
                 )}
 
                 <ScorecardPanel image={galleryImage} />
+
+                {(galleryImage.costEstimate || galleryImage.usage) && (
+                  <PanelSection title="Cost estimate">
+                    <div className="bg-surface-overlay/50 border-c-border/50 space-y-1 rounded-lg border p-3 text-xs">
+                      {galleryImage.costEstimate ? (
+                        <>
+                          <p className="text-text-primary text-sm font-medium">
+                            {formatUsd(galleryImage.costEstimate.usd)} estimated
+                          </p>
+                          {galleryImage.costEstimate.breakdown.map((item) => (
+                            <p key={item.metric} className="text-text-muted">
+                              {formatMetric(item.metric, item.amount)} · {formatUsd(item.usd)}
+                            </p>
+                          ))}
+                          <p className="text-text-muted pt-1">
+                            {galleryImage.costEstimate.pricing.source.kind === "models.dev"
+                              ? "models.dev"
+                              : "Paintball model library"}{" "}
+                            ·{" "}
+                            {new Date(
+                              galleryImage.costEstimate.pricing.source.fetchedAt
+                            ).toLocaleDateString()}
+                          </p>
+                          <p className="text-text-muted">Actual billing may vary.</p>
+                        </>
+                      ) : (
+                        <>
+                          <p className="text-text-primary">Cost unavailable</p>
+                          <p className="text-text-muted">
+                            {formatUsageSummary(galleryImage.usage?.metrics ?? {})}
+                          </p>
+                        </>
+                      )}
+                    </div>
+                  </PanelSection>
+                )}
 
                 <PanelSection title="Characters">
                   <CharacterSection
@@ -678,4 +712,33 @@ function getBlobExtension(blob: Blob): string {
   if (type.includes("webp")) return "webp";
   if (type.includes("jpeg") || type.includes("jpg")) return "jpg";
   return "png";
+}
+
+function formatUsd(value: number): string {
+  if (value < 0.0001) return "<$0.0001";
+  return `$${value < 0.01 ? value.toFixed(4) : value.toFixed(2)}`;
+}
+
+function formatMetric(metric: string, amount: number): string {
+  const labels: Record<string, string> = {
+    inputTokens: "input tokens",
+    outputTokens: "output tokens",
+    textInputTokens: "text input tokens",
+    imageInputTokens: "image input tokens",
+    textOutputTokens: "text output tokens",
+    imageOutputTokens: "image output tokens",
+    outputImages: "image",
+    inputMegapixels: "input MP",
+    outputMegapixels: "output MP",
+    runtimeSeconds: "runtime seconds",
+  };
+  return `${amount.toLocaleString(undefined, { maximumFractionDigits: 3 })} ${labels[metric] ?? metric}`;
+}
+
+function formatUsageSummary(metrics: Record<string, number | undefined>): string {
+  if (typeof metrics.runtimeSeconds === "number")
+    return `${metrics.runtimeSeconds.toFixed(1)}s provider runtime recorded; no trusted rate was available.`;
+  if (typeof metrics.outputMegapixels === "number")
+    return `${metrics.outputMegapixels.toFixed(2)} output MP recorded; no trusted rate was available.`;
+  return "Provider usage was recorded, but no trusted rate was available.";
 }

@@ -26,6 +26,19 @@ export const GOOGLE_IMAGE_MODELS = [
       supportsReferenceImages: true,
       maxReferenceImages: 10,
     },
+    pricing: {
+      currency: "USD",
+      source: {
+        kind: "model-library",
+        url: "https://ai.google.dev/gemini-api/docs/pricing",
+        fetchedAt: Date.UTC(2026, 8, 19),
+      },
+      rules: [
+        { metric: "inputTokens", units: 1_000_000, usd: 2 },
+        { metric: "textOutputTokens", units: 1_000_000, usd: 12 },
+        { metric: "imageOutputTokens", units: 1_000_000, usd: 120 },
+      ],
+    },
   },
   {
     id: "gemini-3.1-flash-image-preview",
@@ -53,6 +66,19 @@ export const GOOGLE_IMAGE_MODELS = [
       supportsResolution: true,
       supportsReferenceImages: true,
       maxReferenceImages: 10,
+    },
+    pricing: {
+      currency: "USD",
+      source: {
+        kind: "model-library",
+        url: "https://ai.google.dev/gemini-api/docs/pricing",
+        fetchedAt: Date.UTC(2026, 8, 19),
+      },
+      rules: [
+        { metric: "inputTokens", units: 1_000_000, usd: 0.5 },
+        { metric: "textOutputTokens", units: 1_000_000, usd: 3 },
+        { metric: "imageOutputTokens", units: 1_000_000, usd: 60 },
+      ],
     },
   },
 ] satisfies ImageModelDefinition[];
