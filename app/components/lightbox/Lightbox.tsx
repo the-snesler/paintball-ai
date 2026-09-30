@@ -1,4 +1,4 @@
-import { useEffect, useCallback, useState, type ReactNode } from "react";
+import { useEffect, useCallback, useState, type ReactNode, type JSX } from "react";
 import {
   X,
   ChevronDown,
@@ -15,6 +15,7 @@ import {
   Star,
   User,
   Pencil,
+  Info,
 } from "lucide-react";
 import { Select } from "@base-ui/react/select";
 import { useLocation, useNavigate } from "react-router";
@@ -41,6 +42,8 @@ import type {
 } from "~/types";
 import { Accordion } from "@base-ui/react/accordion";
 import { logger } from "~/lib/logging";
+import { Tooltip } from "../ui/Tooltip";
+import { formatRelativeDate } from "~/lib/util";
 
 export function Lightbox() {
   const navigate = useNavigate();
@@ -271,16 +274,47 @@ export function Lightbox() {
   const thumbnailSrc = galleryImage?.thumbnailUrl ?? imageSrc;
   const imageAlt = galleryImage?.prompt ?? referenceImage?.name ?? "Image preview";
 
-  const topMetadataRow = [
+  const usageString = galleryImage?.costEstimate
+    ? `~${formatUsd(galleryImage.costEstimate.usd)}`
+    : galleryImage?.usage
+      ? `Cost unavailable`
+      : undefined;
+  const usageDetail = galleryImage?.costEstimate ? (
+    <>
+      <p className="text-text-primary text-sm font-medium">
+        {formatUsd(galleryImage.costEstimate.usd)} estimated
+      </p>
+      {galleryImage.costEstimate.breakdown.map((item) => (
+        <p key={item.metric} className="text-text-muted">
+          {formatMetric(item.metric, item.amount)} · {formatUsd(item.usd)}
+        </p>
+      ))}
+      <p className="text-text-muted pt-1">
+        {galleryImage.costEstimate.pricing.source.kind === "models.dev"
+          ? "models.dev"
+          : "Paintball model library"}{" "}
+        · {new Date(galleryImage.costEstimate.pricing.source.fetchedAt).toLocaleDateString()}
+      </p>
+      <p className="text-text-muted">Actual billing may vary.</p>
+    </>
+  ) : galleryImage?.usage ? (
+    <>
+      <p className="text-text-primary">Cost unavailable</p>
+      <p className="text-text-muted">{formatUsageSummary(galleryImage.usage?.metrics ?? {})}</p>
+    </>
+  ) : undefined;
+
+  const topMetadataRow: (string | [string, JSX.Element])[] = [
     galleryImage?.aspectRatio,
-    galleryImage?.resolution,
-    `${galleryImage?.width}x${galleryImage?.height}`,
+    galleryImage?.resolution
+      ? [galleryImage?.resolution, `${galleryImage?.width}x${galleryImage?.height}`]
+      : undefined,
     galleryImage?.generationTimeMs != null
       ? `${(galleryImage.generationTimeMs / 1000).toFixed(1)}s`
       : undefined,
-    galleryImage?.costEstimate ? `${formatUsd(galleryImage.costEstimate.usd)} est.` : undefined,
-    galleryImage?.embedding ? "Has embedding" : undefined,
-  ].filter(Boolean);
+    usageString ? [usageString, usageDetail] : undefined,
+    galleryImage?.embedding ? "Searchable" : undefined,
+  ].filter(Boolean) as (string | [string, JSX.Element])[];
 
   logger.debug("embedding", galleryImage?.embedding);
 
@@ -336,7 +370,7 @@ export function Lightbox() {
                     </span>
                   }
                   title="Editor"
-                  tooltip={linkedSession ? "Resume editing session" : undefined}
+                  tooltip={linkedSession ? "Resume editing session" : "Open in editor"}
                   onClick={handleSendToEditor}
                   textBreakpoint="lg"
                 />
@@ -408,9 +442,11 @@ export function Lightbox() {
                     {galleryImage.modelName}
                   </h2>
                   {galleryImage.createdAt && (
-                    <p className="text-text-muted mt-1 text-xs">
-                      {new Date(galleryImage.createdAt).toLocaleString()}
-                    </p>
+                    <Tooltip content={new Date(galleryImage.createdAt).toLocaleString()}>
+                      <p className="text-text-muted mt-1 text-xs">
+                        {formatRelativeDate(galleryImage.createdAt)}
+                      </p>
+                    </Tooltip>
                   )}
                 </div>
                 {galleryImage.isFavorite && (
@@ -422,66 +458,10 @@ export function Lightbox() {
                 {topMetadataRow.length > 0 && (
                   <div className="text-text-muted flex flex-wrap items-center gap-2 text-xs">
                     {topMetadataRow.map((meta, i) => (
-                      <span
-                        key={i}
-                        className="bg-surface-overlay/60 border-c-border/50 rounded-lg border px-2 py-1"
-                      >
-                        {meta}
-                      </span>
+                      <MetadataRow content={meta} key={i} />
                     ))}
                   </div>
                 )}
-
-                <ScorecardPanel image={galleryImage} />
-
-                {(galleryImage.costEstimate || galleryImage.usage) && (
-                  <PanelSection title="Cost estimate">
-                    <div className="bg-surface-overlay/50 border-c-border/50 space-y-1 rounded-lg border p-3 text-xs">
-                      {galleryImage.costEstimate ? (
-                        <>
-                          <p className="text-text-primary text-sm font-medium">
-                            {formatUsd(galleryImage.costEstimate.usd)} estimated
-                          </p>
-                          {galleryImage.costEstimate.breakdown.map((item) => (
-                            <p key={item.metric} className="text-text-muted">
-                              {formatMetric(item.metric, item.amount)} · {formatUsd(item.usd)}
-                            </p>
-                          ))}
-                          <p className="text-text-muted pt-1">
-                            {galleryImage.costEstimate.pricing.source.kind === "models.dev"
-                              ? "models.dev"
-                              : "Paintball model library"}{" "}
-                            ·{" "}
-                            {new Date(
-                              galleryImage.costEstimate.pricing.source.fetchedAt
-                            ).toLocaleDateString()}
-                          </p>
-                          <p className="text-text-muted">Actual billing may vary.</p>
-                        </>
-                      ) : (
-                        <>
-                          <p className="text-text-primary">Cost unavailable</p>
-                          <p className="text-text-muted">
-                            {formatUsageSummary(galleryImage.usage?.metrics ?? {})}
-                          </p>
-                        </>
-                      )}
-                    </div>
-                  </PanelSection>
-                )}
-
-                <PanelSection title="Characters">
-                  <CharacterSection
-                    galleryImage={galleryImage}
-                    allCharacters={allCharacters}
-                    editing={editingCharacters}
-                    onEditToggle={() => setEditingCharacters((v) => !v)}
-                    onCharactersChange={(ids) => {
-                      void updateImageCharacters(galleryImage.id, ids);
-                      setEditingCharacters(false);
-                    }}
-                  />
-                </PanelSection>
 
                 <PanelSection title="Prompt">
                   <div className="space-y-2">
@@ -550,8 +530,21 @@ export function Lightbox() {
                   </div>
                 </PanelSection>
 
+                <PanelSection title="Characters">
+                  <CharacterSection
+                    galleryImage={galleryImage}
+                    allCharacters={allCharacters}
+                    editing={editingCharacters}
+                    onEditToggle={() => setEditingCharacters((v) => !v)}
+                    onCharactersChange={(ids) => {
+                      void updateImageCharacters(galleryImage.id, ids);
+                      setEditingCharacters(false);
+                    }}
+                  />
+                </PanelSection>
+
                 {promptGroup.length > 1 && (
-                  <PanelSection title={`All outputs (${promptGroup.length})`}>
+                  <PanelSection title="All outputs" subtitle={`(${promptGroup.length})`}>
                     <div className="grid grid-cols-[repeat(auto-fill,minmax(8.5rem,1fr))] gap-2">
                       {promptGroup.map((item) => (
                         <RelatedThumbnail
@@ -566,7 +559,7 @@ export function Lightbox() {
                 )}
 
                 {referenceImages.length > 0 && (
-                  <PanelSection title={`Reference images (${referenceImages.length})`}>
+                  <PanelSection title="Reference images" subtitle={`(${referenceImages.length})`}>
                     <div className="grid grid-cols-[repeat(auto-fill,minmax(8.5rem,1fr))] gap-2">
                       {referenceImages.map((img) => {
                         const sourceItem = img.sourceGalleryItemId
@@ -593,7 +586,7 @@ export function Lightbox() {
                 )}
 
                 {childItems.length > 0 && (
-                  <PanelSection title={`Children (${childItems.length})`}>
+                  <PanelSection title="Children" subtitle={`(${childItems.length})`}>
                     <div className="grid grid-cols-[repeat(auto-fill,minmax(8.5rem,1fr))] gap-2">
                       {childItems.map((item) => (
                         <RelatedThumbnail
@@ -606,6 +599,8 @@ export function Lightbox() {
                     </div>
                   </PanelSection>
                 )}
+
+                <ScorecardPanel image={galleryImage} />
               </div>
             </aside>
           )}
@@ -615,10 +610,20 @@ export function Lightbox() {
   );
 }
 
-function PanelSection({ title, children }: { title: string; children: ReactNode }) {
+function PanelSection({
+  title,
+  subtitle,
+  children,
+}: {
+  title: string;
+  subtitle?: string;
+  children: ReactNode;
+}) {
   return (
     <section className="space-y-2">
-      <h3 className="text-text-tertiary text-xs font-medium">{title}</h3>
+      <h3 className="text-text-tertiary text-xs font-medium">
+        {title} {subtitle && <span className="text-text-muted text-xs">{subtitle}</span>}
+      </h3>
       {children}
     </section>
   );
@@ -674,7 +679,7 @@ function CharacterSection({
             <ChevronDown className="h-3 w-3 shrink-0" />
           </Select.Trigger>
           <Select.Portal>
-            <Select.Positioner sideOffset={6} className="z-[60]">
+            <Select.Positioner sideOffset={6} className="z-60">
               <Select.Popup className="bg-surface-overlay border-c-border animate-in fade-in zoom-in-95 max-h-60 min-w-44 overflow-y-auto rounded-lg border p-1 text-sm shadow-lg">
                 {allCharacters.map((character) => (
                   <Select.Item
@@ -703,6 +708,24 @@ function CharacterSection({
         {editing ? <X className="h-3.5 w-3.5" /> : <Pencil className="h-3.5 w-3.5" />}
       </button>
     </div>
+  );
+}
+
+function MetadataRow({ content }: { content: string | [string, JSX.Element] }) {
+  if (Array.isArray(content)) {
+    return (
+      <Tooltip content={content[1]}>
+        <span className="bg-surface-overlay/60 border-c-border/50 rounded-lg border px-2 py-1">
+          {content[0]}
+          <Info className="ml-1 inline h-3 w-3" />
+        </span>
+      </Tooltip>
+    );
+  }
+  return (
+    <span className="bg-surface-overlay/60 border-c-border/50 rounded-lg border px-2 py-1">
+      {content}
+    </span>
   );
 }
 

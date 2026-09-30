@@ -37,7 +37,7 @@ export function ScorecardPanel({ image }: ScorecardPanelProps) {
   };
 
   return (
-    <Accordion.Root className="bg-surface-overlay/50 rounded-lg">
+    <Accordion.Root className="bg-surface-overlay/50 border-c-border/50 rounded-lg border">
       <Accordion.Item>
         <Accordion.Header>
           <Accordion.Trigger className="group flex w-full list-none items-center justify-between gap-3 p-3 text-left [&::-webkit-details-marker]:hidden">
