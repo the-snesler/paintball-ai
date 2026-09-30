@@ -14,7 +14,6 @@ import {
   ImageUpscale,
   Star,
   User,
-  Pencil,
   Info,
 } from "lucide-react";
 import { Select } from "@base-ui/react/select";
@@ -68,11 +67,6 @@ export function Lightbox() {
   const replicateKey = useSettingsStore((s) => s.apiKeys.replicate);
   const allCharacters = useSettingsStore((s) => s.characters);
   const updateImageCharacters = useGalleryStore((s) => s.updateImageCharacters);
-  const [editingCharacters, setEditingCharacters] = useState(false);
-
-  useEffect(() => {
-    setEditingCharacters(false);
-  }, [galleryImage?.id]);
 
   useEffect(() => {
     if (!galleryImage || galleryImage.referenceImageIds.length === 0) {
@@ -455,11 +449,19 @@ export function Lightbox() {
               </div>
 
               <div className="flex-1 space-y-3 overflow-y-auto p-4">
-                {topMetadataRow.length > 0 && (
+                {(topMetadataRow.length > 0 || allCharacters.length > 0) && (
                   <div className="text-text-muted flex flex-wrap items-center gap-2 text-xs">
                     {topMetadataRow.map((meta, i) => (
                       <MetadataRow content={meta} key={i} />
                     ))}
+                    <CharacterSection
+                      key={galleryImage.id}
+                      galleryImage={galleryImage}
+                      allCharacters={allCharacters}
+                      onCharactersChange={(ids) => {
+                        void updateImageCharacters(galleryImage.id, ids);
+                      }}
+                    />
                   </div>
                 )}
 
@@ -528,19 +530,6 @@ export function Lightbox() {
                       )}
                     </div>
                   </div>
-                </PanelSection>
-
-                <PanelSection title="Characters">
-                  <CharacterSection
-                    galleryImage={galleryImage}
-                    allCharacters={allCharacters}
-                    editing={editingCharacters}
-                    onEditToggle={() => setEditingCharacters((v) => !v)}
-                    onCharactersChange={(ids) => {
-                      void updateImageCharacters(galleryImage.id, ids);
-                      setEditingCharacters(false);
-                    }}
-                  />
                 </PanelSection>
 
                 {promptGroup.length > 1 && (
@@ -632,14 +621,10 @@ function PanelSection({
 function CharacterSection({
   galleryImage,
   allCharacters,
-  editing,
-  onEditToggle,
   onCharactersChange,
 }: {
   galleryImage: CompletedGalleryItem;
   allCharacters: StoredCharacter[];
-  editing: boolean;
-  onEditToggle: () => void;
   onCharactersChange: (ids: string[]) => void;
 }) {
   const assignedIds = galleryImage.characterIds ?? [];
@@ -650,64 +635,40 @@ function CharacterSection({
   if (allCharacters.length === 0) return null;
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
-      {assignedCharacters.length > 0 &&
-        !editing &&
-        assignedCharacters.map((c) => (
-          <span
-            key={c.id}
-            className="flex items-center gap-1 rounded-lg bg-purple-500/10 px-2 py-1 text-xs text-purple-300"
-          >
-            <User className="h-3 w-3 shrink-0" />
-            {c.name}
-          </span>
-        ))}
-      {assignedCharacters.length === 0 && !editing && (
-        <span className="text-text-muted text-xs">No character assigned</span>
-      )}
-      {editing ? (
-        <Select.Root<string, true>
-          multiple
-          value={assignedIds}
-          onValueChange={(ids) => onCharactersChange(ids)}
-        >
-          <Select.Trigger className="border-c-border bg-surface-raised text-text-secondary flex items-center gap-1 rounded-lg border px-2 py-1 text-xs">
-            <User className="h-3 w-3 shrink-0" />
-            <Select.Value>
-              {assignedIds.length === 0 ? "Select characters" : `${assignedIds.length} selected`}
-            </Select.Value>
-            <ChevronDown className="h-3 w-3 shrink-0" />
-          </Select.Trigger>
-          <Select.Portal>
-            <Select.Positioner sideOffset={6} className="z-60">
-              <Select.Popup className="bg-surface-overlay border-c-border animate-in fade-in zoom-in-95 max-h-60 min-w-44 overflow-y-auto rounded-lg border p-1 text-sm shadow-lg">
-                {allCharacters.map((character) => (
-                  <Select.Item
-                    key={character.id}
-                    value={character.id}
-                    className="text-text-secondary data-highlighted:bg-surface-raised flex items-center gap-2 rounded px-2 py-1.5 outline-none"
-                  >
-                    <span className="flex h-3 w-3 items-center justify-center">
-                      <Select.ItemIndicator>
-                        <Check className="h-3 w-3" />
-                      </Select.ItemIndicator>
-                    </span>
-                    <Select.ItemText>{character.name}</Select.ItemText>
-                  </Select.Item>
-                ))}
-              </Select.Popup>
-            </Select.Positioner>
-          </Select.Portal>
-        </Select.Root>
-      ) : null}
-      <button
-        onClick={onEditToggle}
-        title={editing ? "Cancel" : "Edit characters"}
-        className="text-text-muted hover:text-text-secondary flex h-5 w-5 items-center justify-center rounded transition-colors"
+    <Select.Root<string, true> multiple value={assignedIds} onValueChange={onCharactersChange}>
+      <Select.Trigger
+        aria-label="Select characters"
+        className="bg-surface-overlay/60 border-c-border/50 hover:text-text-secondary flex max-w-full items-center gap-1 rounded-lg border px-2 py-1 text-xs transition-colors"
       >
-        {editing ? <X className="h-3.5 w-3.5" /> : <Pencil className="h-3.5 w-3.5" />}
-      </button>
-    </div>
+        <User className="h-3 w-3 shrink-0" />
+        <Select.Value className="truncate">
+          {assignedCharacters.length > 0
+            ? assignedCharacters.map((character) => character.name).join(", ")
+            : "None"}
+        </Select.Value>
+        <ChevronDown className="h-3 w-3 shrink-0" />
+      </Select.Trigger>
+      <Select.Portal>
+        <Select.Positioner sideOffset={6} className="z-60">
+          <Select.Popup className="bg-surface-overlay border-c-border animate-in fade-in zoom-in-95 max-h-60 min-w-44 overflow-y-auto rounded-lg border p-1 text-sm shadow-lg">
+            {allCharacters.map((character) => (
+              <Select.Item
+                key={character.id}
+                value={character.id}
+                className="text-text-secondary data-highlighted:bg-surface-raised flex items-center gap-2 rounded px-2 py-1.5 outline-none"
+              >
+                <span className="flex h-3 w-3 items-center justify-center">
+                  <Select.ItemIndicator>
+                    <Check className="h-3 w-3" />
+                  </Select.ItemIndicator>
+                </span>
+                <Select.ItemText>{character.name}</Select.ItemText>
+              </Select.Item>
+            ))}
+          </Select.Popup>
+        </Select.Positioner>
+      </Select.Portal>
+    </Select.Root>
   );
 }
 
@@ -715,9 +676,9 @@ function MetadataRow({ content }: { content: string | [string, JSX.Element] }) {
   if (Array.isArray(content)) {
     return (
       <Tooltip content={content[1]}>
-        <span className="bg-surface-overlay/60 border-c-border/50 rounded-lg border px-2 py-1">
+        <span className="bg-surface-overlay/60 border-c-border/50 flex items-center gap-1 rounded-lg border px-2 py-1">
           {content[0]}
-          <Info className="ml-1 inline h-3 w-3" />
+          <Info className="h-3 w-3" />
         </span>
       </Tooltip>
     );
