@@ -415,9 +415,13 @@ export function Lightbox() {
               ? "lg:grid-cols-[minmax(0,1fr)_24rem] xl:grid-cols-[minmax(0,1fr)_28rem]"
               : "lg:grid-cols-1"
           }`}
-          onClick={closeLightbox}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              closeLightbox();
+            }
+          }}
         >
-          <section className="flex min-h-[52dvh] cursor-default items-center justify-center overflow-hidden lg:min-h-0 lg:items-stretch">
+          <section className="pointer-events-none flex min-h-[52dvh] cursor-default items-center justify-center overflow-hidden lg:min-h-0 lg:items-stretch">
             <img
               data-lightbox-image
               src={imageSrc}
