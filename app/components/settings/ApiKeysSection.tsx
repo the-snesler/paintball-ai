@@ -23,6 +23,12 @@ const providers: { id: ApiKeyProvider; name: string; description: string; link: 
     description: "For GPT Image generation models",
     link: "https://platform.openai.com/api-keys",
   },
+  {
+    id: "openrouter",
+    name: "OpenRouter",
+    description: "For image and text models from multiple providers",
+    link: "https://openrouter.ai/settings/keys",
+  },
 ];
 
 export function ApiKeysSection() {

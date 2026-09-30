@@ -143,7 +143,9 @@ export default function AddCustomTextModelButton() {
       ? "gemini-3-flash-preview"
       : provider === "openai"
         ? "gpt-5.4-mini"
-        : "owner/model-name";
+        : provider === "openrouter"
+          ? "google/gemini-3-flash-preview"
+          : "owner/model-name";
 
   return (
     <div className="border-c-border bg-surface-overlay/50 space-y-2 rounded-lg border p-3">

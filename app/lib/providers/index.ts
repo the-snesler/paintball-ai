@@ -2,6 +2,7 @@ import type { ApiKeyProvider, ApiKeys, Provider as ProviderId } from "~/types";
 import { debugProvider } from "./debug";
 import { googleProvider } from "./google";
 import { openaiProvider } from "./openai";
+import { openrouterProvider } from "./openrouter";
 import { replicateProvider } from "./replicate";
 import type { Provider, ProviderCapabilities, TextCapableProvider } from "./types";
 
@@ -17,6 +18,7 @@ export const PROVIDERS: Record<ProviderId, Provider> = {
   google: googleProvider,
   replicate: replicateProvider,
   openai: openaiProvider,
+  openrouter: openrouterProvider,
   debug: debugProvider,
 };
 
@@ -48,7 +50,7 @@ export function isTextCapable(provider: Provider): provider is TextCapableProvid
     provider.capabilities.text &&
     !!provider.generateText &&
     !!provider.testTextModel &&
-    (provider.id === "google" || provider.id === "replicate" || provider.id === "openai")
+    providerRequiresApiKey(provider.id)
   );
 }
 

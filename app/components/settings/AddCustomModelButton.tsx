@@ -119,7 +119,9 @@ export default function AddCustomModelButton() {
   const placeholder =
     providerId === "replicate"
       ? 'Type to search, or enter e.g. "stability-ai/sdxl"'
-      : "Type to search...";
+      : providerId === "openrouter"
+        ? 'Type to search, or enter e.g. "openai/gpt-image-2"'
+        : "Type to search...";
 
   return (
     <div className="border-c-border bg-surface-overlay/50 space-y-2 rounded-lg border p-3">

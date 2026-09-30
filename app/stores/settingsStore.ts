@@ -120,6 +120,7 @@ export const useSettingsStore = create<SettingsState>()(
         google: null,
         replicate: null,
         openai: null,
+        openrouter: null,
       },
       models: BUILT_IN_MODELS,
       textModels: BUILT_IN_TEXT_MODELS,
@@ -411,7 +412,7 @@ export const useSettingsStore = create<SettingsState>()(
     }),
     {
       name: "studio-settings",
-      version: 22,
+      version: 23,
       partialize: (state) => ({
         apiKeys: state.apiKeys,
         models: state.models,
@@ -527,6 +528,7 @@ export const useSettingsStore = create<SettingsState>()(
             google: state.apiKeys?.google ?? null,
             replicate: state.apiKeys?.replicate ?? null,
             openai: state.apiKeys?.openai ?? null,
+            openrouter: state.apiKeys?.openrouter ?? null,
           },
           // always merge with built-in
           models: mergeWithBuiltInModels(state.models) ?? BUILT_IN_MODELS,
