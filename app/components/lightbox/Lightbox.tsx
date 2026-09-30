@@ -328,7 +328,7 @@ export function Lightbox() {
         onClick={closeLightbox}
       />
 
-      <div className="animate-fade-in relative z-10 flex h-full min-h-0 flex-col gap-3">
+      <div className="animate-fade-in relative z-10 flex h-full min-h-0 flex-col">
         <header className="border-text-secondary/10 text-text-secondary/80 flex min-h-14 shrink-0 items-center gap-2 border-b px-2.5 py-2 sm:px-3">
           {showNavigation && (
             <div className="flex items-center gap-1">
@@ -410,16 +410,14 @@ export function Lightbox() {
         </header>
 
         <main
-          className={`mx-2 min-h-0 flex-1 gap-3 overflow-y-auto lg:mx-4 lg:mb-4 lg:grid lg:overflow-visible ${
+          className={`min-h-0 flex-1 gap-3 overflow-y-auto px-2 lg:grid lg:overflow-visible lg:px-4 lg:py-4 ${
             galleryImage
               ? "lg:grid-cols-[minmax(0,1fr)_24rem] xl:grid-cols-[minmax(0,1fr)_28rem]"
               : "lg:grid-cols-1"
           }`}
+          onClick={closeLightbox}
         >
-          <section
-            className="flex min-h-[52dvh] cursor-default items-center justify-center overflow-hidden lg:min-h-0"
-            onClick={closeLightbox}
-          >
+          <section className="flex min-h-[52dvh] cursor-default items-center justify-center overflow-hidden lg:min-h-0">
             <img
               src={imageSrc}
               alt={imageAlt}
