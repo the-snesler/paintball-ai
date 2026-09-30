@@ -103,6 +103,7 @@ export function ImageCard({ image, selectionDisabled = false }: ImageCardProps) 
 
       {/* Image */}
       <img
+        data-gallery-image={image.id}
         src={image.thumbnailUrl}
         alt={image.prompt}
         className={`h-auto w-full transition-opacity duration-300 ${

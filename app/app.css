@@ -128,6 +128,35 @@ body {
   animation: fade-in 0.2s ease-out;
 }
 
+.lightbox-transition::view-transition-old(root),
+.lightbox-transition::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+.lightbox-transition::view-transition-group(lightbox-shell) {
+  z-index: 1;
+}
+
+.lightbox-transition::view-transition-group(lightbox-image) {
+  z-index: 2;
+  animation-duration: 250ms;
+  animation-timing-function: cubic-bezier(0.2, 0, 0, 1);
+}
+
+.lightbox-transition::view-transition-old(lightbox-shell),
+.lightbox-transition::view-transition-new(lightbox-shell),
+.lightbox-transition::view-transition-old(lightbox-image),
+.lightbox-transition::view-transition-new(lightbox-image) {
+  animation-duration: 200ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-lightbox] .animate-fade-in {
+    animation: none;
+  }
+}
+
 .animate-slide-up {
   animation: slide-up 0.3s ease-out;
 }

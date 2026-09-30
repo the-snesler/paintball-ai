@@ -64,6 +64,8 @@ export function Lightbox() {
   const [linkedSession, setLinkedSession] = useState<StoredEditorSession | null>(null);
   const [copySuccess, setCopySuccess] = useState(false);
   const [copyRawSuccess, setCopyRawSuccess] = useState(false);
+  const imageSrc = galleryImage?.originalUrl ?? referenceImage?.url ?? "";
+  const thumbnailSrc = galleryImage?.thumbnailUrl ?? imageSrc;
   const replicateKey = useSettingsStore((s) => s.apiKeys.replicate);
   const allCharacters = useSettingsStore((s) => s.characters);
   const updateImageCharacters = useGalleryStore((s) => s.updateImageCharacters);
@@ -264,8 +266,6 @@ export function Lightbox() {
 
   if (!galleryImage && !referenceImage) return null;
 
-  const imageSrc = galleryImage?.originalUrl ?? referenceImage?.url ?? "";
-  const thumbnailSrc = galleryImage?.thumbnailUrl ?? imageSrc;
   const imageAlt = galleryImage?.prompt ?? referenceImage?.name ?? "Image preview";
 
   const usageString = galleryImage?.costEstimate
@@ -313,7 +313,7 @@ export function Lightbox() {
   logger.debug("embedding", galleryImage?.embedding);
 
   return (
-    <div className="bg-surface fixed inset-0 z-50 h-dvh overflow-hidden text-white">
+    <div data-lightbox className="bg-surface fixed inset-0 z-50 h-dvh overflow-hidden text-white">
       <img
         src={thumbnailSrc}
         alt=""
@@ -328,7 +328,7 @@ export function Lightbox() {
         onClick={closeLightbox}
       />
 
-      <div className="animate-fade-in relative z-10 flex h-full min-h-0 flex-col">
+      <div className="relative z-10 flex h-full min-h-0 flex-col">
         <header className="border-text-secondary/10 text-text-secondary/80 flex min-h-14 shrink-0 items-center gap-2 border-b px-2.5 py-2 sm:px-3">
           {showNavigation && (
             <div className="flex items-center gap-1">
@@ -417,12 +417,15 @@ export function Lightbox() {
           }`}
           onClick={closeLightbox}
         >
-          <section className="flex min-h-[52dvh] cursor-default items-center justify-center overflow-hidden lg:min-h-0">
+          <section className="flex min-h-[52dvh] cursor-default items-center justify-center overflow-hidden lg:min-h-0 lg:items-stretch">
             <img
+              data-lightbox-image
               src={imageSrc}
+              width={galleryImage?.width}
+              height={galleryImage?.height}
               alt={imageAlt}
               onClick={handleImageClick}
-              className="block max-h-[calc(70dvh)] max-w-full cursor-auto object-contain lg:h-full lg:max-h-full lg:w-full"
+              className="block h-auto max-h-[70dvh] min-h-0 w-auto max-w-full min-w-0 cursor-auto object-contain lg:max-h-full"
             />
           </section>
 

@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import type { LightboxTarget } from "~/types";
+import { transitionLightbox } from "~/lib/lightboxTransition";
 
 interface LightboxState {
   isLightboxOpen: boolean;
@@ -9,25 +10,19 @@ interface LightboxState {
   setLightboxTarget: (target: LightboxTarget | null) => void;
 }
 
-export const useLightboxStore = create<LightboxState>()((set) => ({
+export const useLightboxStore = create<LightboxState>()((set, get) => ({
   isLightboxOpen: false,
   lightboxTarget: null,
 
-  openLightbox: (lightboxTarget) =>
-    set({
-      lightboxTarget,
-      isLightboxOpen: true,
-    }),
+  openLightbox: (lightboxTarget) => get().setLightboxTarget(lightboxTarget),
 
-  closeLightbox: () =>
-    set({
-      isLightboxOpen: false,
-      lightboxTarget: null,
-    }),
+  closeLightbox: () => get().setLightboxTarget(null),
 
   setLightboxTarget: (lightboxTarget) =>
-    set({
-      lightboxTarget,
-      isLightboxOpen: lightboxTarget !== null,
-    }),
+    transitionLightbox(get().lightboxTarget, lightboxTarget, () =>
+      set({
+        lightboxTarget,
+        isLightboxOpen: lightboxTarget !== null,
+      })
+    ),
 }));
