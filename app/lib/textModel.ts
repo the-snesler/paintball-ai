@@ -3,6 +3,7 @@ import type { ApiKeyProvider } from "~/types";
 import { getProvider } from "~/lib/providers";
 import { logger } from "./logging";
 import { retryWithBackoff } from "./retry";
+import { beginGenerationUnloadGuard } from "./generationUnloadGuard";
 
 interface ResolvedProvider {
   provider: ApiKeyProvider;
@@ -81,12 +82,17 @@ export async function callTextModel(
     throw new Error(`Provider ${provider} does not support text generation`);
   }
 
-  const output = await retryWithBackoff(() =>
-    impl({ modelId, systemPrompt, userPrompt, images, prefill }, apiKey)
-  );
+  const endUnloadGuard = beginGenerationUnloadGuard();
+  try {
+    const output = await retryWithBackoff(() =>
+      impl({ modelId, systemPrompt, userPrompt, images, prefill }, apiKey)
+    );
 
-  logger.debug("Text model output:", output);
-  return output;
+    logger.debug("Text model output:", output);
+    return output;
+  } finally {
+    endUnloadGuard();
+  }
 }
 
 /**
@@ -103,5 +109,10 @@ export async function testTextModel(
   if (!impl) {
     throw new Error(`Provider ${provider} does not support text generation`);
   }
-  await impl(apiKey, modelId);
+  const endUnloadGuard = beginGenerationUnloadGuard();
+  try {
+    await impl(apiKey, modelId);
+  } finally {
+    endUnloadGuard();
+  }
 }

@@ -7,6 +7,7 @@ import type {
 } from "~/types";
 import { getProvider } from "~/lib/providers";
 import { estimateGenerationCost, resolveModelPricing } from "~/lib/pricing";
+import { beginGenerationUnloadGuard } from "./generationUnloadGuard";
 
 export class RateLimitError extends Error {
   retryAfter: number;
@@ -47,11 +48,16 @@ export async function executeGeneration(
   if (!provider.generateImage) {
     throw new Error(`Provider ${params.provider} does not support image generation`);
   }
-  const pricing = resolveModelPricing(params.provider, params.modelId);
-  const results = await provider.generateImage(params, apiKey);
-  const resolvedPricing = await pricing;
-  return results.map((result) => ({
-    ...result,
-    costEstimate: estimateGenerationCost(resolvedPricing, result.usage, params),
-  }));
+  const endUnloadGuard = beginGenerationUnloadGuard();
+  try {
+    const pricing = resolveModelPricing(params.provider, params.modelId);
+    const results = await provider.generateImage(params, apiKey);
+    const resolvedPricing = await pricing;
+    return results.map((result) => ({
+      ...result,
+      costEstimate: estimateGenerationCost(resolvedPricing, result.usage, params),
+    }));
+  } finally {
+    endUnloadGuard();
+  }
 }

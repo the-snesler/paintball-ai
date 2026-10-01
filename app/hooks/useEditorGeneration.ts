@@ -6,6 +6,7 @@ import { deleteImage as dbDeleteImage, saveImage, saveReferenceImage } from "~/l
 import { preparePromptBatch } from "~/lib/promptPreparation";
 import { createLoadingPreview, createThumbnailBlob } from "~/lib/imageProcessing";
 import { executeUpscale } from "~/lib/upscaling";
+import { beginGenerationUnloadGuard } from "~/lib/generationUnloadGuard";
 import type { AspectRatio, GalleryItem, Resolution, StoredUpscaler } from "~/types";
 import { useGenerationTask, type GenerationTask } from "~/hooks/useGenerationTask";
 
@@ -253,6 +254,7 @@ export function useEditorGeneration() {
       addItems([pendingItem]);
       onItemsCreated([itemId]);
 
+      const endUnloadGuard = beginGenerationUnloadGuard();
       try {
         const result = await executeUpscale(referenceBlob, upscaler, replicateKey);
         if (isItemCanceled(itemId)) return;
@@ -306,6 +308,8 @@ export function useEditorGeneration() {
         if (isItemCanceled(itemId)) return;
         const message = err instanceof Error ? err.message : "Upscale failed";
         updateItem(itemId, { status: "failed", error: message, canRetry: false });
+      } finally {
+        endUnloadGuard();
       }
     },
     [addItems, isItemCanceled, replicateKey, updateItem]

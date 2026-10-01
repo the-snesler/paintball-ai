@@ -3,6 +3,7 @@ import { deleteImage as dbDeleteImage, getReferenceImagesByIds, saveImage } from
 import { enqueueImageEmbedding } from "~/lib/embeddingQueue";
 import { executeGeneration, type GenerationResult } from "~/lib/generation";
 import { createThumbnailBlob } from "~/lib/imageProcessing";
+import { beginGenerationUnloadGuard } from "~/lib/generationUnloadGuard";
 import { logger } from "~/lib/logging";
 import { getModel } from "~/lib/models";
 import { providerRequiresApiKey } from "~/lib/providers";
@@ -201,6 +202,7 @@ export function useGenerationTask() {
 
       updateAll(task.itemIds, { status: "generating" });
 
+      const endUnloadGuard = beginGenerationUnloadGuard();
       try {
         const startTime = Date.now();
         const results = useRetry ? await executeWithRetry(task) : await executeTask(task);
@@ -217,6 +219,8 @@ export function useGenerationTask() {
           canRetry: getCanRetry(error, task),
         });
         throw error;
+      } finally {
+        endUnloadGuard();
       }
     },
     [completeTask, executeTask, executeWithRetry, getActiveItemIds, isTaskCanceled, updateAll]
