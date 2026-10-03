@@ -432,7 +432,7 @@ export function Lightbox() {
               height={galleryImage?.height}
               alt={imageAlt}
               onClick={handleImageClick}
-              className="block h-auto max-h-[70dvh] min-h-0 w-auto max-w-full min-w-0 cursor-auto object-contain lg:max-h-full"
+              className="pointer-events-auto block h-auto max-h-[70dvh] min-h-0 w-auto max-w-full min-w-0 cursor-auto object-contain lg:max-h-full"
             />
           </section>
 
