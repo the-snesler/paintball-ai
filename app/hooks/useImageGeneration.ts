@@ -45,7 +45,7 @@ export function useImageGeneration() {
 
   const generate = useCallback(async () => {
     const variationsEnabled = useGenerationStore.getState().variationsEnabled;
-    const { currentStyleId, currentCharacterIds } = useGenerationStore.getState();
+    const { currentStyleId, currentCharacterIds, reuseSentPrompt } = useGenerationStore.getState();
     const settings = useSettingsStore.getState();
     const alwaysImprovePromptEnabled = settings.alwaysImprovePromptEnabled;
     const selectedStyle = currentStyleId
@@ -65,6 +65,7 @@ export function useImageGeneration() {
       referenceImages,
       styleId: currentStyleId,
       characterIds: currentCharacterIds,
+      reuseSentPrompt,
     });
 
     // Count total API calls synchronously.
@@ -131,7 +132,9 @@ export function useImageGeneration() {
             resolution: taskResolution,
             quality: taskQuality,
             referenceImageIds: referenceImages.map((r) => r.id),
-            characterIds: currentCharacterIds.length ? currentCharacterIds : undefined,
+            styleId: selectedStyle?.id,
+            manualReferenceImageIds: referenceImages.map((r) => r.id),
+            characterIds: selectedCharacters.map((c) => c.id),
             isFavorite: false,
             loadingPreview,
             retryCount: 0,
@@ -185,7 +188,7 @@ export function useImageGeneration() {
         style: selectedStyle,
         characters: selectedCharacters,
         referenceLimit: strictLimit,
-        improvePrompt: alwaysImprovePromptEnabled && basePrompt === null,
+        improvePrompt: alwaysImprovePromptEnabled && basePrompt === null && !reuseSentPrompt,
         variationsEnabled,
         avoidPastVariations,
         galleryItemsForAvoid: items,
@@ -198,7 +201,11 @@ export function useImageGeneration() {
         preparedPrompts.unifiedPromptAdditions ||
         preparedPrompts.improved ||
         preparedPrompts.usedVariations;
-      const groupPrompt = basePrompt ?? (anyTransformApplied ? originalPrompt : undefined);
+      const groupPrompt =
+        basePrompt ??
+        (anyTransformApplied || selectedStyle || selectedCharacters.length
+          ? originalPrompt
+          : undefined);
 
       const tasks: GenerationTask[] = taskSlots.map((slot, taskIndex) => {
         const taskPrompt = preparedPrompts.prompts[taskIndex] ?? originalPrompt;
@@ -217,7 +224,9 @@ export function useImageGeneration() {
           quality: slot.quality,
           numberOfImages: slot.numberOfImages,
           referenceImages: preparedPrompts.referenceImages,
-          characterIds: currentCharacterIds.length ? currentCharacterIds : undefined,
+          styleId: selectedStyle?.id,
+          manualReferenceImageIds: referenceImages.map((r) => r.id),
+          characterIds: selectedCharacters.map((c) => c.id),
         };
       });
 

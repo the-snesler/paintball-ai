@@ -4,6 +4,7 @@ import type { AspectRatio, ReferenceImage, Resolution } from "~/types";
 interface GenerationState {
   currentPrompt: string;
   currentBasePrompt: string | null;
+  reuseSentPrompt: boolean;
   currentModelSelections: Record<string, number>;
   currentAspectRatio: AspectRatio | null;
   currentResolution: Resolution;
@@ -44,6 +45,7 @@ interface GenerationState {
 export const DEFAULT_GENERATION_STATE = {
   currentPrompt: "",
   currentBasePrompt: null as string | null,
+  reuseSentPrompt: false,
   currentModelSelections: {},
   currentAspectRatio: null,
   currentResolution: "1K" as Resolution,
@@ -66,6 +68,7 @@ export const useGenerationStore = create<GenerationState>()((set) => ({
   setPrompt: (currentPrompt) =>
     set((state) => ({
       currentPrompt,
+      reuseSentPrompt: false,
       currentBasePrompt: currentPrompt.length === 0 ? null : state.currentBasePrompt,
     })),
 

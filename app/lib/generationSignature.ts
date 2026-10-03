@@ -10,6 +10,7 @@ interface GenerationSignatureInput {
   referenceImages: ReferenceImage[];
   styleId?: string | null;
   characterIds?: string[];
+  reuseSentPrompt?: boolean;
 }
 
 export function buildGenerationSignature(input: GenerationSignatureInput): string {
@@ -30,5 +31,6 @@ export function buildGenerationSignature(input: GenerationSignatureInput): strin
     referenceImageIds: normalizedReferenceIds,
     styleId: input.styleId ?? null,
     characterIds: normalizedCharacterIds,
+    reuseSentPrompt: input.reuseSentPrompt ?? false,
   });
 }

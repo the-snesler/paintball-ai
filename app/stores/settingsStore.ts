@@ -10,7 +10,14 @@ import {
 } from "~/lib/builtInModels";
 import { BUILT_IN_STYLES, mergeWithBuiltInStyles } from "~/lib/builtInStyles";
 import { hasProviderAccess } from "~/lib/providers";
-import { deleteReferenceImagesByIds } from "~/lib/db";
+import {
+  deleteReferenceImagesByIds,
+  garbageCollectReferences,
+  removeImageStyleReferences,
+} from "~/lib/db";
+import { useGalleryStore } from "./galleryStore";
+import { useGenerationStore } from "./generationStore";
+import { useEditorStore } from "./editorStore";
 import type {
   ApiKeyProvider,
   ApiKeys,
@@ -73,7 +80,7 @@ interface SettingsState {
     id: string,
     patch: Partial<Pick<StoredStyle, "name" | "text" | "referenceImageId">>
   ) => void;
-  removeCustomStyle: (id: string) => void;
+  removeCustomStyle: (id: string) => Promise<void>;
   reorderStyles: (activeId: string, overId: string) => void;
 
   // Character actions
@@ -115,7 +122,7 @@ interface SettingsState {
 
 export const useSettingsStore = create<SettingsState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       apiKeys: {
         google: null,
         replicate: null,
@@ -321,12 +328,35 @@ export const useSettingsStore = create<SettingsState>()(
           }),
         })),
 
-      removeCustomStyle: (id) =>
-        set((state) => ({
-          styles: state.styles.some((s) => s.id === id && s.isCustom)
-            ? state.styles.filter((s) => s.id !== id)
-            : state.styles,
-        })),
+      removeCustomStyle: async (id) => {
+        if (!get().styles.some((s) => s.id === id && s.isCustom)) return;
+        set((state) => ({ styles: state.styles.filter((s) => s.id !== id) }));
+        if (useGenerationStore.getState().currentStyleId === id) {
+          useGenerationStore.getState().setStyleId(null);
+        }
+        useGalleryStore.setState((state) => ({
+          items: state.items.map((item) =>
+            item.styleId === id ? { ...item, styleId: undefined } : item
+          ),
+        }));
+        await removeImageStyleReferences(id);
+        const settings = get();
+        const draft = useGenerationStore.getState();
+        const editor = useEditorStore.getState();
+        await garbageCollectReferences([
+          ...settings.styles.flatMap((s) => (s.referenceImageId ? [s.referenceImageId] : [])),
+          ...settings.characters.flatMap((c) => c.referenceImageIds),
+          ...useGalleryStore
+            .getState()
+            .items.flatMap((item) => [
+              ...item.referenceImageIds,
+              ...(item.manualReferenceImageIds ?? []),
+            ]),
+          ...draft.currentReferenceImages.map((r) => r.id),
+          ...editor.referenceImages.map((r) => r.id),
+          ...(editor.sourceReferenceId ? [editor.sourceReferenceId] : []),
+        ]);
+      },
 
       reorderStyles: (activeId, overId) =>
         set((state) => {

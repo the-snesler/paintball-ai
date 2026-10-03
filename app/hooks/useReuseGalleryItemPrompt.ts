@@ -2,41 +2,53 @@ import { useCallback } from "react";
 import { getReferenceImagesByIds } from "~/lib/db";
 import { hasVariationSections } from "~/lib/promptVariations";
 import { useGenerationStore } from "~/stores/generationStore";
+import { useSettingsStore } from "~/stores/settingsStore";
 import type { CompletedGalleryItem } from "~/types";
 
-export function useReuseGalleryItemPrompt() {
-  const clearReferenceImages = useGenerationStore((s) => s.clearReferenceImages);
-  const addReferenceImages = useGenerationStore((s) => s.addReferenceImages);
-  const setPrompt = useGenerationStore((s) => s.setPrompt);
-  const setVariationsEnabled = useGenerationStore((s) => s.setVariationsEnabled);
-
+function useReuseGalleryItem(sent: boolean) {
   return useCallback(
     async (item: CompletedGalleryItem) => {
-      clearReferenceImages();
-      const references = await getReferenceImagesByIds(item.referenceImageIds);
-      addReferenceImages(references);
-      setPrompt(item.basePrompt ?? item.prompt);
-      setVariationsEnabled(false);
+      const settings = useSettingsStore.getState();
+      const style = settings.styles.find((s) => s.id === item.styleId);
+      const characters = (item.characterIds ?? [])
+        .map((id) => settings.characters.find((c) => c.id === id))
+        .filter((c): c is NonNullable<typeof c> => c !== undefined);
+      // Older images lack manual-reference provenance; exclude known preset references.
+      const presetRefIds = new Set([
+        ...(style?.referenceImageId ? [style.referenceImageId] : []),
+        ...characters.flatMap((c) => c.referenceImageIds),
+      ]);
+      const referenceIds = sent
+        ? item.referenceImageIds
+        : (item.manualReferenceImageIds ??
+          item.referenceImageIds.filter((id) => !presetRefIds.has(id)));
+      const references = await getReferenceImagesByIds(referenceIds);
+      const prompt = sent ? item.prompt : (item.basePrompt ?? item.prompt);
+      const basePrompt = sent ? (item.basePrompt ?? null) : null;
+      useGenerationStore.getState().clearReferenceImages();
+      useGenerationStore.setState({
+        currentPrompt: prompt,
+        currentBasePrompt: basePrompt,
+        currentReferenceImages: references,
+        currentStyleId: sent ? null : (style?.id ?? null),
+        currentCharacterIds: sent ? [] : characters.map((c) => c.id),
+        variationsEnabled: !sent && hasVariationSections(prompt),
+        reuseSentPrompt: sent,
+        currentModelSelections: { [item.modelId]: 1 },
+        currentAspectRatio: item.aspectRatio,
+        currentResolution: item.resolution ?? "1K",
+        currentQuality: item.quality ?? null,
+        currentNumberOfImages: 1,
+      });
     },
-    [addReferenceImages, clearReferenceImages, setPrompt, setVariationsEnabled]
+    [sent]
   );
 }
 
-export function useReuseGalleryItemBasePrompt() {
-  const clearReferenceImages = useGenerationStore((s) => s.clearReferenceImages);
-  const addReferenceImages = useGenerationStore((s) => s.addReferenceImages);
-  const setPrompt = useGenerationStore((s) => s.setPrompt);
-  const setVariationsEnabled = useGenerationStore((s) => s.setVariationsEnabled);
+export function useReuseGalleryItemPrompt() {
+  return useReuseGalleryItem(false);
+}
 
-  return useCallback(
-    async (item: CompletedGalleryItem) => {
-      if (!item.basePrompt) return;
-      clearReferenceImages();
-      const references = await getReferenceImagesByIds(item.referenceImageIds);
-      addReferenceImages(references);
-      setPrompt(item.basePrompt);
-      setVariationsEnabled(hasVariationSections(item.basePrompt));
-    },
-    [addReferenceImages, clearReferenceImages, setPrompt, setVariationsEnabled]
-  );
+export function useReuseGalleryItemSentPrompt() {
+  return useReuseGalleryItem(true);
 }

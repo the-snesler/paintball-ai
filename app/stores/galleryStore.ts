@@ -39,10 +39,14 @@ function getOrphanedReferenceIds(removingIds: Set<string>, allItems: GalleryItem
   const styles = useSettingsStore.getState().styles;
   const characters = useSettingsStore.getState().characters;
   const removingRefs = new Set(
-    allItems.filter((i) => removingIds.has(i.id)).flatMap((i) => i.referenceImageIds)
+    allItems
+      .filter((i) => removingIds.has(i.id))
+      .flatMap((i) => [...i.referenceImageIds, ...(i.manualReferenceImageIds ?? [])])
   );
   const remainingRefs = new Set([
-    ...allItems.filter((i) => !removingIds.has(i.id)).flatMap((i) => i.referenceImageIds),
+    ...allItems
+      .filter((i) => !removingIds.has(i.id))
+      .flatMap((i) => [...i.referenceImageIds, ...(i.manualReferenceImageIds ?? [])]),
     ...styles.flatMap((s) => s.referenceImageId),
     ...characters.flatMap((c) => c.referenceImageIds),
   ]);

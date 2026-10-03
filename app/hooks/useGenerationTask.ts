@@ -29,6 +29,8 @@ export interface GenerationTask {
   referenceImages: Array<{ id: string; blob: Blob; sourceGalleryItemId?: string }>;
   /** IDs of characters used in this generation. */
   characterIds?: string[];
+  styleId?: string;
+  manualReferenceImageIds?: string[];
 }
 
 interface RunTaskOptions {
@@ -151,6 +153,10 @@ export function useGenerationTask() {
             generationTimeMs,
             referenceImageIds: task.referenceImages.map((r) => r.id),
             characterIds: task.characterIds?.length ? task.characterIds : undefined,
+            styleId: useSettingsStore.getState().styles.some((s) => s.id === task.styleId)
+              ? task.styleId
+              : undefined,
+            manualReferenceImageIds: task.manualReferenceImageIds,
             isFavorite: false,
             parentGalleryItemIds:
               parentGalleryItemIds.length > 0 ? parentGalleryItemIds : undefined,
@@ -177,6 +183,10 @@ export function useGenerationTask() {
             generationTimeMs,
             referenceImageIds: task.referenceImages.map((r) => r.id),
             characterIds: task.characterIds?.length ? task.characterIds : undefined,
+            styleId: useSettingsStore.getState().styles.some((s) => s.id === task.styleId)
+              ? task.styleId
+              : undefined,
+            manualReferenceImageIds: task.manualReferenceImageIds,
             isFavorite: false,
             metadata: result.metadata,
             usage: result.usage,
@@ -200,7 +210,10 @@ export function useGenerationTask() {
       const { useRetry = true, getCanRetry = () => true } = options;
       if (isTaskCanceled(task)) return [];
 
-      updateAll(task.itemIds, { status: "generating" });
+      updateAll(task.itemIds, {
+        status: "generating",
+        referenceImageIds: task.referenceImages.map((r) => r.id),
+      });
 
       const endUnloadGuard = beginGenerationUnloadGuard();
       try {
@@ -265,6 +278,9 @@ export function useGenerationTask() {
         prompt: item.prompt,
         basePrompt: item.basePrompt,
         variationReplacements: item.variationReplacements,
+        styleId: item.styleId,
+        manualReferenceImageIds: item.manualReferenceImageIds,
+        characterIds: item.characterIds,
         aspectRatio: item.aspectRatio,
         resolution: item.resolution,
         quality: item.quality ?? null,

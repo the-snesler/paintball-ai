@@ -96,6 +96,24 @@ export async function saveImage(image: StoredImageRecord): Promise<StoredImageRe
   return awaitTransaction(transaction, image);
 }
 
+/** Clear a deleted style's ID without changing the saved sent prompt or references. */
+export async function removeImageStyleReferences(styleId: string): Promise<void> {
+  const db = await initDB();
+  const transaction = db.transaction(STORES.images, "readwrite");
+  const request = transaction.objectStore(STORES.images).openCursor();
+  request.onsuccess = () => {
+    const cursor = request.result;
+    if (!cursor) return;
+    const record = cursor.value as StoredImageRecord;
+    if (record.styleId === styleId) {
+      delete record.styleId;
+      cursor.update(record);
+    }
+    cursor.continue();
+  };
+  await awaitTransaction(transaction, undefined);
+}
+
 export async function updateImageScorecard(
   id: string,
   scorecard: ImageScorecard | undefined
@@ -507,6 +525,8 @@ export async function garbageCollectReferences(
       const record = cursor.value as StoredImageRecord | LegacyStoredImageRecord | undefined;
       if (record?.referenceImageIds) {
         for (const id of record.referenceImageIds) reachable.add(id);
+        for (const id of (record as StoredImageRecord).manualReferenceImageIds ?? [])
+          reachable.add(id);
       }
       cursor.continue();
     };

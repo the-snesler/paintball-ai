@@ -21,6 +21,7 @@ export function GenerateButton() {
   const referenceImages = useGenerationStore((s) => s.currentReferenceImages);
   const quality = useGenerationStore((s) => s.currentQuality);
   const numberOfImages = useGenerationStore((s) => s.currentNumberOfImages);
+  const reuseSentPrompt = useGenerationStore((s) => s.reuseSentPrompt);
   const currentStyleId = useGenerationStore((s) => s.currentStyleId);
   const currentCharacterIds = useGenerationStore((s) => s.currentCharacterIds);
   const models = useSettingsStore((s) => s.models);
@@ -49,6 +50,7 @@ export function GenerateButton() {
     numberOfImages,
     styleId: currentStyleId,
     characterIds: currentCharacterIds,
+    reuseSentPrompt,
   });
 
   const isLastSubmittedActive =

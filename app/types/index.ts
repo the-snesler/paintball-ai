@@ -99,6 +99,9 @@ export interface BaseGalleryItem {
   resolution: Resolution | null;
   quality?: string | null;
   referenceImageIds: string[];
+  /** Manual inputs, kept separately from the final references for original-input reuse. */
+  manualReferenceImageIds?: string[];
+  styleId?: string;
   /** IDs of characters (StoredCharacter.id) used in this generation. */
   characterIds?: string[];
   isFavorite?: boolean;
@@ -167,6 +170,9 @@ export interface StoredImageRecord {
   createdAt: number;
   generationTimeMs?: number;
   referenceImageIds: string[];
+  /** Manual inputs, kept separately from the final references for original-input reuse. */
+  manualReferenceImageIds?: string[];
+  styleId?: string;
   /** IDs of characters (StoredCharacter.id) used in this generation. */
   characterIds?: string[];
   isFavorite?: boolean;

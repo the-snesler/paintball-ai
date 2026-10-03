@@ -115,7 +115,9 @@ export default function StyleItem({
       {style.isCustom && (
         <button
           type="button"
-          onClick={() => removeCustomStyle(style.id)}
+          onClick={() => {
+            void removeCustomStyle(style.id);
+          }}
           className="text-text-muted shrink-0 p-1 transition-colors hover:text-red-400"
           title="Remove style"
         >

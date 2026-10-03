@@ -15,6 +15,7 @@ import {
   Star,
   User,
   Info,
+  Palette,
 } from "lucide-react";
 import { Select } from "@base-ui/react/select";
 import { useLocation, useNavigate } from "react-router";
@@ -26,7 +27,7 @@ import { RelatedThumbnail } from "./RelatedThumbnail";
 import { useLightboxNavigation } from "~/hooks/useLightboxNavigation";
 import { useGalleryDerivedIndexes } from "~/hooks/useGalleryDerivedIndexes";
 import {
-  useReuseGalleryItemBasePrompt,
+  useReuseGalleryItemSentPrompt,
   useReuseGalleryItemPrompt,
 } from "~/hooks/useReuseGalleryItemPrompt";
 import { IconButton } from "./IconButton";
@@ -51,7 +52,7 @@ export function Lightbox() {
   const deleteItem = useGalleryStore((s) => s.deleteItem);
   const toggleItemFavorite = useGalleryStore((s) => s.toggleItemFavorite);
   const reuseGalleryItemPrompt = useReuseGalleryItemPrompt();
-  const reuseGalleryItemBasePrompt = useReuseGalleryItemBasePrompt();
+  const reuseGalleryItemSentPrompt = useReuseGalleryItemSentPrompt();
   const { lightboxTarget, galleryImage, referenceImage, showNavigation, navigateLightbox } =
     useLightboxNavigation();
 
@@ -67,6 +68,8 @@ export function Lightbox() {
   const imageSrc = galleryImage?.originalUrl ?? referenceImage?.url ?? "";
   const thumbnailSrc = galleryImage?.thumbnailUrl ?? imageSrc;
   const replicateKey = useSettingsStore((s) => s.apiKeys.replicate);
+  const styles = useSettingsStore((s) => s.styles);
+  const usedStyle = styles.find((s) => s.id === galleryImage?.styleId);
   const allCharacters = useSettingsStore((s) => s.characters);
   const updateImageCharacters = useGalleryStore((s) => s.updateImageCharacters);
 
@@ -169,11 +172,11 @@ export function Lightbox() {
     closeLightbox();
   }, [galleryImage, reuseGalleryItemPrompt, closeLightbox]);
 
-  const handleReuseBasePrompt = useCallback(async () => {
-    if (!galleryImage || !hasBasePrompt) return;
-    await reuseGalleryItemBasePrompt(galleryImage);
+  const handleReuseSentPrompt = useCallback(async () => {
+    if (!galleryImage) return;
+    await reuseGalleryItemSentPrompt(galleryImage);
     closeLightbox();
-  }, [galleryImage, hasBasePrompt, reuseGalleryItemBasePrompt, closeLightbox]);
+  }, [galleryImage, reuseGalleryItemSentPrompt, closeLightbox]);
 
   const goToEditor = useCallback(
     async (focusPanel: "upscalers" | null) => {
@@ -454,11 +457,19 @@ export function Lightbox() {
               </div>
 
               <div className="flex-1 space-y-3 overflow-y-auto p-4">
-                {(topMetadataRow.length > 0 || allCharacters.length > 0) && (
+                {(topMetadataRow.length > 0 || allCharacters.length > 0 || usedStyle) && (
                   <div className="text-text-muted flex flex-wrap items-center gap-2 text-xs">
                     {topMetadataRow.map((meta, i) => (
                       <MetadataRow content={meta} key={i} />
                     ))}
+                    {usedStyle && (
+                      <Tooltip content="Style used for this generation">
+                        <span className="bg-surface-overlay/60 border-c-border/50 flex items-center gap-1 rounded-lg border px-2 py-1">
+                          <Palette className="h-3 w-3 shrink-0" />
+                          {usedStyle.name}
+                        </span>
+                      </Tooltip>
+                    )}
                     <CharacterSection
                       key={galleryImage.id}
                       galleryImage={galleryImage}
@@ -521,18 +532,18 @@ export function Lightbox() {
                       )}
                       <IconButton
                         icon={<RotateCcw className="h-4 w-4" />}
-                        title="Re-use Prompt"
+                        title="Re-use original inputs (prompt, characters, style and references)"
                         onClick={handleReusePrompt}
                       />
-                      {hasBasePrompt && (
-                        <button
-                          type="button"
-                          onClick={handleReuseBasePrompt}
-                          className="text-text-tertiary hover:bg-surface-overlay hover:text-text-secondary rounded-lg px-2 py-2 text-xs transition-colors"
-                        >
-                          Re-use base
-                        </button>
-                      )}
+                      <IconButton
+                        icon={
+                          <RotateCcw className="h-4 w-4">
+                            <path d="M9 12h6M12 9v6" />
+                          </RotateCcw>
+                        }
+                        title="Re-use sent (exact prompt and references, without rewriting)"
+                        onClick={handleReuseSentPrompt}
+                      />
                     </div>
                   </div>
                 </PanelSection>
