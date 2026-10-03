@@ -578,6 +578,30 @@ export const useSettingsStore = create<SettingsState>()(
   )
 );
 
+function pruneMissingModelSelections() {
+  const { currentModelSelections } = useGenerationStore.getState();
+  const modelIds = new Set(useSettingsStore.getState().models.map((model) => model.id));
+  const selections = Object.entries(currentModelSelections);
+  const validSelections = selections.filter(([id]) => modelIds.has(id));
+  if (validSelections.length !== selections.length) {
+    useGenerationStore.setState({ currentModelSelections: Object.fromEntries(validSelections) });
+  }
+}
+
+useGenerationStore.subscribe((state, previous) => {
+  if (state.currentModelSelections !== previous.currentModelSelections) {
+    pruneMissingModelSelections();
+  }
+});
+
+useSettingsStore.subscribe((state, previous) => {
+  if (state.models !== previous.models) {
+    pruneMissingModelSelections();
+  }
+});
+
+pruneMissingModelSelections();
+
 // Helper to get enabled models that have API keys
 export function getEnabledModels(state: SettingsState): StoredModel[] {
   return state.models.filter((m) => m.enabled && hasProviderAccess(state.apiKeys, m.provider));
