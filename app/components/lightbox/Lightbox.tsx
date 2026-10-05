@@ -424,7 +424,7 @@ export function Lightbox() {
             }
           }}
         >
-          <section className="pointer-events-none flex min-h-[52dvh] cursor-default items-center justify-center overflow-hidden lg:min-h-0 lg:items-stretch">
+          <section className="pointer-events-none flex min-h-[52dvh] cursor-default items-center justify-center overflow-hidden lg:min-h-0">
             <img
               data-lightbox-image
               src={imageSrc}
@@ -432,7 +432,7 @@ export function Lightbox() {
               height={galleryImage?.height}
               alt={imageAlt}
               onClick={handleImageClick}
-              className="pointer-events-auto block h-auto max-h-[70dvh] min-h-0 w-auto max-w-full min-w-0 cursor-auto object-contain lg:max-h-full"
+              className="pointer-events-auto block h-auto max-h-[70dvh] min-h-0 w-auto max-w-full min-w-0 cursor-auto lg:max-h-full"
             />
           </section>
 
