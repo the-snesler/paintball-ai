@@ -45,3 +45,7 @@ export function getAspectRatioValue(aspectRatio: AspectRatio | null): number {
   const [first, second] = aspectRatio.split(":");
   return parseFloat(first) / parseFloat(second);
 }
+export function formatUsd(value: number): string {
+  if (value < 0.0001) return "<$0.0001";
+  return `$${value < 0.01 ? value.toFixed(4) : value.toFixed(2)}`;
+}

@@ -43,7 +43,7 @@ import type {
 import { Accordion } from "@base-ui/react/accordion";
 import { logger } from "~/lib/logging";
 import { Tooltip } from "../ui/Tooltip";
-import { formatRelativeDate } from "~/lib/util";
+import { formatRelativeDate, formatUsd } from "~/lib/util";
 
 export function Lightbox() {
   const navigate = useNavigate();
@@ -712,11 +712,6 @@ function getBlobExtension(blob: Blob): string {
   if (type.includes("webp")) return "webp";
   if (type.includes("jpeg") || type.includes("jpg")) return "jpg";
   return "png";
-}
-
-function formatUsd(value: number): string {
-  if (value < 0.0001) return "<$0.0001";
-  return `$${value < 0.01 ? value.toFixed(4) : value.toFixed(2)}`;
 }
 
 function formatMetric(metric: string, amount: number): string {

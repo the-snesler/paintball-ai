@@ -1,6 +1,7 @@
 import { Check, Star } from "lucide-react";
 import { useState, useCallback, type ChangeEvent, type MouseEvent } from "react";
 import { getScorecardAverage } from "~/lib/scorecard";
+import { formatUsd } from "~/lib/util";
 import { useGalleryStore } from "~/stores/galleryStore";
 import { useLightboxStore } from "~/stores/lightboxStore";
 import type { CompletedGalleryItem } from "~/types";
@@ -66,6 +67,12 @@ export function ImageCard({ image, selectionDisabled = false }: ImageCardProps) 
     [image]
   );
 
+  const metadata = [
+    image.modelName,
+    scoreAverage?.toFixed(1),
+    image.costEstimate ? `~${formatUsd(image.costEstimate.usd)}` : undefined,
+  ].filter(Boolean);
+
   return (
     <div
       className={`group animate-fade-in bg-surface-raised relative h-fit overflow-hidden rounded-lg outline-[1.5px] ${
@@ -77,7 +84,7 @@ export function ImageCard({ image, selectionDisabled = false }: ImageCardProps) 
     >
       {!selectionDisabled && (
         <div
-          className={`absolute top-2 left-2 z-20 transition-opacity duration-150 ${
+          className={`absolute top-1 left-1 z-20 transition-opacity duration-150 ${
             isSelected
               ? "opacity-100"
               : "pointer-events-none opacity-0 group-focus-within:pointer-events-auto group-focus-within:opacity-100 group-hover:pointer-events-auto group-hover:opacity-100"
@@ -92,7 +99,7 @@ export function ImageCard({ image, selectionDisabled = false }: ImageCardProps) 
               className="gallery-select-checkbox-input"
               aria-label="Select image"
             />
-            <label htmlFor={checkboxId} className="gallery-select-checkbox-label">
+            <label htmlFor={checkboxId} className="gallery-select-checkbox-label bg-black/40">
               <span className="gallery-select-checkbox-mark" aria-hidden="true">
                 <Check className="animate-in h-4 w-4" />
               </span>
@@ -125,21 +132,20 @@ export function ImageCard({ image, selectionDisabled = false }: ImageCardProps) 
         />
       )}
 
-      {/* Persistent model badge */}
-      <div className="absolute bottom-2 left-2 rounded bg-black/60 px-2 py-1 text-xs text-white/90 backdrop-blur-sm">
-        {image.modelName}
-      </div>
       {image.isFavorite && (
-        <div className="absolute top-2 right-2 flex h-7 w-7 items-center justify-center rounded-full bg-black/60 text-yellow-300 backdrop-blur-sm">
+        <div className="absolute top-1 right-1 flex h-7 w-7 items-center justify-center rounded bg-black/40 text-yellow-300 backdrop-blur-sm">
           <Star className="h-4 w-4 fill-current" />
         </div>
       )}
-      {scoreAverage != null && (
-        <div className="text-accent-muted absolute right-2 bottom-2 flex items-center gap-1 rounded bg-black/60 px-2 py-1 text-xs backdrop-blur-sm">
-          <Star className="h-3 w-3 fill-current" />
-          {scoreAverage.toFixed(1)}
-        </div>
-      )}
+
+      {/* Metadata row */}
+      <div className="absolute bottom-1 left-1 flex items-center gap-1 text-xs">
+        {metadata.map((e) => (
+          <div key={e} className="rounded bg-black/40 px-1 py-0.5 text-white/90 backdrop-blur-sm">
+            {e}
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
