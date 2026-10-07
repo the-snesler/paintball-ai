@@ -15,8 +15,7 @@ const IMAGE_MODEL_LIBRARY = [
 ];
 
 const DEFAULT_IMAGE_MODEL_IDS = [
-  "google/gemini-3-pro-image-preview",
-  "google/gemini-3.1-flash-image-preview",
+  "google/gemini-nano-banana-2.1",
   "replicate/google/nano-banana-pro",
   "openai/gpt-image-2.5-flare",
   "replicate/black-forest-labs/flux-2-flex",

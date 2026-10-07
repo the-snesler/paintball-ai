@@ -15,6 +15,40 @@ const STANDARD_ASPECT_RATIOS = [
 
 export const GOOGLE_IMAGE_MODELS = [
   {
+    id: "gemini-nano-banana-2.1",
+    provider: "google",
+    name: "Nano Banana 2.1",
+    icon: "/icons/google.svg",
+    capabilities: {
+      supportsAspectRatios: true,
+      supportedAspectRatios: [
+        ...STANDARD_ASPECT_RATIOS,
+        "1:4",
+        "4:1",
+        "1:8",
+        "8:1",
+        "9:21",
+      ],
+      supportsResolution: true,
+      resolutions: ["1K", "2K", "4K"],
+      supportsReferenceImages: true,
+      maxReferenceImages: 14,
+    },
+    pricing: {
+      currency: "USD",
+      source: {
+        kind: "model-library",
+        url: "https://ai.google.dev/gemini-api/docs/pricing",
+        fetchedAt: Date.UTC(2026, 9, 7),
+      },
+      rules: [
+        { metric: "inputTokens", units: 1_000_000, usd: 1.5 },
+        { metric: "textOutputTokens", units: 1_000_000, usd: 7.5 },
+        { metric: "imageOutputTokens", units: 1_000_000, usd: 30 },
+      ],
+    },
+  },
+  {
     id: "gemini-3-pro-image-preview",
     provider: "google",
     name: "Gemini 3.0 Pro",
