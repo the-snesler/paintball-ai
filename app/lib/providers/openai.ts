@@ -42,12 +42,18 @@ const GPT_IMAGE_2_MIN_PIXELS = 655_360;
 const GPT_IMAGE_2_MAX_PIXELS = 8_294_400;
 const GPT_IMAGE_2_MAX_LONG_SHORT_RATIO = 3;
 
-// Per-resolution target pixel counts, chosen to match the docs' popular sizes
-// (1024x1024 for 1K, 2048x2048 for 2K, 3840x2160 for 4K).
-const GPT_IMAGE_2_RESOLUTION_PIXELS: Record<Resolution, number> = {
-  "1K": 1024 * 1024,
-  "2K": 2048 * 2048,
-  "4K": 3840 * 2160,
+// Target the shortest edge, then scale down to fit the model's limits.
+const GPT_IMAGE_2_RESOLUTION_SHORT_EDGE: Record<Resolution, number> = {
+  "1K": 1024,
+  "2K": 2048,
+  "4K": 4096,
+};
+
+// 16:9 / 9:16 use video presets; 1080 is snapped to 1072 for API alignment.
+const GPT_IMAGE_2_VIDEO_SHORT_EDGE: Record<Resolution, number> = {
+  "1K": 1152,
+  "2K": 1440,
+  "4K": 2160,
 };
 
 function isGptImage2(modelId: string): boolean {
@@ -78,23 +84,19 @@ function resolveGptImage2Size(
   const longShort = Math.max(wRatio, hRatio) / Math.min(wRatio, hRatio);
   if (longShort > GPT_IMAGE_2_MAX_LONG_SHORT_RATIO) return null;
 
-  const target = GPT_IMAGE_2_RESOLUTION_PIXELS[resolution ?? "1K"];
+  const targets =
+    longShort === 16 / 9 ? GPT_IMAGE_2_VIDEO_SHORT_EDGE : GPT_IMAGE_2_RESOLUTION_SHORT_EDGE;
+  const target = targets[resolution ?? "1K"];
+  const w = (target * wRatio) / Math.min(wRatio, hRatio);
+  const h = (target * hRatio) / Math.min(wRatio, hRatio);
+  const scale = Math.min(
+    1,
+    GPT_IMAGE_2_MAX_EDGE / Math.max(w, h),
+    Math.sqrt(GPT_IMAGE_2_MAX_PIXELS / (w * h))
+  );
 
-  let w = Math.sqrt((target * wRatio) / hRatio);
-  let h = (w * hRatio) / wRatio;
-
-  // Cap the long edge first, then recompute the other side.
-  if (w > GPT_IMAGE_2_MAX_EDGE) {
-    w = GPT_IMAGE_2_MAX_EDGE;
-    h = (w * hRatio) / wRatio;
-  }
-  if (h > GPT_IMAGE_2_MAX_EDGE) {
-    h = GPT_IMAGE_2_MAX_EDGE;
-    w = (h * wRatio) / hRatio;
-  }
-
-  const width = snap16(w);
-  const height = snap16(h);
+  const width = snap16(w * scale);
+  const height = snap16(h * scale);
   const pixels = width * height;
 
   if (
