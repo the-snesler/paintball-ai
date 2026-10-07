@@ -6,6 +6,7 @@ import type {
   StoredImageRecord,
 } from "~/types";
 import { createThumbnailBlob } from "./imageProcessing";
+import { toImageStatRecord, type ImageStatRecord } from "./stats";
 
 const DB_NAME = "studio-image-gallery";
 const DB_VERSION = 4;
@@ -222,6 +223,25 @@ export async function getAllImages(): Promise<StoredImageRecord[]> {
           reject(error);
         }
       })();
+    };
+  });
+}
+
+/**
+ * Loads every image as a slim stats projection. Skips legacy normalization (no thumbnail
+ * regeneration) and drops blobs/embeddings so the stats page doesn't retain them.
+ */
+export async function getImageStatRecords(): Promise<ImageStatRecord[]> {
+  const db = await initDB();
+
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(STORES.images, "readonly");
+    const request = transaction.objectStore(STORES.images).index("byCreatedAt").getAll();
+
+    request.onerror = () => reject(request.error);
+    request.onsuccess = () => {
+      const records = request.result as Array<StoredImageRecord | LegacyStoredImageRecord>;
+      resolve(records.map(toImageStatRecord));
     };
   });
 }

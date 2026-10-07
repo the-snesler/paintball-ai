@@ -32,6 +32,7 @@ app/
 │   ├── home.tsx              # Layout: Sidebar + Lightbox + Notifications
 │   ├── gallery.tsx           # Index route: gallery grid
 │   ├── timeline.tsx          # Timeline view of gallery
+│   ├── stats.tsx             # Stats dashboard (spend, model usage, timing, habits)
 │   ├── settings.tsx          # Settings page
 │   ├── editor.tsx            # Image editor page (?imageId param)
 │   └── characterEdit.tsx     # Character creation/edit (/characters/new, /characters/:id)
@@ -42,6 +43,7 @@ app/
 │   ├── settings/             # API key management, model toggles
 │   ├── editor/               # Iterative image editor
 │   ├── character/            # Character creation/edit view
+│   ├── stats/                # Stats dashboard charts (Recharts + validated palette in chartTheme.ts)
 │   └── ui/                   # Shared primitives (Switch, Tooltip)
 ├── stores/
 │   ├── settingsStore.ts      # API keys, models, styles, characters (persisted)
@@ -73,6 +75,7 @@ app/
 │   ├── exportImport.ts       # ZIP-based gallery export/import
 │   ├── replicateSchema.ts    # Replicate model schema introspection
 │   ├── galleryGrouping.ts    # Date-based grouping utility
+│   ├── stats.ts              # Slim stat records + aggregation for the stats page
 │   ├── util.ts               # blobToBase64, sleep
 │   └── logging.ts            # Debug logger
 └── types/
