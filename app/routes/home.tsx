@@ -16,7 +16,7 @@ import { DiffViewer } from "~/components/editor/DiffViewer";
 
 export function meta({}: Route.MetaArgs) {
   return [
-    { title: "Paintball - AI Image Generation" },
+    { title: "Prismix - AI Image Generation" },
     { name: "description", content: "Generate images with AI models" },
   ];
 }
@@ -81,9 +81,9 @@ export default function Home() {
       return;
     }
 
-    new Notification("Paintball", {
+    new Notification("Prismix", {
       body: "All generations are complete.",
-      tag: "paintball-generation-complete",
+      tag: "prismix-generation-complete",
     });
   }, [inFlightCount, desktopNotificationsEnabled]);
 

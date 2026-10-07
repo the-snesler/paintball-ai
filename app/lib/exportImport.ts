@@ -76,7 +76,7 @@ export async function exportAllImages(
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
-  link.download = `paintball-export-${date}.zip`;
+  link.download = `prismix-export-${date}.zip`;
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);

@@ -21,18 +21,18 @@ import { InkDropGrid } from "~/components/landing/InkDropGrid";
 
 export function meta(_: Route.MetaArgs) {
   return [
-    { title: "Paintball — One frontend for every AI image model" },
+    { title: "Prismix — One frontend for every AI image model" },
     {
       name: "description",
       content:
-        "Paintball is a bring-your-own-key image generation app. Run OpenAI, Google, Replicate, and any custom image model side-by-side in your browser. Compare results, iterate in an editor, and keep your keys local.",
+        "Prismix is a bring-your-own-key image generation app. Run OpenAI, Google, Replicate, and any custom image model side-by-side in your browser. Compare results, iterate in an editor, and keep your keys local.",
     },
     {
       name: "keywords",
       content:
         "AI image generator, bring your own key, BYOK, GPT Image, Gemini, Replicate, FLUX, Imagen, image model comparison, AI gallery",
     },
-    { property: "og:title", content: "Paintball — One frontend for every AI image model" },
+    { property: "og:title", content: "Prismix — One frontend for every AI image model" },
     {
       property: "og:description",
       content:
@@ -144,7 +144,7 @@ export default function Landing() {
             >
               <IconDroplet className="h-3.5 w-3.5 text-white" />
             </span>
-            <span>Paintball</span>
+            <span>Prismix</span>
           </Link>
           <nav
             className="text-text-tertiary ml-2 hidden gap-6 text-sm md:flex"
@@ -209,7 +209,7 @@ export default function Landing() {
             image model.
           </h1>
           <p className="text-text-tertiary mx-auto mb-9 max-w-170 text-[clamp(16px,1.4vw,19px)] leading-[1.55]">
-            Paintball is a fast, local app for generating with every modern image model: OpenAI,
+            Prismix is a fast, local app for generating with every modern image model: OpenAI,
             Google, Replicate, or any custom checkpoint you can name. Compare side-by-side, iterate
             in an editor, search your gallery semantically. Your keys never leave your browser.
           </p>
@@ -218,7 +218,7 @@ export default function Landing() {
               to="/app"
               className="inline-flex items-center gap-2.5 rounded-[10px] bg-linear-to-b from-white to-[#e6e6ee] px-5.5 py-3 text-[15px] font-medium text-[#0a0a10] shadow-[0_1px_0_rgba(255,255,255,0.6)_inset,0_10px_30px_-10px_rgba(255,255,255,0.25)] transition hover:-translate-y-px"
             >
-              Open Paintball
+              Open Prismix
               <IconArrow className="h-3.5 w-3.5" />
             </Link>
             <a
@@ -271,7 +271,7 @@ export default function Landing() {
           </div>
           <img
             src="/screenshot-gallery.png"
-            alt="Paintball gallery view: prompt sidebar on the left with model selector, aspect ratio, and resolution controls; masonry gallery of generated images on the right tagged by model."
+            alt="Prismix gallery view: prompt sidebar on the left with model selector, aspect ratio, and resolution controls; masonry gallery of generated images on the right tagged by model."
             className="block w-full"
           />
         </div>
@@ -378,7 +378,7 @@ export default function Landing() {
         <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
           <div className="border-c-border rounded-[14px] border bg-[#0c0c11] p-6">
             <div className="text-accent-muted mb-3 font-mono text-xs">01 / Open</div>
-            <h3 className="mb-2 text-lg font-semibold tracking-[-0.01em]">Open Paintball</h3>
+            <h3 className="mb-2 text-lg font-semibold tracking-[-0.01em]">Open Prismix</h3>
             <p className="text-text-tertiary text-sm leading-[1.6]">
               It's a web app. Bookmark it, open it, you're in. No installer, no signup gate.
             </p>
@@ -433,7 +433,7 @@ export default function Landing() {
               to="/app"
               className="inline-flex items-center gap-2.5 rounded-[10px] bg-linear-to-b from-white to-[#e6e6ee] px-5.5 py-3 text-[15px] font-medium text-[#0a0a10] shadow-[0_1px_0_rgba(255,255,255,0.6)_inset,0_10px_30px_-10px_rgba(255,255,255,0.25)] transition hover:-translate-y-px"
             >
-              Open Paintball
+              Open Prismix
               <IconArrow className="h-3.5 w-3.5" />
             </Link>
             <a
@@ -447,7 +447,7 @@ export default function Landing() {
       </section>
 
       <footer className="border-c-border text-text-tertiary mx-auto mt-16 flex max-w-300 flex-wrap items-center gap-6 border-t px-7 pt-9 pb-16 text-[13px]">
-        <span>© 2026 Paintball. MIT licensed.</span>
+        <span>© 2026 Prismix. MIT licensed.</span>
         <div className="ml-auto flex gap-6">
           <a href="#features" className="hover:text-text-primary transition-colors">
             Features

@@ -289,7 +289,7 @@ export function Lightbox() {
       <p className="text-text-muted pt-1">
         {galleryImage.costEstimate.pricing.source.kind === "models.dev"
           ? "models.dev"
-          : "Paintball model library"}{" "}
+          : "Prismix model library"}{" "}
         · {new Date(galleryImage.costEstimate.pricing.source.fetchedAt).toLocaleDateString()}
       </p>
       <p className="text-text-muted">Actual billing may vary.</p>

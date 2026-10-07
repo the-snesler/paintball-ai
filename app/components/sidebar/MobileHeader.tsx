@@ -13,8 +13,7 @@ export function MobileHeader() {
           <Droplet className="text-accent-muted h-4 w-4" />
         </div>
         <div>
-          <h1 className="text-sm font-semibold">Paintball</h1>
-          <p className="text-text-muted text-xs">AI Image Generation</p>
+          <h1 className="text-sm font-semibold">Prismix</h1>
         </div>
       </div>
       {showMenu ? (

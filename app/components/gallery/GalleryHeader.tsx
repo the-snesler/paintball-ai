@@ -54,8 +54,7 @@ export function GalleryHeader({
           <SVG src={drop} className="h-4 w-4 text-white" />
         </div>
         <div className="text-left">
-          <h1 className="text-sm font-semibold">Paintball</h1>
-          <p className="text-text-tertiary text-xs">AI Image Generator</p>
+          <h1 className="text-sm font-semibold">Prismix</h1>
         </div>
       </div>
 

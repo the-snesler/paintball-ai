@@ -1,4 +1,4 @@
-# Paintball
+# Prismix
 
 AI image generation gallery with multi-model support. Runs mostly in the user's browser, proxies requests to Replicate via a Cloudflare Worker.
 
@@ -30,7 +30,7 @@ AI image generation gallery with multi-model support. Runs mostly in the user's 
 ## Screenshots
 <img width="1942" height="1357" alt="image" src="https://github.com/user-attachments/assets/1fe4e1b5-8d45-47cc-bc52-038f9348a563" />
 
-<img width="1942" height="1357" alt="Screenshot 2026-05-04 at 10-22-17 Paintball - AI Image Generation" src="https://github.com/user-attachments/assets/85d6d8b4-aae6-413e-8983-36e206ab6a87" />
+<img width="1942" height="1357" alt="Screenshot 2026-05-04 at 10-22-17 Prismix - AI Image Generation" src="https://github.com/user-attachments/assets/85d6d8b4-aae6-413e-8983-36e206ab6a87" />
 
 ## Setup
 

@@ -8,9 +8,9 @@ function notifyImproveComplete() {
   if (Notification.permission !== "granted") return;
   if (!document.hidden && document.hasFocus()) return;
 
-  new Notification("Paintball", {
+  new Notification("Prismix", {
     body: "Text rewrite complete.",
-    tag: "paintball-improve-text-complete",
+    tag: "prismix-improve-text-complete",
   });
 }
 

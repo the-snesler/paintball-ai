@@ -715,7 +715,7 @@ function EmptyStatsState() {
       </div>
       <h3 className="text-text-secondary mb-2 text-lg font-medium">No images yet</h3>
       <p className="text-text-muted max-w-sm text-sm">
-        Generate a few images and Paintball will chart your spending, model habits, and more.
+        Generate a few images and Prismix will chart your spending, model habits, and more.
       </p>
     </div>
   );
