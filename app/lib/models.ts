@@ -30,6 +30,25 @@ export function aspectRatioDistance(arA: number, arB: number): number {
   return Math.abs(Math.log(arA / arB));
 }
 
+/** Simplest integer ratio within 0.5% of positive image dimensions, preserving orientation. */
+export function simplifyImageAspectRatio(
+  width: number,
+  height: number,
+  maxLongShortRatio = Infinity
+): string {
+  const ratio = Math.max(width, height) / Math.min(width, height);
+  for (let short = 1; short <= Math.min(width, height); short++) {
+    const long = Math.round(ratio * short);
+    if (
+      long / short <= maxLongShortRatio &&
+      aspectRatioDistance(long / short, ratio) <= Math.log(1.005)
+    ) {
+      return width >= height ? `${long}:${short}` : `${short}:${long}`;
+    }
+  }
+  return `${width}:${height}`;
+}
+
 export function aspectRatiosCompatibleForDiff(arA: number, arB: number): boolean {
   return aspectRatioDistance(arA, arB) < AR_DIFF_THRESHOLD;
 }

@@ -15,7 +15,7 @@ import {
   sortableKeyboardCoordinates,
 } from "@dnd-kit/sortable";
 import { useImproveText } from "~/hooks/useImproveText";
-import { anyModelSupportsReferenceImages } from "~/lib/models";
+import { anyModelSupportsReferenceImages, isSoleArbitraryAspectRatioModel } from "~/lib/models";
 import { ELABORATE_PROMPT_SYSTEM } from "~/lib/prompts";
 import { buildElaborationContext } from "~/lib/promptUnification";
 import { isTextModelAvailable } from "~/lib/textModel";
@@ -32,6 +32,7 @@ import { SortableReferenceImage } from "../reference/SortableReferenceImage";
 export function PromptInput() {
   const prompt = useGenerationStore((s) => s.currentPrompt);
   const setPrompt = useGenerationStore((s) => s.setPrompt);
+  const setAspectRatio = useGenerationStore((s) => s.setAspectRatio);
   const basePrompt = useGenerationStore((s) => s.currentBasePrompt);
   const setBasePrompt = useGenerationStore((s) => s.setBasePrompt);
   const referenceImages = useGenerationStore((s) => s.currentReferenceImages);
@@ -111,6 +112,9 @@ export function PromptInput() {
   );
 
   const referenceEnabled = anyModelSupportsReferenceImages(models, selectedModels);
+  const arbitraryAspectRatioModel = isSoleArbitraryAspectRatioModel(models, selectedModels)
+    ? models.find((model) => model.id === selectedModels[0])
+    : undefined;
   const isExpanded = isDragOver || referenceImages.length > 0;
   const editingReference = editingReferenceId
     ? (referenceImages.find((img) => img.id === editingReferenceId) ?? null)
@@ -321,6 +325,8 @@ export function PromptInput() {
                         })
                       }
                       onEdit={setEditingReferenceId}
+                      onMatchAspectRatio={arbitraryAspectRatioModel ? setAspectRatio : undefined}
+                      maxLongShortRatio={arbitraryAspectRatioModel?.capabilities.maxLongShortRatio}
                       referenceEnabled={referenceEnabled}
                     />
                   ))}

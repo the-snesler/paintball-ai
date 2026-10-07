@@ -11,6 +11,7 @@ import { useGenerationStore } from "~/stores/generationStore";
 import { useSettingsStore } from "~/stores/settingsStore";
 import { Accordion } from "@base-ui/react/accordion";
 import { AspectRatioPreview } from "~/components/ui/AspectRatioPreview";
+import { getAspectRatioValue } from "~/lib/util";
 
 const ARBITRARY_MODE_PRESETS = ["3:2", "2:3"];
 
@@ -19,6 +20,11 @@ export function AspectRatioSection() {
   const setAspectRatio = useGenerationStore((s) => s.setAspectRatio);
   const modelSelections = useGenerationStore((s) => s.currentModelSelections);
   const models = useSettingsStore((s) => s.models);
+  const [customSelection, setCustomSelection] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (aspectRatio !== customSelection) setCustomSelection(null);
+  }, [aspectRatio, customSelection]);
 
   // Derive selected model IDs from modelSelections (subscribing to the actual state)
   const selectedModels = Object.entries(modelSelections)
@@ -56,17 +62,31 @@ export function AspectRatioSection() {
   const primaryRatios = allRatios.slice(0, splitAt);
   const hiddenRatios = allRatios.slice(splitAt);
   const hasAdditionalRatios = arbitraryMode || selectableRatios.length > splitAt;
+  const customSelected =
+    arbitraryMode &&
+    !!aspectRatio &&
+    (customSelection === aspectRatio ||
+      ![...primaryRatios, ...ARBITRARY_MODE_PRESETS].some(
+        (ratio) => getAspectRatioValue(ratio) === getAspectRatioValue(aspectRatio)
+      ));
 
   const renderRatio = (ratio: string, opts?: { forceEnabled?: boolean }) => {
     const builtInMeta = ASPECT_RATIOS.find((ar) => ar.value === ratio);
     const parsed = parseAspectRatio(ratio);
-    const isSelected = aspectRatio === ratio;
+    const isSelected =
+      !customSelected &&
+      !!aspectRatio &&
+      getAspectRatioValue(aspectRatio) === getAspectRatioValue(ratio);
     const isEnabled = opts?.forceEnabled || selectableSet.has(ratio);
 
     return (
       <button
         key={ratio}
-        onClick={() => isEnabled && setAspectRatio(isSelected ? null : ratio)}
+        onClick={() => {
+          if (!isEnabled) return;
+          setCustomSelection(null);
+          setAspectRatio(isSelected ? null : ratio);
+        }}
         disabled={!isEnabled}
         className={`flex flex-col items-center gap-1 rounded-lg p-1.5 transition-colors ${
           isSelected
@@ -81,7 +101,7 @@ export function AspectRatioSection() {
         <AspectRatioPreview
           width={builtInMeta?.width ?? parsed.width}
           height={builtInMeta?.height ?? parsed.height}
-          isSelected={isSelected}
+          variant={isSelected ? "highlighted" : "default"}
         />
         <div className="flex-1" />
         <span className="text-text-tertiary text-[10px]">{ratio}</span>
@@ -119,8 +139,12 @@ export function AspectRatioSection() {
                 {ARBITRARY_MODE_PRESETS.map((r) => renderRatio(r, { forceEnabled: true }))}
                 <CustomAspectRatioInput
                   currentAspectRatio={aspectRatio}
-                  setAspectRatio={setAspectRatio}
+                  setAspectRatio={(ratio) => {
+                    setCustomSelection(ratio);
+                    setAspectRatio(ratio);
+                  }}
                   maxLongShortRatio={arbitraryMaxLongShort}
+                  isSelected={customSelected}
                 />
               </div>
             </Accordion.Panel>
@@ -154,14 +178,23 @@ function CustomAspectRatioInput({
   currentAspectRatio,
   setAspectRatio,
   maxLongShortRatio,
+  isSelected,
 }: {
   currentAspectRatio: string | null;
   setAspectRatio: (ratio: string | null) => void;
   maxLongShortRatio: number;
+  isSelected: boolean;
 }) {
   const seed = parseCustomSeed(currentAspectRatio);
   const [wInput, setWInput] = useState(seed.w);
   const [hInput, setHInput] = useState(seed.h);
+
+  useEffect(() => {
+    if (!currentAspectRatio) return;
+    const nextSeed = parseCustomSeed(currentAspectRatio);
+    setWInput((previous) => (Number(previous) === Number(nextSeed.w) ? previous : nextSeed.w));
+    setHInput((previous) => (Number(previous) === Number(nextSeed.h) ? previous : nextSeed.h));
+  }, [currentAspectRatio]);
 
   const wNum = Number(wInput);
   const hNum = Number(hInput);
@@ -170,18 +203,12 @@ function CustomAspectRatioInput({
     numericValid && Math.max(wNum, hNum) / Math.min(wNum, hNum) <= maxLongShortRatio;
 
   const candidate = numericValid ? `${wNum}:${hNum}` : null;
-  const isSelected = !!candidate && currentAspectRatio === candidate;
-
-  const handleOnClick = () => {
-    apply(wInput, hInput);
-  };
-
   const apply = (nextW: string, nextH: string) => {
     const w = Number(nextW);
     const h = Number(nextH);
     if (!Number.isFinite(w) || !Number.isFinite(h) || w <= 0 || h <= 0) return;
     if (Math.max(w, h) / Math.min(w, h) > maxLongShortRatio) return;
-    setAspectRatio(isSelected ? null : `${w}:${h}`);
+    setAspectRatio(`${w}:${h}`);
   };
 
   const capLabel = Number.isFinite(maxLongShortRatio) ? `${maxLongShortRatio}:1` : "limit";
@@ -190,15 +217,28 @@ function CustomAspectRatioInput({
   const previewH = numericValid ? hNum : 1;
 
   return (
-    <button
+    <div
       className={`relative col-span-3 grid grid-cols-3 items-center justify-items-center gap-4 rounded-lg p-2 transition-colors ${
         isSelected
           ? "border border-purple-500 bg-purple-500/20"
           : "border-c-border bg-surface-overlay border"
       }`}
-      onClick={handleOnClick}
     >
-      <AspectRatioPreview width={previewW} height={previewH} maxDim={25} isSelected={isSelected} />
+      <button
+        type="button"
+        aria-label="Use custom aspect ratio"
+        aria-pressed={isSelected}
+        disabled={!ratioValid}
+        onClick={() => setAspectRatio(isSelected ? null : candidate)}
+        className="flex h-full w-full items-center justify-center rounded disabled:cursor-not-allowed disabled:opacity-40"
+      >
+        <AspectRatioPreview
+          width={previewW}
+          height={previewH}
+          maxDim={25}
+          variant={isSelected ? "highlighted" : "default"}
+        />
+      </button>
       <div className="col-span-2 flex w-full flex-1 items-center gap-1">
         <input
           type="number"
@@ -234,6 +274,6 @@ function CustomAspectRatioInput({
           max {capLabel}
         </span>
       )}
-    </button>
+    </div>
   );
 }
