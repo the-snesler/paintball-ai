@@ -126,7 +126,10 @@ export function LoadingCard({ item, variant = "gallery" }: LoadingCardProps) {
       {/* Animated background for generating/pending */}
       {isGenerating && !isManual && (
         <SineWaveGrid
-          opacity={hasLoadingPreview ? 0.85 : 1}
+          opacity={hasLoadingPreview ? 1.0 : 0.6}
+          radius={100}
+          gridSize={25}
+          maxCellSizePct={0.7}
           sampleImageUrl={item.loadingPreview?.dataUrl}
         />
       )}
