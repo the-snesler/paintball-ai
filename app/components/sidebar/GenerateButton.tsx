@@ -161,15 +161,6 @@ export function GenerateButton() {
           )}
         </button>
       </div>
-      <GenerationCostPreview
-        models={models}
-        modelSelections={modelSelections}
-        aspectRatio={aspectRatio}
-        resolution={resolution}
-        quality={quality}
-        numberOfImages={numberOfImages}
-        referenceCount={precedence.keepManual + precedence.keepStyle + precedence.keepCharacter}
-      />
       {refWarningTooltip && (
         <div className="flex w-full justify-center">
           <Tooltip content={refWarningTooltip} placement="top" maxWidth="max-w-72">
@@ -191,6 +182,19 @@ export function GenerateButton() {
             willChange
           />
           {" pending"}
+          {totalImages > 0 && (
+            <>
+              {" • "}
+              <GenerationCostPreview
+                models={models}
+                modelSelections={modelSelections}
+                aspectRatio={aspectRatio}
+                resolution={resolution}
+                quality={quality}
+                numberOfImages={numberOfImages}
+              />
+            </>
+          )}
           {" • "}
           <button
             onClick={handleClear}

@@ -1,12 +1,56 @@
 import { useEffect, useMemo, useState } from "react";
 import { Info } from "lucide-react";
+import NumberFlow from "@number-flow/react";
 import { Tooltip } from "~/components/ui/Tooltip";
 import { getImageStatRecords } from "~/lib/db";
-import { doesModelSupportAspectRatio } from "~/lib/models";
+import { getOpenAIImagePixelCount } from "~/lib/openaiImageSize";
+import {
+  aspectRatioDistance,
+  doesModelSupportAspectRatio,
+  QUALITIES,
+  RESOLUTIONS_LABELS,
+} from "~/lib/models";
 import { type ImageStatRecord } from "~/lib/stats";
-import { formatUsd } from "~/lib/util";
+import { formatUsd, getAspectRatioValue } from "~/lib/util";
 import { useGalleryStore } from "~/stores/galleryStore";
 import type { AspectRatio, Resolution, StoredModel } from "~/types";
+
+// Unknown/default values are furthest away from a specific setting.
+function parameterDistance(
+  actual: string | null,
+  requested: string | null,
+  values: readonly string[]
+) {
+  if (actual === requested) return 0;
+  const actualIndex = values.indexOf(actual ?? "");
+  const requestedIndex = values.indexOf(requested ?? "");
+  return actualIndex < 0 || requestedIndex < 0
+    ? values.length
+    : Math.abs(actualIndex - requestedIndex);
+}
+
+function costAspectRatioDistance(
+  model: StoredModel | undefined,
+  record: ImageStatRecord,
+  aspectRatio: AspectRatio | null,
+  resolution: Resolution | null
+) {
+  if (!record.aspectRatio || !aspectRatio) return record.aspectRatio === aspectRatio ? 0 : Infinity;
+  if (model?.provider === "openai") {
+    const actualPixels = getOpenAIImagePixelCount(
+      model.id,
+      record.aspectRatio,
+      record.resolution as Resolution | null
+    );
+    const requestedPixels = getOpenAIImagePixelCount(model.id, aspectRatio, resolution);
+    return actualPixels && requestedPixels
+      ? aspectRatioDistance(actualPixels, requestedPixels)
+      : Infinity;
+  }
+  const actual = getAspectRatioValue(record.aspectRatio);
+  const requested = getAspectRatioValue(aspectRatio);
+  return aspectRatioDistance(Math.max(actual, 1 / actual), Math.max(requested, 1 / requested));
+}
 
 interface Props {
   models: StoredModel[];
@@ -15,7 +59,6 @@ interface Props {
   resolution: Resolution;
   quality: string | null;
   numberOfImages: number;
-  referenceCount: number;
 }
 
 export function GenerationCostPreview({
@@ -25,7 +68,6 @@ export function GenerationCostPreview({
   resolution,
   quality,
   numberOfImages,
-  referenceCount,
 }: Props) {
   const totalCount = useGalleryStore((s) => s.totalCount);
   const [records, setRecords] = useState<ImageStatRecord[] | null>(null);
@@ -65,99 +107,122 @@ export function GenerationCostPreview({
             (model?.capabilities.supportsNumberOfImages
               ? Math.max(1, Math.min(numberOfImages, model.capabilities.maxImagesPerRequest ?? 1))
               : 1);
-          const matches = (records ?? []).filter(
+          const candidates = (records ?? []).filter(
             (r) =>
               r.modelId === modelId &&
-              r.resolution === taskResolution &&
-              r.quality === taskQuality &&
-              r.aspectRatio === taskAspectRatio &&
-              r.referenceCount === referenceCount &&
-              !r.isUpscale &&
-              !r.isEdit &&
               r.costUsd !== null &&
               Number.isFinite(r.costUsd) &&
               r.costUsd >= 0
           );
+          const scored = candidates.map((record) => ({
+            record,
+            distance: [
+              parameterDistance(
+                record.resolution,
+                taskResolution,
+                RESOLUTIONS_LABELS.map(([, value]) => value)
+              ),
+              parameterDistance(record.quality, taskQuality, QUALITIES),
+              costAspectRatioDistance(model, record, taskAspectRatio, taskResolution),
+            ],
+          }));
+          // Resolution wins over quality; quality wins over aspect ratio, regardless of distance.
+          scored.sort(
+            (a, b) =>
+              a.distance[0] - b.distance[0] ||
+              a.distance[1] - b.distance[1] ||
+              a.distance[2] - b.distance[2]
+          );
+          const closest = scored[0]?.distance;
+          const matches = scored
+            .filter((sample) =>
+              sample.distance.every((distance, index) => distance === closest?.[index])
+            )
+            .map((sample) => sample.record);
+          const similar = closest?.some((distance) => distance > 0) ?? false;
+          const matchedSettings = new Map<string, number>();
+          for (const record of matches) {
+            const setting = `${record.resolution ?? "default resolution"} + ${record.quality ?? "default quality"} + ${record.aspectRatio ?? "auto aspect ratio"}`;
+            matchedSettings.set(setting, (matchedSettings.get(setting) ?? 0) + 1);
+          }
           const usd = matches.length
             ? (matches.reduce((sum, r) => sum + r.costUsd!, 0) / matches.length) * outputs
             : null;
-          const sources = [
-            ...new Set(matches.flatMap((r) => r.costEstimate?.pricing.source.url ?? [])),
-          ];
           return {
             modelId,
             name: model?.name ?? modelId,
             outputs,
             usd,
             samples: matches.length,
-            sources,
+            similar,
+            matchedSettings,
           };
         }),
-    [
-      records,
-      models,
-      modelSelections,
-      aspectRatio,
-      resolution,
-      quality,
-      numberOfImages,
-      referenceCount,
-    ]
+    [records, models, modelSelections, aspectRatio, resolution, quality, numberOfImages]
   );
 
   if (!estimates.length) return null;
   const priced = estimates.filter((e) => e.usd !== null);
   const partial = priced.length < estimates.length;
   const total = priced.reduce((sum, e) => sum + e.usd!, 0);
+  const similar = estimates.some((e) => e.similar);
 
   return (
-    <div className="flex w-full justify-center">
-      <Tooltip
-        placement="top"
-        maxWidth="max-w-80"
-        content={
-          <div className="space-y-2">
-            <p>
-              Average saved per-image estimates with the same model, resolution, quality, aspect
-              ratio, and reference count, multiplied by requested outputs.
-            </p>
-            {estimates.map((e) => (
-              <div key={e.modelId}>
-                <p className="text-text-primary">
-                  {e.name} × {e.outputs}: {e.usd === null ? "unavailable" : formatUsd(e.usd)}
-                </p>
-                <p>
-                  {e.samples
-                    ? `${e.samples} matching image${e.samples === 1 ? "" : "s"}. ${e.samples < 5 ? "Low" : "Medium"} confidence (${e.samples < 5 ? "fewer than 5 samples" : "5+ samples; usage may vary"}).`
-                    : "No matching priced history."}
-                </p>
-                {e.sources.map((source) => (
-                  <p key={source} className="break-all">
-                    Pricing source: {source}
+    <Tooltip
+      placement="top"
+      maxWidth="max-w-80"
+      content={
+        <div className="space-y-2">
+          <p>
+            Estimated cost based only on past generations with the same model, and similar
+            resolution, quality, and aspect ratio. Excludes rewriting, variation, and reference
+            costs. Actual cost may vary.
+          </p>
+          {estimates.map((e) => (
+            <div key={e.modelId}>
+              <p className="text-text-primary">
+                {e.name} × {e.outputs}: {e.usd === null ? "unavailable" : formatUsd(e.usd)}
+              </p>
+              {e.similar ? (
+                [...e.matchedSettings].map(([setting, count]) => (
+                  <p key={setting} className="text-[10px] text-red-400">
+                    Based on {count} generation{count === 1 ? "" : "s"} at {setting}.
                   </p>
-                ))}
-              </div>
-            ))}
-            {partial && <p>Unpriced models are excluded from the subtotal.</p>}
-            <p>
-              Historical pricing may be outdated. Prompt and reference contents affect usage.
-              Excludes prompt improvement and variation costs. Actual billing may vary.
-            </p>
-            {loadFailed && <p>Could not load saved pricing history.</p>}
-          </div>
-        }
-      >
-        <span className="text-text-tertiary inline-flex cursor-help items-center gap-1 text-xs">
-          {loadFailed
-            ? "Estimated cost unavailable"
-            : records === null
-              ? "Estimating cost…"
-              : priced.length
-                ? `${partial ? "Estimated subtotal" : "Estimated total"}: ~${formatUsd(total)}`
-                : "Estimated cost unavailable"}
-          <Info className="h-3 w-3" />
-        </span>
-      </Tooltip>
-    </div>
+                ))
+              ) : (
+                <p className="text-text-muted text-[10px]">
+                  {e.samples
+                    ? `Based on ${e.samples} matching generation${e.samples === 1 ? "" : "s"}.`
+                    : "No priced generations for this model."}
+                </p>
+              )}
+            </div>
+          ))}
+          {loadFailed && <p>Could not load saved pricing history.</p>}
+        </div>
+      }
+    >
+      <span className="inline-flex cursor-help items-center gap-1 align-middle">
+        {loadFailed || records === null || partial ? (
+          "$???"
+        ) : (
+          <NumberFlow
+            value={total}
+            prefix="~"
+            suffix={similar ? "?" : undefined}
+            format={{
+              style: "currency",
+              currency: "USD",
+              minimumFractionDigits: total < 0.01 ? 4 : 2,
+              maximumFractionDigits: total < 0.01 ? 4 : 2,
+            }}
+            transformTiming={{ duration: 300, easing: "ease-out" }}
+            spinTiming={{ duration: 300, easing: "ease-out" }}
+            opacityTiming={{ duration: 150, easing: "ease-out" }}
+          />
+        )}
+        <Info className="text-text-muted hover:text-text-tertiary h-3 w-3 transition-colors" />
+      </span>
+    </Tooltip>
   );
 }
