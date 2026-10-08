@@ -10,6 +10,7 @@ import { hasVariationSections } from "~/lib/promptVariations";
 import { computeReferencePrecedence } from "~/lib/referencePrecedence";
 import { Tooltip } from "~/components/ui/Tooltip";
 import NumberFlow from "@number-flow/react";
+import { GenerationCostPreview } from "./GenerationCostPreview";
 
 export function GenerateButton() {
   const prompt = useGenerationStore((s) => s.currentPrompt);
@@ -160,6 +161,15 @@ export function GenerateButton() {
           )}
         </button>
       </div>
+      <GenerationCostPreview
+        models={models}
+        modelSelections={modelSelections}
+        aspectRatio={aspectRatio}
+        resolution={resolution}
+        quality={quality}
+        numberOfImages={numberOfImages}
+        referenceCount={precedence.keepManual + precedence.keepStyle + precedence.keepCharacter}
+      />
       {refWarningTooltip && (
         <div className="flex w-full justify-center">
           <Tooltip content={refWarningTooltip} placement="top" maxWidth="max-w-72">
