@@ -15,7 +15,7 @@
 - **Framework**: React Router 7 (SPA mode, `ssr: false`)
 - **Styling**: Tailwind CSS 4
 - **State**: Zustand (with localStorage persistence for settings)
-- **Storage**: IndexedDB for images and references, localStorage for API keys/settings
+- **Storage**: IndexedDB (via `idb`) for images and references, localStorage for API keys/settings
 - **Icons**: Lucide React
 - **AI**: Google GenAI SDK (`@google/genai`), Replicate SDK
 

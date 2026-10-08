@@ -1,3 +1,4 @@
+import { openDB, type DBSchema, type IDBPDatabase } from "idb";
 import type {
   CompletedGalleryItem,
   ImageScorecard,
@@ -10,14 +11,6 @@ import { toImageStatRecord, type ImageStatRecord } from "./stats";
 
 const DB_NAME = "studio-image-gallery";
 const DB_VERSION = 4;
-
-const STORES = {
-  images: "images",
-  references: "references",
-  sessions: "sessions",
-} as const;
-
-let dbInstance: IDBDatabase | null = null;
 
 interface LegacyStoredImageRecord {
   id: string;
@@ -34,118 +27,118 @@ interface LegacyStoredImageRecord {
   metadata: Record<string, unknown>;
 }
 
-export async function initDB(): Promise<IDBDatabase> {
-  if (dbInstance) return dbInstance;
+type StoredReferenceRecord = Omit<ReferenceImage, "url">;
 
-  return new Promise((resolve, reject) => {
-    const request = indexedDB.open(DB_NAME, DB_VERSION);
+interface GalleryDBSchema extends DBSchema {
+  images: {
+    key: string;
+    value: StoredImageRecord | LegacyStoredImageRecord;
+    indexes: { byCreatedAt: number; byModel: string };
+  };
+  references: {
+    key: string;
+    value: StoredReferenceRecord;
+  };
+  sessions: {
+    key: string;
+    value: StoredEditorSession;
+    indexes: { by_gallery_item: string };
+  };
+}
 
-    request.onerror = () => reject(request.error);
-    request.onsuccess = () => {
-      dbInstance = request.result;
-      resolve(request.result);
-    };
+type GalleryDB = IDBPDatabase<GalleryDBSchema>;
 
-    request.onupgradeneeded = (event) => {
-      const db = (event.target as IDBOpenDBRequest).result;
+let dbPromise: Promise<GalleryDB> | null = null;
 
+export function initDB(): Promise<GalleryDB> {
+  dbPromise ??= openDB<GalleryDBSchema>(DB_NAME, DB_VERSION, {
+    upgrade(db) {
       // Images store
-      if (!db.objectStoreNames.contains(STORES.images)) {
-        const imageStore = db.createObjectStore(STORES.images, { keyPath: "id" });
+      if (!db.objectStoreNames.contains("images")) {
+        const imageStore = db.createObjectStore("images", { keyPath: "id" });
         imageStore.createIndex("byCreatedAt", "createdAt", { unique: false });
         imageStore.createIndex("byModel", "modelId", { unique: false });
       }
 
       // Reference images store
-      if (!db.objectStoreNames.contains(STORES.references)) {
-        db.createObjectStore(STORES.references, { keyPath: "id" });
+      if (!db.objectStoreNames.contains("references")) {
+        db.createObjectStore("references", { keyPath: "id" });
       }
 
       // Editor sessions store (v3)
-      if (!db.objectStoreNames.contains(STORES.sessions)) {
-        const sessionStore = db.createObjectStore(STORES.sessions, { keyPath: "id" });
+      if (!db.objectStoreNames.contains("sessions")) {
+        const sessionStore = db.createObjectStore("sessions", { keyPath: "id" });
         sessionStore.createIndex("by_gallery_item", "sourceGalleryItemId", { unique: false });
       }
 
       // v4: no schema change required; `embedding` and `embeddingModelId` are
       // optional fields on existing records. Bumping the version allows future
       // additions to hook the upgrade path.
-    };
+    },
+  }).catch((error) => {
+    // Don't cache a failed open; let the next call retry.
+    dbPromise = null;
+    throw error;
   });
+  return dbPromise;
 }
 
-// Resolves when the transaction commits, not just when the request succeeds.
-// IndexedDB request.onsuccess fires before the transaction commits to disk;
-// resolving on transaction.oncomplete prevents writes from being lost if the
-// page is closed or reloaded mid-transaction.
-function awaitTransaction<T>(transaction: IDBTransaction, value: T): Promise<T> {
-  return new Promise((resolve, reject) => {
-    transaction.oncomplete = () => resolve(value);
-    transaction.onerror = () => reject(transaction.error);
-    transaction.onabort = () => reject(transaction.error);
-  });
+// Write helpers resolve when the transaction commits, not just when the request
+// succeeds (idb's shortcut writes like `db.put` await `tx.done` internally).
+// Resolving on commit prevents writes from being lost if the page is closed or
+// reloaded mid-transaction.
+
+/**
+ * Read-modify-write a single image record in one transaction. Resolves with the
+ * updated record after commit, or null if the image no longer exists.
+ */
+async function updateImage(
+  id: string,
+  mutate: (record: StoredImageRecord) => void
+): Promise<StoredImageRecord | null> {
+  const db = await initDB();
+  const tx = db.transaction("images", "readwrite");
+  const record = (await tx.store.get(id)) as StoredImageRecord | undefined;
+  if (!record) {
+    await tx.done;
+    return null;
+  }
+  mutate(record);
+  await Promise.all([tx.store.put(record), tx.done]);
+  return record;
 }
 
 // Image operations
 export async function saveImage(image: StoredImageRecord): Promise<StoredImageRecord> {
   const db = await initDB();
-
-  const transaction = db.transaction(STORES.images, "readwrite");
-  const store = transaction.objectStore(STORES.images);
-  store.add(image);
-
-  return awaitTransaction(transaction, image);
+  await db.add("images", image);
+  return image;
 }
 
 /** Clear a deleted style's ID without changing the saved sent prompt or references. */
 export async function removeImageStyleReferences(styleId: string): Promise<void> {
   const db = await initDB();
-  const transaction = db.transaction(STORES.images, "readwrite");
-  const request = transaction.objectStore(STORES.images).openCursor();
-  request.onsuccess = () => {
-    const cursor = request.result;
-    if (!cursor) return;
+  const tx = db.transaction("images", "readwrite");
+  for (let cursor = await tx.store.openCursor(); cursor; cursor = await cursor.continue()) {
     const record = cursor.value as StoredImageRecord;
     if (record.styleId === styleId) {
       delete record.styleId;
-      cursor.update(record);
+      await cursor.update(record);
     }
-    cursor.continue();
-  };
-  await awaitTransaction(transaction, undefined);
+  }
+  await tx.done;
 }
 
-export async function updateImageScorecard(
+export function updateImageScorecard(
   id: string,
   scorecard: ImageScorecard | undefined
 ): Promise<StoredImageRecord | null> {
-  const db = await initDB();
-
-  return new Promise((resolve, reject) => {
-    const transaction = db.transaction(STORES.images, "readwrite");
-    const store = transaction.objectStore(STORES.images);
-    const getRequest = store.get(id);
-
-    getRequest.onerror = () => reject(getRequest.error);
-    getRequest.onsuccess = () => {
-      const record = getRequest.result as StoredImageRecord | undefined;
-      if (!record) {
-        resolve(null);
-        return;
-      }
-
-      const nextRecord: StoredImageRecord = { ...record };
-      if (scorecard) {
-        nextRecord.scorecard = scorecard;
-      } else {
-        delete nextRecord.scorecard;
-      }
-
-      store.put(nextRecord);
-      transaction.oncomplete = () => resolve(nextRecord);
-      transaction.onerror = () => reject(transaction.error);
-      transaction.onabort = () => reject(transaction.error);
-    };
+  return updateImage(id, (record) => {
+    if (scorecard) {
+      record.scorecard = scorecard;
+    } else {
+      delete record.scorecard;
+    }
   });
 }
 
@@ -156,38 +149,17 @@ export async function getImagesPaginated(
   offset: number
 ): Promise<StoredImageRecord[]> {
   const db = await initDB();
+  const tx = db.transaction("images", "readonly");
+  const raw: Array<StoredImageRecord | LegacyStoredImageRecord> = [];
 
-  return new Promise((resolve, reject) => {
-    const transaction = db.transaction(STORES.images, "readonly");
-    const store = transaction.objectStore(STORES.images);
-    const index = store.index("byCreatedAt");
-    const raw: Array<StoredImageRecord | LegacyStoredImageRecord> = [];
-    let skipped = 0;
+  let cursor = await tx.store.index("byCreatedAt").openCursor(null, "prev");
+  if (cursor && offset > 0) cursor = await cursor.advance(offset);
+  while (cursor && raw.length < limit) {
+    raw.push(cursor.value);
+    cursor = await cursor.continue();
+  }
 
-    const request = index.openCursor(null, "prev");
-    request.onerror = () => reject(request.error);
-    request.onsuccess = () => {
-      const cursor = request.result;
-      if (!cursor || raw.length >= limit) {
-        void (async () => {
-          try {
-            const normalized = await Promise.all(raw.map((r) => normalizeStoredImageRecord(db, r)));
-            resolve(normalized);
-          } catch (e) {
-            reject(e);
-          }
-        })();
-        return;
-      }
-      if (skipped < offset) {
-        skipped++;
-        cursor.continue();
-        return;
-      }
-      raw.push(cursor.value as StoredImageRecord | LegacyStoredImageRecord);
-      cursor.continue();
-    };
-  });
+  return Promise.all(raw.map((r) => normalizeStoredImageRecord(db, r)));
 }
 
 export async function getImages(
@@ -200,31 +172,8 @@ export async function getImages(
 
 export async function getAllImages(): Promise<StoredImageRecord[]> {
   const db = await initDB();
-
-  return new Promise((resolve, reject) => {
-    const transaction = db.transaction(STORES.images, "readonly");
-    const store = transaction.objectStore(STORES.images);
-    const index = store.index("byCreatedAt");
-    const request = index.getAll();
-
-    request.onerror = () => reject(request.error);
-    request.onsuccess = () => {
-      const records = request.result.reverse() as Array<
-        StoredImageRecord | LegacyStoredImageRecord
-      >;
-
-      void (async () => {
-        try {
-          const normalized = await Promise.all(
-            records.map((record) => normalizeStoredImageRecord(db, record))
-          );
-          resolve(normalized);
-        } catch (error) {
-          reject(error);
-        }
-      })();
-    };
-  });
+  const records = (await db.getAllFromIndex("images", "byCreatedAt")).reverse();
+  return Promise.all(records.map((record) => normalizeStoredImageRecord(db, record)));
 }
 
 /**
@@ -233,55 +182,19 @@ export async function getAllImages(): Promise<StoredImageRecord[]> {
  */
 export async function getImageStatRecords(): Promise<ImageStatRecord[]> {
   const db = await initDB();
-
-  return new Promise((resolve, reject) => {
-    const transaction = db.transaction(STORES.images, "readonly");
-    const request = transaction.objectStore(STORES.images).index("byCreatedAt").getAll();
-
-    request.onerror = () => reject(request.error);
-    request.onsuccess = () => {
-      const records = request.result as Array<StoredImageRecord | LegacyStoredImageRecord>;
-      resolve(records.map(toImageStatRecord));
-    };
-  });
+  const records = await db.getAllFromIndex("images", "byCreatedAt");
+  return records.map(toImageStatRecord);
 }
 
 export async function getImageById(id: string): Promise<StoredImageRecord | null> {
   const db = await initDB();
-
-  return new Promise((resolve, reject) => {
-    const transaction = db.transaction(STORES.images, "readonly");
-    const store = transaction.objectStore(STORES.images);
-    const request = store.get(id);
-
-    request.onerror = () => reject(request.error);
-    request.onsuccess = () => {
-      const record = request.result as StoredImageRecord | LegacyStoredImageRecord | undefined;
-      if (!record) {
-        resolve(null);
-        return;
-      }
-
-      void (async () => {
-        try {
-          const normalized = await normalizeStoredImageRecord(db, record);
-          resolve(normalized);
-        } catch (error) {
-          reject(error);
-        }
-      })();
-    };
-  });
+  const record = await db.get("images", id);
+  return record ? normalizeStoredImageRecord(db, record) : null;
 }
 
 export async function deleteImage(id: string): Promise<void> {
   const db = await initDB();
-
-  const transaction = db.transaction(STORES.images, "readwrite");
-  const store = transaction.objectStore(STORES.images);
-  store.delete(id);
-
-  await awaitTransaction(transaction, undefined);
+  await db.delete("images", id);
 }
 
 export async function updateImageEmbedding(
@@ -289,79 +202,22 @@ export async function updateImageEmbedding(
   embedding: number[],
   embeddingModelId: string
 ): Promise<void> {
-  const db = await initDB();
-
-  return new Promise((resolve, reject) => {
-    const transaction = db.transaction(STORES.images, "readwrite");
-    const store = transaction.objectStore(STORES.images);
-    const getReq = store.get(id);
-
-    getReq.onerror = () => reject(getReq.error);
-    getReq.onsuccess = () => {
-      const record = getReq.result as StoredImageRecord | undefined;
-      if (!record) {
-        // Image was deleted between embedding start and finish — drop silently.
-        resolve();
-        return;
-      }
-      record.embedding = embedding;
-      record.embeddingModelId = embeddingModelId;
-      store.put(record);
-    };
-
-    transaction.oncomplete = () => resolve();
-    transaction.onerror = () => reject(transaction.error);
-    transaction.onabort = () => reject(transaction.error);
+  // If the image was deleted between embedding start and finish, this is a no-op.
+  await updateImage(id, (record) => {
+    record.embedding = embedding;
+    record.embeddingModelId = embeddingModelId;
   });
 }
 
 export async function updateImageCharacters(id: string, characterIds: string[]): Promise<void> {
-  const db = await initDB();
-
-  return new Promise((resolve, reject) => {
-    const transaction = db.transaction(STORES.images, "readwrite");
-    const store = transaction.objectStore(STORES.images);
-    const getReq = store.get(id);
-
-    getReq.onerror = () => reject(getReq.error);
-    getReq.onsuccess = () => {
-      const record = getReq.result as StoredImageRecord | undefined;
-      if (!record) {
-        resolve();
-        return;
-      }
-      record.characterIds = characterIds.length > 0 ? characterIds : undefined;
-      store.put(record);
-    };
-
-    transaction.oncomplete = () => resolve();
-    transaction.onerror = () => reject(transaction.error);
-    transaction.onabort = () => reject(transaction.error);
+  await updateImage(id, (record) => {
+    record.characterIds = characterIds.length > 0 ? characterIds : undefined;
   });
 }
 
 export async function updateImageFavorite(id: string, isFavorite: boolean): Promise<void> {
-  const db = await initDB();
-
-  return new Promise((resolve, reject) => {
-    const transaction = db.transaction(STORES.images, "readwrite");
-    const store = transaction.objectStore(STORES.images);
-    const getReq = store.get(id);
-
-    getReq.onerror = () => reject(getReq.error);
-    getReq.onsuccess = () => {
-      const record = getReq.result as StoredImageRecord | undefined;
-      if (!record) {
-        resolve();
-        return;
-      }
-      record.isFavorite = isFavorite;
-      store.put(record);
-    };
-
-    transaction.oncomplete = () => resolve();
-    transaction.onerror = () => reject(transaction.error);
-    transaction.onabort = () => reject(transaction.error);
+  await updateImage(id, (record) => {
+    record.isFavorite = isFavorite;
   });
 }
 
@@ -369,47 +225,27 @@ export async function getEmbeddingCounts(
   modelId: string | null
 ): Promise<{ total: number; indexed: number }> {
   const db = await initDB();
+  const tx = db.transaction("images", "readonly");
 
-  return new Promise((resolve, reject) => {
-    const transaction = db.transaction(STORES.images, "readonly");
-    const store = transaction.objectStore(STORES.images);
-    const request = store.openCursor();
-
-    let total = 0;
-    let indexed = 0;
-
-    request.onerror = () => reject(request.error);
-    request.onsuccess = () => {
-      const cursor = request.result;
-      if (!cursor) {
-        resolve({ total, indexed });
-        return;
-      }
-      const record = cursor.value as StoredImageRecord;
-      total++;
-      if (
-        record.embedding &&
-        record.embedding.length > 0 &&
-        (!modelId || record.embeddingModelId === modelId)
-      ) {
-        indexed++;
-      }
-      cursor.continue();
-    };
-  });
+  let total = 0;
+  let indexed = 0;
+  for (let cursor = await tx.store.openCursor(); cursor; cursor = await cursor.continue()) {
+    const record = cursor.value as StoredImageRecord;
+    total++;
+    if (
+      record.embedding &&
+      record.embedding.length > 0 &&
+      (!modelId || record.embeddingModelId === modelId)
+    ) {
+      indexed++;
+    }
+  }
+  return { total, indexed };
 }
 
 export async function getImageCount(): Promise<number> {
   const db = await initDB();
-
-  return new Promise((resolve, reject) => {
-    const transaction = db.transaction(STORES.images, "readonly");
-    const store = transaction.objectStore(STORES.images);
-    const request = store.count();
-
-    request.onerror = () => reject(request.error);
-    request.onsuccess = () => resolve(request.result);
-  });
+  return db.count("images");
 }
 
 // Reference image operations
@@ -418,96 +254,53 @@ export async function saveReferenceImage(
 ): Promise<ReferenceImage> {
   const db = await initDB();
 
-  const transaction = db.transaction(STORES.references, "readwrite");
-  const store = transaction.objectStore(STORES.references);
-  const record: { id: string; blob: Blob; name: string; sourceGalleryItemId?: string } = {
+  const record: StoredReferenceRecord = {
     id: image.id,
     blob: image.blob,
     name: image.name,
   };
   if (image.sourceGalleryItemId) record.sourceGalleryItemId = image.sourceGalleryItemId;
-  store.put(record);
+  await db.put("references", record);
 
-  return awaitTransaction(transaction, {
+  return {
     ...image,
     url: URL.createObjectURL(image.blob),
-  });
+  };
 }
 
 export async function getReferenceImagesByIds(ids: string[]): Promise<ReferenceImage[]> {
   if (ids.length === 0) return [];
 
   const db = await initDB();
+  const tx = db.transaction("references", "readonly");
+  const records = await Promise.all(ids.map((id) => tx.store.get(id)));
 
-  return new Promise((resolve, reject) => {
-    const transaction = db.transaction(STORES.references, "readonly");
-    const store = transaction.objectStore(STORES.references);
-    const requests = ids.map(
-      (id) =>
-        new Promise<ReferenceImage | null>((requestResolve, requestReject) => {
-          const request = store.get(id);
-
-          request.onerror = () => requestReject(request.error);
-          request.onsuccess = () => {
-            const record = request.result as
-              | { id: string; blob: Blob; name: string; sourceGalleryItemId?: string }
-              | undefined;
-
-            if (!record) {
-              requestResolve(null);
-              return;
-            }
-
-            requestResolve({
-              id: record.id,
-              blob: record.blob,
-              name: record.name,
-              url: URL.createObjectURL(record.blob),
-              sourceGalleryItemId: record.sourceGalleryItemId,
-            });
-          };
-        })
-    );
-
-    Promise.all(requests)
-      .then((images) => resolve(images.filter((img): img is ReferenceImage => img !== null)))
-      .catch(reject);
-  });
+  return records
+    .filter((record): record is StoredReferenceRecord => record !== undefined)
+    .map((record) => ({
+      id: record.id,
+      blob: record.blob,
+      name: record.name,
+      url: URL.createObjectURL(record.blob),
+      sourceGalleryItemId: record.sourceGalleryItemId,
+    }));
 }
 
 export async function deleteReferenceImage(id: string): Promise<void> {
   const db = await initDB();
-
-  const transaction = db.transaction(STORES.references, "readwrite");
-  const store = transaction.objectStore(STORES.references);
-  store.delete(id);
-
-  await awaitTransaction(transaction, undefined);
+  await db.delete("references", id);
 }
 
 export async function deleteReferenceImagesByIds(ids: string[]): Promise<void> {
   if (ids.length === 0) return;
   const db = await initDB();
-
-  const transaction = db.transaction(STORES.references, "readwrite");
-  const store = transaction.objectStore(STORES.references);
-  for (const id of ids) store.delete(id);
-
-  await awaitTransaction(transaction, undefined);
+  const tx = db.transaction("references", "readwrite");
+  await Promise.all([...ids.map((id) => tx.store.delete(id)), tx.done]);
 }
 
 export async function getAllReferenceImages(): Promise<Omit<ReferenceImage, "url">[]> {
   const db = await initDB();
-
-  return new Promise((resolve, reject) => {
-    const transaction = db.transaction(STORES.references, "readonly");
-    const request = transaction.objectStore(STORES.references).getAll();
-    request.onerror = () => reject(request.error);
-    request.onsuccess = () =>
-      resolve(
-        request.result as { id: string; blob: Blob; name: string; sourceGalleryItemId?: string }[]
-      );
-  });
+  return db.getAll("references");
 }
 
 /**
@@ -532,25 +325,15 @@ export async function garbageCollectReferences(
 
   const reachable = new Set<string>(extraReachableIds);
 
-  await new Promise<void>((resolve, reject) => {
-    const transaction = db.transaction(STORES.images, "readonly");
-    const request = transaction.objectStore(STORES.images).openCursor();
-    request.onerror = () => reject(request.error);
-    request.onsuccess = () => {
-      const cursor = request.result;
-      if (!cursor) {
-        resolve();
-        return;
-      }
-      const record = cursor.value as StoredImageRecord | LegacyStoredImageRecord | undefined;
-      if (record?.referenceImageIds) {
-        for (const id of record.referenceImageIds) reachable.add(id);
-        for (const id of (record as StoredImageRecord).manualReferenceImageIds ?? [])
-          reachable.add(id);
-      }
-      cursor.continue();
-    };
-  });
+  const tx = db.transaction("images", "readonly");
+  for (let cursor = await tx.store.openCursor(); cursor; cursor = await cursor.continue()) {
+    const record = cursor.value;
+    if (record.referenceImageIds) {
+      for (const id of record.referenceImageIds) reachable.add(id);
+      for (const id of (record as StoredImageRecord).manualReferenceImageIds ?? [])
+        reachable.add(id);
+    }
+  }
 
   const sessions = await getAllSessions();
   for (const session of sessions) {
@@ -572,36 +355,17 @@ export async function garbageCollectReferences(
 
 export async function getExistingReferenceImageIds(): Promise<Set<string>> {
   const db = await initDB();
-
-  return new Promise((resolve, reject) => {
-    const transaction = db.transaction(STORES.references, "readonly");
-    const request = transaction.objectStore(STORES.references).getAllKeys();
-    request.onerror = () => reject(request.error);
-    request.onsuccess = () => resolve(new Set(request.result as string[]));
-  });
+  return new Set(await db.getAllKeys("references"));
 }
 
 export async function importImage(record: StoredImageRecord): Promise<void> {
   const db = await initDB();
-
-  const transaction = db.transaction(STORES.images, "readwrite");
-  const store = transaction.objectStore(STORES.images);
-  store.put(record);
-
-  await awaitTransaction(transaction, undefined);
+  await db.put("images", record);
 }
 
 export async function getExistingImageIds(): Promise<Set<string>> {
   const db = await initDB();
-
-  return new Promise((resolve, reject) => {
-    const transaction = db.transaction(STORES.images, "readonly");
-    const store = transaction.objectStore(STORES.images);
-    const request = store.getAllKeys();
-
-    request.onerror = () => reject(request.error);
-    request.onsuccess = () => resolve(new Set(request.result as string[]));
-  });
+  return new Set(await db.getAllKeys("images"));
 }
 
 // Helper to convert stored record to display record with Object URL
@@ -627,7 +391,7 @@ export function revokeImageUrl(image: CompletedGalleryItem | ReferenceImage): vo
 }
 
 async function normalizeStoredImageRecord(
-  db: IDBDatabase,
+  db: GalleryDB,
   record: StoredImageRecord | LegacyStoredImageRecord
 ): Promise<StoredImageRecord> {
   if ("originalBlob" in record && "thumbnailBlob" in record) {
@@ -654,19 +418,8 @@ async function normalizeStoredImageRecord(
     metadata: legacy.metadata ?? {},
   };
 
-  await persistMigratedImageRecord(db, normalized);
+  await db.put("images", normalized);
   return normalized;
-}
-
-async function persistMigratedImageRecord(
-  db: IDBDatabase,
-  record: StoredImageRecord
-): Promise<void> {
-  const transaction = db.transaction(STORES.images, "readwrite");
-  const store = transaction.objectStore(STORES.images);
-  store.put(record);
-
-  await awaitTransaction(transaction, undefined);
 }
 
 // Editor session operations
@@ -690,9 +443,7 @@ export async function upsertEditorSession(session: StoredEditorSession): Promise
     savedAt: Date.now(),
   };
 
-  const transaction = db.transaction(STORES.sessions, "readwrite");
-  transaction.objectStore(STORES.sessions).put(record);
-  await awaitTransaction(transaction, undefined);
+  await db.put("sessions", record);
   return record.id;
 }
 
@@ -700,44 +451,22 @@ export async function getSessionByGalleryItemId(
   galleryItemId: string
 ): Promise<StoredEditorSession | null> {
   const db = await initDB();
-
-  return new Promise((resolve, reject) => {
-    const transaction = db.transaction(STORES.sessions, "readonly");
-    const index = transaction.objectStore(STORES.sessions).index("by_gallery_item");
-    const request = index.get(galleryItemId);
-    request.onerror = () => reject(request.error);
-    request.onsuccess = () => resolve((request.result as StoredEditorSession | undefined) ?? null);
-  });
+  return (await db.getFromIndex("sessions", "by_gallery_item", galleryItemId)) ?? null;
 }
 
 export async function getSessionById(id: string): Promise<StoredEditorSession | null> {
   const db = await initDB();
-
-  return new Promise((resolve, reject) => {
-    const transaction = db.transaction(STORES.sessions, "readonly");
-    const request = transaction.objectStore(STORES.sessions).get(id);
-    request.onerror = () => reject(request.error);
-    request.onsuccess = () => resolve((request.result as StoredEditorSession | undefined) ?? null);
-  });
+  return (await db.get("sessions", id)) ?? null;
 }
 
 export async function deleteEditorSession(id: string): Promise<void> {
   const db = await initDB();
-
-  const transaction = db.transaction(STORES.sessions, "readwrite");
-  transaction.objectStore(STORES.sessions).delete(id);
-  await awaitTransaction(transaction, undefined);
+  await db.delete("sessions", id);
 }
 
 export async function getAllSessions(): Promise<StoredEditorSession[]> {
   const db = await initDB();
-
-  return new Promise((resolve, reject) => {
-    const transaction = db.transaction(STORES.sessions, "readonly");
-    const request = transaction.objectStore(STORES.sessions).getAll();
-    request.onerror = () => reject(request.error);
-    request.onsuccess = () => resolve(request.result as StoredEditorSession[]);
-  });
+  return db.getAll("sessions");
 }
 
 /** Find the first session that includes `imageId` as a source, turn reference, or turn output. */
